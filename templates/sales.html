@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Sales - Inventory{% endblock %}
+{% block content %}
+    <div class="toolbar">
+        <h1 style="margin-bottom:0;">Sales</h1>
+        <a class="btn" href="{{ url_for('add_sale') }}">+ Record Sale</a>
+    </div>
+
+    {% if sales %}
+        <table>
+            <tr>
+                <th>Date</th><th>Product</th><th>Qty</th><th>Price/Unit</th><th>Total</th><th>Customer</th>
+            </tr>
+            {% for s in sales %}
+            <tr>
+                <td>{{ s.date.strftime('%d %b %Y') }}</td>
+                <td>{{ s.product.name if s.product else '—' }}</td>
+                <td>{{ s.quantity }}</td>
+                <td>₹{{ s.selling_price }}</td>
+                <td>₹{{ s.total_amount }}</td>
+                <td>{{ s.customer or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p class="empty-state">No sales recorded yet.</p>
+    {% endif %}
+
+    <a class="back-link" href="/">Back to Dashboard</a>
+{% endblock %}

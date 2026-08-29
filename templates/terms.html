@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms & Conditions | Thugile & Threads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
+  <style>
+    .policy-wrap{max-width:800px;margin:0 auto;padding:50px 5vw 80px}
+    .policy-wrap h1{margin:0 0 8px;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}
+    .policy-wrap .subtitle{margin:0 0 40px;font-size:16px;color:#5c5248}
+    .policy-section{margin-bottom:40px}
+    .policy-section h2{margin:0 0 16px;font-size:20px;font-weight:600}
+    .policy-section p{margin:0 0 12px;font-size:15px;line-height:1.7;color:#3d3229}
+    .policy-section ul{margin:0;padding-left:20px}
+    .policy-section li{margin-bottom:8px;font-size:15px;line-height:1.7;color:#3d3229}
+    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+  </style>
+</head>
+<body class="inner-page">
+  <div class="grain"></div>
+  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
+    <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
+    
+  </a>
+  <header class="site-header">
+    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
+    <div class="header-inner">
+      <nav class="main-nav">
+        <a href="/shop/collections">Collections</a>
+        <a href="/shop/#story">Our story</a>
+        <a href="/shop/#contact">Visit us</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="wishlist-btn-header" aria-label="Wishlist">
+          ♥ <span id="wishlist-count">0</span>
+        </button>
+        <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="policy-wrap" id="top">
+    <a class="back-link" href="/shop/">← Back to shop</a>
+    <h1>Terms & Conditions</h1>
+    <p class="subtitle">Welcome to Thugile & Threads. By using our website, you agree to the following terms and conditions.</p>
+
+    <div class="policy-section">
+      <h2>1. General Terms</h2>
+      <p>Thugile & Threads is a boutique brand specializing in handcrafted chudidar sets and occasionwear. All products listed on our website are subject to availability. We reserve the right to discontinue any product or modify its price without prior notice.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>2. Orders & Payments</h2>
+      <p>All orders are confirmed only after successful payment through our secure online payment gateway. We do not offer cash on delivery. Prices are listed in Indian Rupees (INR) and include applicable taxes unless otherwise stated.</p>
+      <p>We reserve the right to refuse or cancel any order if we suspect fraudulent activity or if the product is unavailable due to a pricing error.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>3. Products & Sizing</h2>
+      <p>Our chudidar sets are handcrafted by skilled artisans. Slight variations in color, texture, and embroidery are part of the handmade charm and should not be considered defects. We provide a detailed size guide on our website; please refer to it before ordering.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>4. Intellectual Property</h2>
+      <p>All content on this website—including images, designs, logos, and text—is the exclusive property of Thugile & Threads and is protected under copyright law. Unauthorized reproduction or distribution is strictly prohibited.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>5. Limitation of Liability</h2>
+      <p>Thugile & Threads shall not be held liable for any indirect, incidental, or consequential damages arising from the use of our products or website. Our liability is limited to the purchase price of the product in question.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>6. Governing Law</h2>
+      <p>These terms and conditions are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Chennai, Tamil Nadu.</p>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
+
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-modal" id="auth-modal">
+      <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+      <form class="auth-form" id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit" class="auth-submit">Login</button>
+        <p class="auth-error" id="login-error"></p>
+      </form>
+      <form class="auth-form hidden" id="signup-form">
+        <input type="text" id="signup-name" placeholder="Full Name" required>
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required>
+        <button type="submit" class="auth-submit">Create Account</button>
+        <p class="auth-error" id="signup-error"></p>
+      </form>
+    </div>
+  </div>
+
+
+</body>
+</html>

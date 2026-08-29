@@ -1,0 +1,247 @@
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    background: #faf6f0;
+    color: #2c2620;
+}
+
+.navbar {
+    background: #4a3728;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px;
+}
+
+.navbar .brand a {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.2rem;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar ul a {
+    color: #f0e6d8;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+.navbar ul a:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 32px auto;
+    padding: 0 24px;
+}
+
+h1 {
+    color: #4a3728;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: #8a7a68;
+    margin-top: 0;
+    margin-bottom: 24px;
+}
+
+.flash {
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+.flash-success {
+    background: #e3f3e6;
+    color: #245c33;
+    border: 1px solid #b8dfc0;
+}
+
+.flash-error {
+    background: #fbe6e4;
+    color: #8c2c22;
+    border: 1px solid #f0bcb6;
+}
+
+.card-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid #eadfce;
+    border-radius: 10px;
+    padding: 18px 22px;
+    flex: 1;
+    min-width: 160px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.stat-card .label {
+    font-size: 0.8rem;
+    color: #a3927c;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-card .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #4a3728;
+    margin-top: 4px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0e6d8;
+    font-size: 0.92rem;
+}
+
+th {
+    background: #f3e9db;
+    color: #6b5844;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr.low-stock {
+    background: #fdf1ee;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-low {
+    background: #f8d7d0;
+    color: #9c3b26;
+}
+
+.badge-ok {
+    background: #dcefe0;
+    color: #2b6b3d;
+}
+
+.actions a, .actions button {
+    font-size: 0.85rem;
+    margin-right: 10px;
+    color: #6b5844;
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.actions a.delete-link, .actions button.delete-btn {
+    color: #a3392a;
+}
+
+.btn {
+    display: inline-block;
+    background: #4a3728;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #362819;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+form.card-form {
+    background: #fff;
+    border: 1px solid #eadfce;
+    border-radius: 10px;
+    padding: 24px;
+    max-width: 480px;
+}
+
+form.card-form label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6b5844;
+    margin: 14px 0 4px;
+}
+
+form.card-form input,
+form.card-form select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd0bc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+form.card-form .form-actions {
+    margin-top: 22px;
+    display: flex;
+    gap: 10px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #8a7a68;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.empty-state {
+    color: #a3927c;
+    padding: 24px;
+    text-align: center;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px dashed #ddd0bc;
+}

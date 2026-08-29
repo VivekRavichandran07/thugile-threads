@@ -1,0 +1,8 @@
+cd inventory-system
+python -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+
+
+cd /home/vivek/repositories/inventory-system && source venv/bin/activate && python app.py

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Thugile & Threads — thoughtfully made chudidars and Indian occasionwear." />
+  <title>Thugile & Threads | Chudidar Edit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/storefront/style.css" />
+</head>
+<body>
+  <div class="grain"></div>
+
+  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
+    <img src="/static/storefront/assets/thugile-and-threads-logo.png" alt="Thugile & Threads">
+    <span class="logo-text">Thugile & Threads</span>
+  </a>
+
+  <header class="site-header">
+    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
+    <div class="header-inner">
+      <nav class="main-nav">
+        <a href="/shop/collections">Collections</a>
+        <a href="#story">Our story</a>
+        <a href="#contact">Visit us</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="wishlist-btn-header" aria-label="Wishlist">
+          ♥ <span id="wishlist-count">0</span>
+        </button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
+        <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="cart-overlay" id="cart-overlay"></div>
+  <aside class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+      <h3>Your bag</h3>
+      <button class="cart-close" id="cart-close" aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <p class="cart-total">Total: <span id="cart-total">₹ 0</span></p>
+      <button class="checkout-btn" id="checkout-btn" disabled>Checkout</button>
+    </div>
+  </aside>
+
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-modal" id="auth-modal">
+      <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+      <form class="auth-form" id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit" class="auth-submit">Login</button>
+        <p class="auth-error" id="login-error"></p>
+      </form>
+      <form class="auth-form hidden" id="signup-form">
+        <input type="text" id="signup-name" placeholder="Full Name" required>
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required>
+        <button type="submit" class="auth-submit">Create Account</button>
+        <p class="auth-error" id="signup-error"></p>
+      </form>
+    </div>
+  </div>
+
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-image parallax" data-speed="0.14"></div>
+      <div class="hero-copy">
+        <p class="eyebrow">The festive edit · 2026</p>
+        <h1>Clothes that carry <em>home</em> with them.</h1>
+        <a class="arrow-link" href="#collection">Discover the collection <span>↓</span></a>
+      </div>
+      <p class="hero-note">Thoughtfully tailored<br>in South India</p>
+    </section>
+
+    <section class="intro reveal" id="story">
+      <div class="intro-inner">
+        <p class="eyebrow">Made for your every celebration</p>
+        <h2>Soft silhouettes, rich details,<br><em>quietly unforgettable.</em></h2>
+        <p class="intro-text">Every Thugile & Threads chudidar begins with a feeling: the ease of being yourself, dressed for the moment. Discover hand-finished sets in colours drawn from our most cherished occasions.</p>
+      </div>
+    </section>
+
+    <section class="collection-section reveal" id="collection">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Shop the edit</p>
+          <h2>The Chudidar <em>Collection</em></h2>
+        </div>
+        <a class="shop-all" href="#">Shop all</a>
+      </div>
+      <div class="products">
+        <article class="product">
+          <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png" alt="Rust embroidered chudidar set" loading="lazy"><span class="tag">New arrival</span></div>
+          <div class="product-info"><div><h3>Gulmohar Set</h3><p>Rust · embroidered cotton silk</p></div><div class="buy"><strong>₹ 4,850</strong><button data-item="Gulmohar Set" data-price="4850">Add to bag</button><button class="size-guide-btn" data-item="Gulmohar Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/9419023/pexels-photo-9419023.jpeg?auto=format&fit=crop&w=900&q=85" alt="Blue occasionwear chudidar" loading="lazy"></div>
+          <div class="product-info"><div><h3>Neelam Set</h3><p>Indigo · hand block print</p></div><div class="buy"><strong>₹ 3,950</strong><button data-item="Neelam Set" data-price="3950">Add to bag</button><button class="size-guide-btn" data-item="Neelam Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/37054322/pexels-photo-37054322.jpeg?auto=format&fit=crop&w=900&q=85" alt="Rose pink embroidered salwar suit" loading="lazy"><span class="tag">Bestseller</span></div>
+          <div class="product-info"><div><h3>Rosa Set</h3><p>Rose · zari detail</p></div><div class="buy"><strong>₹ 5,250</strong><button data-item="Rosa Set" data-price="5250">Add to bag</button><button class="size-guide-btn" data-item="Rosa Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/28428053/pexels-photo-28428053.jpeg?auto=format&fit=crop&w=900&q=85" alt="Green festive Indian suit" loading="lazy"></div>
+          <div class="product-info"><div><h3>Maragatham Set</h3><p>Emerald · woven tissue</p></div><div class="buy"><strong>₹ 6,150</strong><button data-item="Maragatham Set" data-price="6150">Add to bag</button><button class="size-guide-btn" data-item="Maragatham Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/17876038/pexels-photo-17876038.jpeg?auto=format&fit=crop&w=900&q=85" alt="Mustard yellow Indian outfit" loading="lazy"></div>
+          <div class="product-info"><div><h3>Manjal Set</h3><p>Marigold · mul cotton</p></div><div class="buy"><strong>₹ 3,650</strong><button data-item="Manjal Set" data-price="3650">Add to bag</button><button class="size-guide-btn" data-item="Manjal Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/28943603/pexels-photo-28943603.jpeg?auto=format&fit=crop&w=900&q=85" alt="Ivory traditional chudidar" loading="lazy"><span class="tag">Limited</span></div>
+          <div class="product-info"><div><h3>Vennila Set</h3><p>Ivory · mukaish work</p></div><div class="buy"><strong>₹ 5,750</strong><button data-item="Vennila Set" data-price="5750">Add to bag</button><button class="size-guide-btn" data-item="Vennila Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/10156154/pexels-photo-10156154.jpeg?auto=format&fit=crop&w=1100&q=85" alt="Terracotta festive chudidar set" loading="lazy"></div>
+          <div class="product-info"><div><h3>Thamarai Set</h3><p>Terracotta · thread embroidery</p></div><div class="buy"><strong>₹ 4,450</strong><button data-item="Thamarai Set" data-price="4450">Add to bag</button><button class="size-guide-btn" data-item="Thamarai Set">Size Guide</button></div></div>
+        </article>
+        <article class="product">
+          <div class="product-image reveal"><img src="https://images.pexels.com/photos/7920188/pexels-photo-7920188.jpeg?auto=format&fit=crop&w=900&q=85" alt="Purple silk chudidar set" loading="lazy"><span class="tag">New arrival</span></div>
+          <div class="product-info"><div><h3>Mayil Set</h3><p>Mulberry · silk blend</p></div><div class="buy"><strong>₹ 5,950</strong><button data-item="Mayil Set" data-price="5950">Add to bag</button><button class="size-guide-btn" data-item="Mayil Set">Size Guide</button></div></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="quote parallax-section reveal">
+      <div class="quote-image parallax" data-speed="0.1"></div>
+      <blockquote>“The things we choose to wear become part of the stories we tell.”</blockquote>
+    </section>
+
+    <section class="testimonials reveal">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Kind words</p>
+          <h2>What our <em>community</em> says</h2>
+        </div>
+      </div>
+      <div class="testimonial-grid">
+        <div class="testimonial">
+          <p class="testimonial-text">“The fabric quality is unmatched. I wore my Gulmohar Set to a wedding and received so many compliments. It feels like it was made just for me.”</p>
+          <p class="testimonial-author">Priya R. <span>— Gulmohar Set</span></p>
+        </div>
+        <div class="testimonial">
+          <p class="testimonial-text">“Finally, chudidars that are comfortable and elegant. The attention to detail in the embroidery is beautiful. I’m already ordering another.”</p>
+          <p class="testimonial-author">Ananya S. <span>— Rosa Set</span></p>
+        </div>
+        <div class="testimonial">
+          <p class="testimonial-text">“The colors are so rich and the fit is perfect. It’s rare to find clothing that feels this special. Thugile & Threads is now my go-to for every celebration.”</p>
+          <p class="testimonial-author">Meera K. <span>— Maragatham Set</span></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="newsletter reveal" id="contact">
+      <p class="eyebrow">A little note from us</p>
+      <h2>Good things are<br><em>on their way.</em></h2>
+      <p>New drops, intimate trunk shows and stories from our studio.</p>
+      <form>
+        <label class="sr-only" for="email">Email address</label>
+        <input id="email" type="email" placeholder="Your email address" required>
+        <button type="submit">Keep me posted <span>→</span></button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="/static/storefront/assets/thugile-and-threads-logo.png" alt="Thugile & Threads" class="footer-logo">
+        <p>Thoughtfully tailored in South India.</p>
+      </div>
+       <div class="footer-links">
+         <div class="footer-col">
+           <h4>Shop</h4>
+           <a href="/shop/collections">Collections</a>
+           <a href="#">New Arrivals</a>
+           <a href="#">Bestsellers</a>
+         </div>
+        <div class="footer-col">
+          <h4>About</h4>
+          <a href="#story">Our Story</a>
+          <a href="#contact">Visit Us</a>
+          <a href="#">Contact</a>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <a href="/shop/shipping-returns">Shipping & Returns</a>
+          <a href="#" id="size-guide-link">Size Guide</a>
+          <a href="/shop/privacy-policy">Privacy Policy</a>
+          <a href="/shop/terms">Terms & Conditions</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Thugile & Threads</p>
+    </div>
+  </footer>
+
+
+  <div class="popup-overlay" id="size-guide-overlay">
+    <div class="popup" id="size-guide-popup">
+      <button class="popup-close" id="size-guide-close" aria-label="Close">×</button>
+      <h2>Size Guide</h2>
+      <p class="popup-subtitle">All measurements in inches. We recommend choosing your usual size for a relaxed fit.</p>
+      <div class="size-table-wrap">
+        <table class="size-table">
+          <thead>
+            <tr><th>Size</th><th>Bust</th><th>Waist</th><th>Hip</th><th>Length</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>S</strong></td><td>34"</td><td>28"</td><td>36"</td><td>40"</td></tr>
+            <tr><td><strong>M</strong></td><td>36"</td><td>30"</td><td>38"</td><td>41"</td></tr>
+            <tr><td><strong>L</strong></td><td>38"</td><td>32"</td><td>40"</td><td>42"</td></tr>
+            <tr><td><strong>XL</strong></td><td>40"</td><td>34"</td><td>42"</td><td>43"</td></tr>
+            <tr><td><strong>XXL</strong></td><td>42"</td><td>36"</td><td>44"</td><td>44"</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="how-to-measure">
+        <h3>How to measure</h3>
+        <p>Use a soft measuring tape and keep it comfortable against your skin—not too tight, not too loose.</p>
+        <ul>
+          <li><strong>Bust:</strong> Measure around the fullest part of your chest, keeping the tape parallel to the floor.</li>
+          <li><strong>Waist:</strong> Measure at the narrowest part of your waist, about two fingers above your belly button.</li>
+          <li><strong>Hip:</strong> Measure around the fullest part of your hips, passing over the hip bones.</li>
+          <li><strong>Length:</strong> Measure from the top of the shoulder down to the desired hem length.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <div class="popup-overlay" id="product-overlay">
+    <div class="popup product-popup" id="product-popup">
+      <button class="popup-close" id="product-popup-close" aria-label="Close">×</button>
+      <div class="product-popup-gallery">
+        <div class="product-popup-main-image" id="product-main-image"></div>
+        <div class="product-popup-thumbnails" id="product-thumbnails"></div>
+      </div>
+      <div class="product-popup-details">
+        <h2 id="product-popup-name"></h2>
+        <p class="product-popup-price" id="product-popup-price"></p>
+        <p class="product-popup-desc" id="product-popup-desc"></p>
+        <div class="product-popup-sizes" id="product-popup-sizes"></div>
+        <div class="product-popup-actions">
+          <button class="size-guide-btn" id="product-size-guide">Size Guide</button>
+          <button class="add-to-bag-btn" id="product-add-to-bag">Add to bag</button>
+          <button class="wishlist-btn" id="product-wishlist-btn" aria-label="Add to wishlist">
+            <span class="wishlist-icon">♡</span> <span class="wishlist-text">Add to wishlist</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/storefront/script.js"></script>
+</body>
+</html>

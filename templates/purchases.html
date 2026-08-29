@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Purchases - Inventory{% endblock %}
+{% block content %}
+    <div class="toolbar">
+        <h1 style="margin-bottom:0;">Purchases</h1>
+        <a class="btn" href="{{ url_for('add_purchase') }}">+ Record Purchase</a>
+    </div>
+
+    {% if purchases %}
+        <table>
+            <tr>
+                <th>Date</th><th>Product</th><th>Qty</th><th>Cost/Unit</th><th>Total Cost</th><th>Supplier</th>
+            </tr>
+            {% for pu in purchases %}
+            <tr>
+                <td>{{ pu.date.strftime('%d %b %Y') }}</td>
+                <td>{{ pu.product.name if pu.product else '—' }}</td>
+                <td>{{ pu.quantity }}</td>
+                <td>₹{{ pu.cost_price }}</td>
+                <td>₹{{ pu.total_cost }}</td>
+                <td>{{ pu.supplier or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p class="empty-state">No purchases recorded yet.</p>
+    {% endif %}
+
+    <a class="back-link" href="/">Back to Dashboard</a>
+{% endblock %}

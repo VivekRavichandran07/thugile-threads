@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | Thugile & Threads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
+  <style>
+    .policy-wrap{max-width:800px;margin:0 auto;padding:50px 5vw 80px}
+    .policy-wrap h1{margin:0 0 8px;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}
+    .policy-wrap .subtitle{margin:0 0 40px;font-size:16px;color:#5c5248}
+    .policy-section{margin-bottom:40px}
+    .policy-section h2{margin:0 0 16px;font-size:20px;font-weight:600}
+    .policy-section p{margin:0 0 12px;font-size:15px;line-height:1.7;color:#3d3229}
+    .policy-section ul{margin:0;padding-left:20px}
+    .policy-section li{margin-bottom:8px;font-size:15px;line-height:1.7;color:#3d3229}
+    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+  </style>
+</head>
+<body class="inner-page">
+  <div class="grain"></div>
+  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
+    <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
+    
+  </a>
+  <header class="site-header">
+    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
+    <div class="header-inner">
+      <nav class="main-nav">
+        <a href="/shop/collections">Collections</a>
+        <a href="/shop/#story">Our story</a>
+        <a href="/shop/#contact">Visit us</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="wishlist-btn-header" aria-label="Wishlist">
+          ♥ <span id="wishlist-count">0</span>
+        </button>
+        <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="policy-wrap" id="top">
+    <a class="back-link" href="/shop/">← Back to shop</a>
+    <h1>Privacy Policy</h1>
+    <p class="subtitle">Your privacy is important to us. This policy explains how we collect, use, and protect your personal information.</p>
+
+    <div class="policy-section">
+      <h2>Information We Collect</h2>
+      <p>We collect personal information such as your name, email address, phone number, and shipping address when you place an order or sign up for our newsletter. We do not store payment card details—these are processed securely by our payment partners.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>How We Use Your Information</h2>
+      <p>Your information is used solely to process your order, communicate order updates, and send you promotional content only if you have opted in. We never sell or share your personal data with third parties for marketing purposes.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Data Security</h2>
+      <p>We implement appropriate technical and organizational measures to protect your personal data. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Cookies</h2>
+      <p>Our website uses cookies to improve your browsing experience and analyze site traffic. You can disable cookies in your browser settings, but some features of the website may not function properly.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Contact Us</h2>
+      <p>If you have any questions about this Privacy Policy, please contact us at <strong>support@thugileandthreads.com</strong>.</p>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
+
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-modal" id="auth-modal">
+      <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+      <form class="auth-form" id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit" class="auth-submit">Login</button>
+        <p class="auth-error" id="login-error"></p>
+      </form>
+      <form class="auth-form hidden" id="signup-form">
+        <input type="text" id="signup-name" placeholder="Full Name" required>
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required>
+        <button type="submit" class="auth-submit">Create Account</button>
+        <p class="auth-error" id="signup-error"></p>
+      </form>
+    </div>
+  </div>
+
+
+</body>
+</html>
