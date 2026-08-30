@@ -15,7 +15,7 @@
 
   <a class="floating-logo" href="/shop/#top" aria-label="Thugile and Threads home">
     <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
-    
+    <span class="logo-text">Thugile & Threads</span>
   </a>
 
   <header class="site-header">
@@ -32,7 +32,10 @@
         <button class="wishlist-btn-header" aria-label="Wishlist">
           ♥ <span id="wishlist-count">0</span>
         </button>
+        <div class="auth-menu">
         <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+        <div class="profile-dropdown" id="profile-dropdown"></div>
+      </div>
         <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
       </div>
     </div>

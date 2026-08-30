@@ -24,7 +24,7 @@
   <div class="grain"></div>
   <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
     <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
-    
+    <span class="logo-text">Thugile & Threads</span>
   </a>
   <header class="site-header">
     <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
@@ -39,11 +39,27 @@
         <button class="wishlist-btn-header" aria-label="Wishlist">
           ♥ <span id="wishlist-count">0</span>
         </button>
+        <div class="auth-menu">
         <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+        <div class="profile-dropdown" id="profile-dropdown"></div>
+      </div>
         <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
       </div>
     </div>
   </header>
+
+  <div class="cart-overlay" id="cart-overlay"></div>
+  <aside class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+      <h3>Your bag</h3>
+      <button class="cart-close" id="cart-close" aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <p class="cart-total">Total: <span id="cart-total">₹ 0</span></p>
+      <button class="checkout-btn" id="checkout-btn" disabled>Checkout</button>
+    </div>
+  </aside>
 
   <main class="policy-wrap" id="top">
     <a class="back-link" href="/shop/">← Back to shop</a>
@@ -75,6 +91,8 @@
       <p>If you have any questions about this Privacy Policy, please contact us at <strong>support@thugileandthreads.com</strong>.</p>
     </div>
   </main>
+
+  <div class="toast" id="toast" role="status"></div>
 
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
 

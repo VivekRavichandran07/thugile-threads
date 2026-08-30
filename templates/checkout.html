@@ -9,14 +9,17 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
   <style>
-    .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.cart-item{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px;transition:opacity .3s ease}.back-link:hover{opacity:.6}@media(max-width:900px){.checkout-grid{grid-template-columns:1fr;gap:48px}}@media(max-width:640px){.checkout-wrap{padding-top:110px}.floating-logo{top:32px}.floating-logo img{height:70px;width:70px}}@media(min-width:641px){.floating-logo img{height:80px;width:80px}}.checkout-page .floating-logo{left:auto!important;right:5vw;transform:translateX(0)!important;top:100px}.checkout-page .floating-logo img{height:170px!important;width:170px!important}.checkout-page .floating-logo .logo-text{font-size:16px}
-  .auth-btn-header{background:none;border:0;font-size:18px;cursor:pointer;color:var(--ink);padding:4px}.auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s ease}.auth-overlay.open{opacity:1;pointer-events:auto}.auth-modal{background:#fff;padding:40px;width:100%;max-width:400px;position:relative;border:1px solid var(--line)}.auth-close{position:absolute;top:12px;right:16px;background:none;border:0;font-size:28px;cursor:pointer;color:var(--ink);line-height:1}.auth-tabs{display:flex;gap:8px;margin-bottom:24px}.auth-tab{flex:1;padding:10px;background:none;border:1px solid var(--line);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .3s ease}.auth-tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}.auth-form{display:flex;flex-direction:column;gap:12px}.auth-form.hidden{display:none}.auth-form input{padding:12px;border:1px solid var(--line);font:400 14px var(--sans);outline:none}.auth-form input:focus{border-color:var(--ink)}.auth-submit{padding:12px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:opacity .3s ease}.auth-submit:hover{opacity:.85}.auth-error{color:var(--terracotta);font-size:13px;margin:0;min-height:18px}.auth-container{position:relative}.auth-btn-header{background:none;border:0;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px}.auth-icon{font-size:18px}.auth-label{font:500 9px var(--mono);letter:.04em;text-transform:uppercase}.auth-dropdown{position:absolute;top:100%;right:0;background:#fff;border:1px solid var(--line);min-width:160px;display:none;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,.1)}.auth-dropdown.open{display:block}.auth-dropdown-item{display:block;width:100%;padding:12px 16px;background:none;border:0;text-align:left;font:500 12px var(--mono);letter:.04em;text-transform:uppercase;cursor:pointer;transition:background .2s ease}.auth-dropdown-item:hover{background:var(--sand)}.orders-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s ease;padding:20px}.orders-overlay.open{opacity:1;pointer-events:auto}.orders-modal{background:#fff;padding:40px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;position:relative;border:1px solid var(--line)}.orders-close{position:absolute;top:12px;right:16px;background:none;border:0;font-size:28px;cursor:pointer;color:var(--ink);line-height:1}.orders-modal h2{margin:0 0 24px;font-size:24px}.orders-list{display:flex;flex-direction:column;gap:16px}.order-item{border:1px solid var(--line);padding:20px}.order-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.order-number{font:500 12px var(--mono);letter:.06em;text-transform:uppercase}.order-status{font:500 10px var(--mono);letter:.06em;text-transform:uppercase;padding:4px 8px;background:var(--sand)}.order-status.confirmed{background:#d4edda;color:#155724}.order-date{font-size:13px;color:#7a6e62;margin-bottom:8px}.order-items{font-size:14px;margin-bottom:8px}.order-total{font:500 14px var(--mono);letter:.04em;text-align:right}.no-orders{text-align:center;color:#7a6e62;padding:40px}</style>
+    .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.cart-item{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+  </style>
 </head>
 <body class="inner-page checkout-page">
   <div class="grain"></div>
-  <a class="floating-logo" href="/" aria-label="Thugile and Threads home">
+
+  <a class="floating-logo" href="/shop/" aria-label="Thugile and Threads home">
     <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
+    <span class="logo-text">Thugile & Threads</span>
   </a>
+
   <header class="site-header">
     <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
     <div class="header-inner">
@@ -27,11 +30,30 @@
       </nav>
       <div class="header-actions">
         <button class="icon-btn search-btn" aria-label="Search">⌕</button>
-        <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+        <button class="wishlist-btn-header" aria-label="Wishlist">
+          ♥ <span id="wishlist-count">0</span>
+        </button>
+        <div class="auth-menu">
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+          <div class="profile-dropdown" id="profile-dropdown"></div>
+        </div>
         <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
       </div>
     </div>
   </header>
+
+  <div class="cart-overlay" id="cart-overlay"></div>
+  <aside class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+      <h3>Your bag</h3>
+      <button class="cart-close" id="cart-close" aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <p class="cart-total">Total: <span id="cart-total">₹ 0</span></p>
+      <button class="checkout-btn" id="checkout-btn" disabled>Checkout</button>
+    </div>
+  </aside>
 
   <main id="top" class="checkout-wrap">
     <div class="checkout-header">
@@ -74,62 +96,6 @@
     </div>
   </main>
 
-  <script>
-    let cart = [];
-    try {
-      const saved = localStorage.getItem('tnt_cart');
-      cart = saved ? JSON.parse(saved) : [];
-    } catch {
-      cart = [];
-    }
-
-    function rupees(val) {
-      return '₹ ' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    }
-
-    function renderCheckout() {
-      const itemsEl = document.getElementById('checkout-items');
-      const totalEl = document.getElementById('checkout-total');
-      const placeBtn = document.getElementById('place-order-btn');
-      const countEl = document.getElementById('bag-count');
-
-      const totalItems = cart.reduce((s, i) => s + i.qty, 0);
-      if (countEl) countEl.textContent = totalItems;
-
-      if (!cart.length) {
-        itemsEl.innerHTML = '<p class="cart-empty">Your bag is empty.</p>';
-        totalEl.textContent = '₹ 0';
-        placeBtn.disabled = true;
-        return;
-      }
-      placeBtn.disabled = false;
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-      totalEl.textContent = rupees(total);
-      itemsEl.innerHTML = cart.map(item => `
-        <div class="cart-item">
-          <div>
-            <p class="cart-item-name">${item.name}</p>
-            <p class="cart-item-meta">Qty: ${item.qty} · ${rupees(item.price)} each</p>
-          </div>
-          <strong class="cart-item-price">${rupees(item.price * item.qty)}</strong>
-        </div>
-      `).join('');
-    }
-
-    function placeOrder() {
-      const method = document.querySelector('input[name="payment"]:checked').value;
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-      alert('Order placed successfully!\\n\\nPayment: ' + method.toUpperCase() + '\\nTotal: ' + rupees(total) + '\\n\\nThank you for shopping with Thugile & Threads.');
-      localStorage.removeItem('tnt_cart');
-      cart = [];
-      renderCheckout();
-      setTimeout(() => { window.location.href = '/shop/'; }, 1500);
-    }
-
-    renderCheckout();
-  </script>
-  <script src="/static/storefront/script.js"></script>
-
   <div class="auth-overlay" id="auth-overlay">
     <div class="auth-modal" id="auth-modal">
       <button class="auth-close" id="auth-close" aria-label="Close">×</button>
@@ -153,6 +119,88 @@
     </div>
   </div>
 
+  <div class="popup-overlay" id="size-guide-overlay">
+    <div class="popup" id="size-guide-popup">
+      <button class="popup-close" id="size-guide-close" aria-label="Close">×</button>
+      <h2>Size Guide</h2>
+      <p class="popup-subtitle">All measurements in inches. We recommend choosing your usual size for a relaxed fit.</p>
+      <div class="size-table-wrap">
+        <table class="size-table">
+          <thead>
+            <tr><th>Size</th><th>Bust</th><th>Waist</th><th>Hip</th><th>Length</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>S</strong></td><td>34"</td><td>28"</td><td>36"</td><td>40"</td></tr>
+            <tr><td><strong>M</strong></td><td>36"</td><td>30"</td><td>38"</td><td>41"</td></tr>
+            <tr><td><strong>L</strong></td><td>38"</td><td>32"</td><td>40"</td><td>42"</td></tr>
+            <tr><td><strong>XL</strong></td><td>40"</td><td>34"</td><td>42"</td><td>43"</td></tr>
+            <tr><td><strong>XXL</strong></td><td>42"</td><td>36"</td><td>44"</td><td>44"</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="how-to-measure">
+        <h3>How to measure</h3>
+        <p>Use a soft measuring tape and keep it comfortable against your skin—not too tight, not too loose.</p>
+        <ul>
+          <li><strong>Bust:</strong> Measure around the fullest part of your chest, keeping the tape parallel to the floor.</li>
+          <li><strong>Waist:</strong> Measure at the narrowest part of your waist, about two fingers above your belly button.</li>
+          <li><strong>Hip:</strong> Measure around the fullest part of your hips, passing over the hip bones.</li>
+          <li><strong>Length:</strong> Measure from the top of the shoulder down to the desired hem length.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
+  <script>
+    function rupees(val) {
+      return '₹ ' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function renderCheckout() {
+      const itemsEl = document.getElementById('checkout-items');
+      const totalEl = document.getElementById('checkout-total');
+      const placeBtn = document.getElementById('place-order-btn');
+      const countEl = document.getElementById('bag-count');
+
+      const totalItems = bag.reduce((s, i) => s + i.qty, 0);
+      if (countEl) countEl.textContent = totalItems;
+
+      if (!bag.length) {
+        itemsEl.innerHTML = '<p class="cart-empty">Your bag is empty.</p>';
+        totalEl.textContent = '₹ 0';
+        placeBtn.disabled = true;
+        return;
+      }
+      placeBtn.disabled = false;
+      const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
+      totalEl.textContent = rupees(total);
+      itemsEl.innerHTML = bag.map(item => `
+        <div class="cart-item">
+          <div>
+            <p class="cart-item-name">${item.name}</p>
+            <p class="cart-item-meta">Qty: ${item.qty} · ${rupees(item.price)} each</p>
+          </div>
+          <strong class="cart-item-price">${rupees(item.price * item.qty)}</strong>
+        </div>
+      `).join('');
+    }
+
+    function placeOrder() {
+      const method = document.querySelector('input[name="payment"]:checked').value;
+      const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
+      alert('Order placed successfully!\n\nPayment: ' + method.toUpperCase() + '\nTotal: ' + rupees(total) + '\n\nThank you for shopping with Thugile & Threads.');
+      localStorage.removeItem('tnt_cart');
+      bag = [];
+      updateCartUI();
+      renderCheckout();
+      syncCartToServer();
+      setTimeout(() => { window.location.href = '/shop/'; }, 1500);
+    }
+
+    renderCheckout();
+  </script>
 </body>
 </html>

@@ -23,21 +23,20 @@
     .order-total{font:600 14px var(--mono);letter-spacing:.04em;margin:0}
     .no-orders{text-align:center;padding:80px 20px;color:#7a6e62;font-size:16px}
     .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
-    .auth-required{text-align:center;padding:80px 20px}
-    .auth-required p{color:#7a6e62;font-size:16px;margin-bottom:24px}
-    .auth-required .btn{display:inline-block;padding:12px 24px;background:var(--ink);color:#fff;text-decoration:none;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
   </style>
 </head>
 <body class="inner-page">
   <div class="grain"></div>
-  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
+  <a class="floating-logo" href="/shop/" aria-label="Thugile and Threads home">
     <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
+    <span class="logo-text">Thugile & Threads</span>
   </a>
+
   <header class="site-header">
     <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
     <div class="header-inner">
       <nav class="main-nav">
-        <a href="/shop/collections">Collections</a>
+        <a href="/shop/#collection">Collection</a>
         <a href="/shop/#story">Our story</a>
         <a href="/shop/#contact">Visit us</a>
       </nav>
@@ -55,6 +54,19 @@
     </div>
   </header>
 
+  <div class="cart-overlay" id="cart-overlay"></div>
+  <aside class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+      <h3>Your bag</h3>
+      <button class="cart-close" id="cart-close" aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <p class="cart-total">Total: <span id="cart-total">₹ 0</span></p>
+      <button class="checkout-btn" id="checkout-btn" disabled>Checkout</button>
+    </div>
+  </aside>
+
   <main class="orders-wrap" id="top">
     <a class="back-link" href="/shop/">← Back to shop</a>
     <h1>My Orders</h1>
@@ -64,12 +76,39 @@
     </div>
   </main>
 
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-modal" id="auth-modal">
+      <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+      <form class="auth-form" id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit" class="auth-submit">Login</button>
+        <p class="auth-error" id="login-error"></p>
+      </form>
+      <form class="auth-form hidden" id="signup-form">
+        <input type="text" id="signup-name" placeholder="Full Name" required>
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required>
+        <button type="submit" class="auth-submit">Create Account</button>
+        <p class="auth-error" id="signup-error"></p>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status"></div>
 
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
   <script>
-    async function loadOrders() {
+    async function loadOrdersPage() {
       const list = document.getElementById('orders-list');
+      if (!currentUser) {
+        list.innerHTML = '<p class="no-orders">Please login to view your orders.</p>';
+        return;
+      }
       try {
         const res = await fetch('/api/orders');
         const data = await res.json();
@@ -97,7 +136,7 @@
         list.innerHTML = '<p class="no-orders">Failed to load orders. Please try again.</p>';
       }
     }
-    loadOrders();
+    loadOrdersPage();
   </script>
 </body>
 </html>
