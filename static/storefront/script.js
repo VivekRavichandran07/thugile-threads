@@ -494,6 +494,7 @@ async function checkAuth() {
     }
   } catch {
     currentUser = null;
+    updateAuthUI();
   }
 }
 
