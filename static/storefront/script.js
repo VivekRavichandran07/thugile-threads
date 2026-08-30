@@ -434,6 +434,7 @@ checkAuth();
 // ---------------------------------------------------------------
 let currentUser = null;
 const authBtn = document.getElementById('auth-btn');
+const profileDropdown = document.getElementById('profile-dropdown');
 
 const authOverlay = document.getElementById('auth-overlay');
 const authClose = document.getElementById('auth-close');
@@ -444,19 +445,57 @@ const loginError = document.getElementById('login-error');
 const signupError = document.getElementById('signup-error');
 
 
+function updateAuthUI() {
+  console.log('updateAuthUI called, currentUser:', JSON.stringify(currentUser), 'profileDropdown:', profileDropdown);
+  if (currentUser) {
+    console.log('Setting dropdown content for:', currentUser.name, currentUser.email);
+    authBtn.textContent = currentUser.name.charAt(0).toUpperCase();
+    profileDropdown.innerHTML = `
+      <div class="profile-header">
+        <span class="profile-name">${escapeHtml(currentUser.name)}</span>
+        <span class="profile-email">${escapeHtml(currentUser.email)}</span>
+      </div>
+      <div class="profile-links">
+        <a href="/shop/orders" class="profile-link">My Orders</a>
+        <button class="profile-link" id="logout-btn">Logout</button>
+      </div>
+    `;
+    profileDropdown.classList.add('open');
+    console.log('dropdown innerHTML:', profileDropdown.innerHTML);
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+  } else {
+    authBtn.textContent = '\u{1F444}';
+    authBtn.title = 'Account';
+    profileDropdown.classList.remove('open');
+  }
+}
+
 async function checkAuth() {
   try {
     const res = await fetch('/api/auth/me');
     const data = await res.json();
     if (data.user) {
       currentUser = data.user;
-      authBtn.textContent = '✓';
-      authBtn.title = `Logged in as ${currentUser.name}`;
+      updateAuthUI();
     } else {
       currentUser = null;
       authBtn.textContent = '👤';
       authBtn.title = 'Account';
     }
+
+authBtn.addEventListener('click', () => {
+  console.log('authBtn clicked, currentUser:', currentUser, 'profileDropdown:', profileDropdown);
+  if (currentUser) {
+    profileDropdown.classList.toggle('open');
+    console.log('dropdown classes:', profileDropdown.classList.toString());
+  } else {
+    openAuthModal();
+  }
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.auth-menu')) profileDropdown.classList.remove('open');
+});
   } catch {
     currentUser = null;
   }
@@ -502,9 +541,7 @@ function closeAuthModal() {
   document.body.style.overflow = '';
 }
 
-authBtn.addEventListener('click', openAuthModal);
-authClose.addEventListener('click', closeAuthModal);
-authOverlay.addEventListener('click', e => { if (e.target === authOverlay) closeAuthModal(); });
+
 
 // ---------------------------------------------------------------
 // ORDERS
@@ -520,8 +557,9 @@ function closeOrders() {
   document.body.style.overflow = '';
 }
 
-ordersClose.addEventListener('click', closeOrders);
-ordersOverlay.addEventListener('click', e => { if (e.target === ordersOverlay) closeOrders(); });
+// Orders functionality - requires orders modal HTML
+// ordersClose.addEventListener('click', closeOrders);
+// ordersOverlay.addEventListener('click', e => { if (e.target === ordersOverlay) closeOrders(); });
 
 async function loadOrders() {
   if (!currentUser) {
@@ -556,9 +594,7 @@ async function loadOrders() {
   }
 }
 
-authBtn.addEventListener('click', openAuthModal);
-authClose.addEventListener('click', closeAuthModal);
-authOverlay.addEventListener('click', e => { if (e.target === authOverlay) closeAuthModal(); });
+
 
 authTabs.forEach(tab => {
   tab.addEventListener('click', () => {
@@ -589,8 +625,7 @@ loginForm.addEventListener('submit', async e => {
       return;
     }
     currentUser = data.user;
-    authBtn.textContent = '✓';
-    authBtn.title = `Logged in as ${currentUser.name}`;
+    updateAuthUI();
     closeAuthModal();
     loginForm.reset();
     syncCartToServer();
@@ -622,8 +657,7 @@ signupForm.addEventListener('submit', async e => {
       return;
     }
     currentUser = data.user;
-    authBtn.textContent = '✓';
-    authBtn.title = `Logged in as ${currentUser.name}`;
+    updateAuthUI();
     closeAuthModal();
     signupForm.reset();
     syncCartToServer();
