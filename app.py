@@ -90,6 +90,7 @@ def auth_register():
         user = conn.execute("SELECT id, name, email FROM users WHERE email = ?", (email,)).fetchone()
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
+        session["user_email"] = user["email"]
         return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
     except sqlite3.IntegrityError:
         return jsonify({"error": "An account with this email already exists."}), 409
@@ -111,6 +112,7 @@ def auth_login():
         return jsonify({"error": "Invalid email or password."}), 401
     session["user_id"] = user["id"]
     session["user_name"] = user["name"]
+    session["user_email"] = user["email"]
     return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
 
 
@@ -125,7 +127,7 @@ def auth_logout():
 def auth_me():
     if "user_id" not in session:
         return jsonify({"user": None})
-    return jsonify({"user": {"id": session["user_id"], "name": session["user_name"]}})
+    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email")}})
 
 
 # ---------------------------------------------------------------

@@ -446,9 +446,7 @@ const signupError = document.getElementById('signup-error');
 
 
 function updateAuthUI() {
-  console.log('updateAuthUI called, currentUser:', JSON.stringify(currentUser), 'profileDropdown:', profileDropdown);
   if (currentUser) {
-    console.log('Setting dropdown content for:', currentUser.name, currentUser.email);
     authBtn.textContent = currentUser.name.charAt(0).toUpperCase();
     profileDropdown.innerHTML = `
       <div class="profile-header">
@@ -461,7 +459,6 @@ function updateAuthUI() {
       </div>
     `;
     profileDropdown.classList.add('open');
-    console.log('dropdown innerHTML:', profileDropdown.innerHTML);
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', logout);
   } else {
@@ -480,15 +477,12 @@ async function checkAuth() {
       updateAuthUI();
     } else {
       currentUser = null;
-      authBtn.textContent = '👤';
-      authBtn.title = 'Account';
+      updateAuthUI();
     }
 
 authBtn.addEventListener('click', () => {
-  console.log('authBtn clicked, currentUser:', currentUser, 'profileDropdown:', profileDropdown);
   if (currentUser) {
     profileDropdown.classList.toggle('open');
-    console.log('dropdown classes:', profileDropdown.classList.toString());
   } else {
     openAuthModal();
   }
