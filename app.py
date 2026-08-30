@@ -564,6 +564,24 @@ def privacy_policy():
     return render_template("privacy_policy.html")
 
 
+@app.route("/shop/orders")
+def orders():
+    return render_template("orders.html")
+
+
+@app.route("/api/orders")
+def api_orders():
+    if "user_id" not in session:
+        return jsonify({"orders": []})
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC",
+        (session["user_id"],),
+    ).fetchall()
+    conn.close()
+    return jsonify({"orders": [dict(row) for row in rows]})
+
+
 @app.route("/shop/collections")
 def collections():
     return render_template("collections.html")

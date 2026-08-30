@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders | Thugile & Threads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
+  <style>
+    .orders-wrap{max-width:800px;margin:0 auto;padding:50px 5vw 80px}
+    .orders-wrap h1{margin:0 0 8px;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}
+    .orders-wrap .subtitle{margin:0 0 40px;font-size:16px;color:#5c5248}
+    .order-item{border:1px solid var(--line);padding:24px;margin-bottom:24px}
+    .order-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .order-number{font:600 14px var(--mono);letter-spacing:.04em}
+    .order-status{font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border:1px solid var(--ink)}
+    .order-status.pending{color:var(--terracotta);border-color:var(--terracotta)}
+    .order-status.completed{color:#2d6a4f;border-color:#2d6a4f}
+    .order-date{font-size:13px;color:#7a6e62;margin:0 0 12px}
+    .order-items{font-size:14px;line-height:1.6;color:#3d3229;margin:0 0 12px}
+    .order-total{font:600 14px var(--mono);letter-spacing:.04em;margin:0}
+    .no-orders{text-align:center;padding:80px 20px;color:#7a6e62;font-size:16px}
+    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+    .auth-required{text-align:center;padding:80px 20px}
+    .auth-required p{color:#7a6e62;font-size:16px;margin-bottom:24px}
+    .auth-required .btn{display:inline-block;padding:12px 24px;background:var(--ink);color:#fff;text-decoration:none;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+  </style>
+</head>
+<body class="inner-page">
+  <div class="grain"></div>
+  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
+    <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
+  </a>
+  <header class="site-header">
+    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
+    <div class="header-inner">
+      <nav class="main-nav">
+        <a href="/shop/collections">Collections</a>
+        <a href="/shop/#story">Our story</a>
+        <a href="/shop/#contact">Visit us</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="wishlist-btn-header" aria-label="Wishlist">
+          ♥ <span id="wishlist-count">0</span>
+        </button>
+        <div class="auth-menu">
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+          <div class="profile-dropdown" id="profile-dropdown"></div>
+        </div>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn">🛍️ Bag <span id="bag-count">0</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="orders-wrap" id="top">
+    <a class="back-link" href="/shop/">← Back to shop</a>
+    <h1>My Orders</h1>
+    <p class="subtitle">Track and manage your orders</p>
+    <div id="orders-list">
+      <p class="no-orders">Loading orders...</p>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
+  <script>
+    async function loadOrders() {
+      const list = document.getElementById('orders-list');
+      try {
+        const res = await fetch('/api/orders');
+        const data = await res.json();
+        if (!data.orders || !data.orders.length) {
+          list.innerHTML = '<p class="no-orders">No orders found yet. Start shopping to see your orders here.</p>';
+          return;
+        }
+        const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+        list.innerHTML = data.orders.map(order => {
+          let items = [];
+          try { items = JSON.parse(order.items); } catch {}
+          const date = new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          const itemsList = items.map(i => `${i.name} × ${i.qty}`).join(', ');
+          return `<div class="order-item">
+            <div class="order-header">
+              <span class="order-number">${order.order_number}</span>
+              <span class="order-status ${order.status}">${order.status}</span>
+            </div>
+            <p class="order-date">${date}</p>
+            <p class="order-items">${itemsList}</p>
+            <p class="order-total">Total: ${rupees(order.total_amount)}</p>
+          </div>`;
+        }).join('');
+      } catch {
+        list.innerHTML = '<p class="no-orders">Failed to load orders. Please try again.</p>';
+      }
+    }
+    loadOrders();
+  </script>
+</body>
+</html>

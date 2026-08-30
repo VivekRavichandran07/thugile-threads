@@ -458,7 +458,6 @@ function updateAuthUI() {
         <button class="profile-link" id="logout-btn">Logout</button>
       </div>
     `;
-    profileDropdown.classList.add('open');
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', logout);
   } else {
