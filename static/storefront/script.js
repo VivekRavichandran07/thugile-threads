@@ -242,6 +242,7 @@ function closeProductPopup() {
 }
 
 function renderProducts(products) {
+  console.log('renderProducts called, products:', products.length);
   if (!products.length) {
     grid.innerHTML = '<p class="empty-shop">Our next edit is being prepared. Please return soon.</p>';
     return;
@@ -407,6 +408,8 @@ function handleLogoScroll() {
 window.addEventListener('scroll', handleLogoScroll, {passive:true});
 
 function observeReveals() {
+  const revealElements = document.querySelectorAll('.reveal:not(.visible)');
+  console.log('observeReveals found', revealElements.length, 'elements');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
