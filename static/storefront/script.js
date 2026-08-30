@@ -401,15 +401,28 @@ moveParallax(); window.addEventListener('scroll', moveParallax, {passive:true});
 
 function handleLogoScroll() {
   if (!floatingLogo) return;
-  if (document.body.classList.contains('inner-page')) return;
-  const currentY = window.scrollY;
   const header = document.querySelector('.site-header');
-  if (currentY > 80) {
-    floatingLogo.classList.add('logo-scrolled');
-    if (header) header.classList.add('logo-scrolled');
+  const footer = document.querySelector('.site-footer');
+  const currentY = window.scrollY;
+
+  if (document.body.classList.contains('inner-page')) {
+    if (footer) {
+      const footerTop = footer.getBoundingClientRect().top;
+      const logoHeight = floatingLogo.offsetHeight;
+      if (footerTop < logoHeight + 120) {
+        floatingLogo.classList.add('logo-hidden');
+      } else {
+        floatingLogo.classList.remove('logo-hidden');
+      }
+    }
   } else {
-    floatingLogo.classList.remove('logo-scrolled');
-    if (header) header.classList.remove('logo-scrolled');
+    if (currentY > 80) {
+      floatingLogo.classList.add('logo-scrolled');
+      if (header) header.classList.add('logo-scrolled');
+    } else {
+      floatingLogo.classList.remove('logo-scrolled');
+      if (header) header.classList.remove('logo-scrolled');
+    }
   }
   lastScrollY = currentY;
 }
