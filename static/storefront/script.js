@@ -259,18 +259,18 @@ function renderProducts(products) {
   observeReveals();
 }
 
-async function loadCatalog() {
+async function loadCatalog(retries = 3) {
+  if (!grid) return;
   try {
-    
     const response = await fetch('/api/store/products');
-    
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
-    
     renderProducts(products);
   } catch (error) {
-    
-    if (grid) grid.innerHTML = '<p class="empty-shop">The collection is temporarily unavailable. Please refresh and try again.</p>';
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, 1000));
+      return loadCatalog(retries - 1);
+    }
   }
 }
 
