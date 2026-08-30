@@ -401,6 +401,7 @@ moveParallax(); window.addEventListener('scroll', moveParallax, {passive:true});
 
 function handleLogoScroll() {
   if (!floatingLogo) return;
+  if (document.body.classList.contains('inner-page')) return;
   const currentY = window.scrollY;
   const header = document.querySelector('.site-header');
   if (currentY > 80) {
