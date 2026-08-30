@@ -555,9 +555,6 @@ async function loadOrders() {
     ordersList.innerHTML = '<p class="no-orders">Failed to load orders.</p>';
   }
 }
-  authOverlay.classList.remove('open');
-  document.body.style.overflow = '';
-}
 
 authBtn.addEventListener('click', openAuthModal);
 authClose.addEventListener('click', closeAuthModal);
@@ -674,7 +671,7 @@ async function syncWishlistToServer() {
   } catch {}
 }
 
-async async function init() {
+async function init() {
   
   handleLogoScroll();
   updateWishlistUI();
