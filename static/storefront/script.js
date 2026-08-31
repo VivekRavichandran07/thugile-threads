@@ -106,6 +106,7 @@ function renderCartItems() {
   if (cartTotal) cartTotal.textContent = rupees(total);
   cartItems.innerHTML = bag.map((item, idx) => `
     <div class="cart-item">
+      <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
       <div class="cart-item-info">
         <p class="cart-item-name">${escapeHtml(item.name)}</p>
         <p class="cart-item-meta">Size: ${item.size || 'M'} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
@@ -116,9 +117,9 @@ function renderCartItems() {
   `).join('');
 }
 
-function addToBag(name, price, size) {
+function addToBag(name, price, size, image_url) {
   if (!currentUser) {
-    pendingCartItem = { name, price: Number(price), size: size || null };
+    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null };
     openAuthModal();
     return;
   }
@@ -126,7 +127,7 @@ function addToBag(name, price, size) {
   if (existing) {
     existing.qty += 1;
   } else {
-    bag.push({ name, price: Number(price), qty: 1, size: size || null });
+    bag.push({ name, price: Number(price), qty: 1, size: size || null, image_url: image_url || null });
   }
   saveCart();
   toast.textContent = `${name} added to your bag`;
@@ -275,7 +276,7 @@ function openProductPopup(product) {
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
       return;
     }
-    addToBag(product.name, product.price, selectedSize.dataset.size);
+    addToBag(product.name, product.price, selectedSize.dataset.size, product.image_url);
     closeProductPopup();
   };
   
@@ -358,7 +359,9 @@ if (grid) {
         return;
       }
       const price = addBtn.dataset.price || 0;
-      addToBag(addBtn.dataset.item, price, selectedSize.dataset.size);
+      const cardImg = card.querySelector('.product-image img');
+      const image_url = cardImg ? cardImg.src : '';
+      addToBag(addBtn.dataset.item, price, selectedSize.dataset.size, image_url);
       return;
     }
 
@@ -751,7 +754,7 @@ loginForm.addEventListener('submit', async e => {
     closeAuthModal();
     loginForm.reset();
     if (pendingCartItem) {
-      addToBag(pendingCartItem.name, pendingCartItem.price);
+      addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
       pendingCartItem = null;
     } else if (pendingWishlistItem) {
       toggleWishlist(pendingWishlistItem);
@@ -790,7 +793,7 @@ signupForm.addEventListener('submit', async e => {
     closeAuthModal();
     signupForm.reset();
     if (pendingCartItem) {
-      addToBag(pendingCartItem.name, pendingCartItem.price);
+      addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
       pendingCartItem = null;
     } else if (pendingWishlistItem) {
       toggleWishlist(pendingWishlistItem);
