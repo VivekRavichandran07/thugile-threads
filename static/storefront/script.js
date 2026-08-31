@@ -873,3 +873,11 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+window.addEventListener('pageshow', () => {
+  loadCart();
+  updateWishlistUI();
+  if (typeof renderCheckout === 'function') {
+    renderCheckout();
+  }
+});
