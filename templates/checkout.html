@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
   <style>
-    .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.cart-item{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+    .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.cart-item{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
   </style>
 </head>
 <body class="inner-page checkout-page">
@@ -201,32 +201,40 @@
     }
 
     function renderCheckout() {
-      loadCart();
+      let cart = [];
+      try {
+        const saved = localStorage.getItem('tnt_cart');
+        cart = saved ? JSON.parse(saved) : [];
+      } catch {
+        cart = [];
+      }
+
       const itemsEl = document.getElementById('checkout-items');
       const totalEl = document.getElementById('checkout-total');
       const placeBtn = document.getElementById('place-order-btn');
       const countEl = document.getElementById('bag-count');
 
-      const totalItems = bag.reduce((s, i) => s + i.qty, 0);
+      const totalItems = cart.reduce((s, i) => s + i.qty, 0);
       if (countEl) countEl.textContent = totalItems;
 
-      if (!bag.length) {
+      if (!cart.length) {
         itemsEl.innerHTML = '<p class="cart-empty">Your bag is empty.</p>';
         totalEl.textContent = '₹ 0';
         placeBtn.disabled = true;
         return;
       }
       placeBtn.disabled = false;
-      const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
+      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
       totalEl.textContent = rupees(total);
-      itemsEl.innerHTML = bag.map((item, idx) => `
+      itemsEl.innerHTML = cart.map((item, idx) => `
         <div class="cart-item">
           <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
-          <div>
+          <div class="cart-item-info">
             <p class="cart-item-name">${escapeHtml(item.name)}</p>
             <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
+            <button class="cart-item-remove" data-idx="${idx}" onclick="removeFromBag(${idx}); renderCheckout();">Remove</button>
           </div>
-          <strong class="cart-item-price">${rupees(item.price * item.qty)}</strong>
+          <strong>${rupees(item.price * item.qty)}</strong>
         </div>
       `).join('');
     }
