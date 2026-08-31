@@ -153,6 +153,9 @@
     function rupees(val) {
       return '₹ ' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     }
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
 
     function renderCheckout() {
       const itemsEl = document.getElementById('checkout-items');
@@ -175,8 +178,8 @@
       itemsEl.innerHTML = bag.map(item => `
         <div class="cart-item">
           <div>
-            <p class="cart-item-name">${item.name}</p>
-            <p class="cart-item-meta">Qty: ${item.qty} · ${rupees(item.price)} each</p>
+            <p class="cart-item-name">${escapeHtml(item.name)}</p>
+            <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
           </div>
           <strong class="cart-item-price">${rupees(item.price * item.qty)}</strong>
         </div>

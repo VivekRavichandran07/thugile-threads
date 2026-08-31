@@ -104,7 +104,7 @@ function renderCartItems() {
     <div class="cart-item">
       <div class="cart-item-info">
         <p class="cart-item-name">${escapeHtml(item.name)}</p>
-        <p class="cart-item-meta">Qty: ${item.qty} · ${rupees(item.price)} each</p>
+        <p class="cart-item-meta">Size: ${item.size || 'M'} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
         <button class="cart-item-remove" data-idx="${idx}">Remove</button>
       </div>
       <strong>${rupees(item.price * item.qty)}</strong>
@@ -112,17 +112,17 @@ function renderCartItems() {
   `).join('');
 }
 
-function addToBag(name, price) {
+function addToBag(name, price, size) {
   if (!currentUser) {
-    pendingCartItem = { name, price: Number(price) };
+    pendingCartItem = { name, price: Number(price), size: size || null };
     openAuthModal();
     return;
   }
-  const existing = bag.find(item => item.name === name);
+  const existing = bag.find(item => item.name === name && item.size === size);
   if (existing) {
     existing.qty += 1;
   } else {
-    bag.push({ name, price: Number(price), qty: 1 });
+    bag.push({ name, price: Number(price), qty: 1, size: size || null });
   }
   saveCart();
   toast.textContent = `${name} added to your bag`;
@@ -240,7 +240,7 @@ function openProductPopup(product) {
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
       return;
     }
-    addToBag(product.name, product.price);
+    addToBag(product.name, product.price, selectedSize.dataset.size);
     closeProductPopup();
   };
   
@@ -323,7 +323,7 @@ if (grid) {
         return;
       }
       const price = addBtn.dataset.price || 0;
-      addToBag(addBtn.dataset.item, price);
+      addToBag(addBtn.dataset.item, price, selectedSize.dataset.size);
       return;
     }
 
