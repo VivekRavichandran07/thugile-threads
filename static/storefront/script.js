@@ -202,12 +202,13 @@ function openProductPopup(product) {
     });
   });
   
+  const productImage = imageFor(product.image_url, 0, product.name);
   const images = [
-    product.image_url || fallbackImages[0],
+    productImage,
+    fallbackImages[0],
     fallbackImages[1],
     fallbackImages[2],
-    fallbackImages[3],
-    fallbackImages[0]
+    fallbackImages[3]
   ];
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
   productThumbnails.innerHTML = images.map((img, i) => `
@@ -226,6 +227,14 @@ function openProductPopup(product) {
   });
   
   productAddToBag.onclick = () => {
+    const selectedSize = productSizes.querySelector('.size-option.selected');
+    if (!selectedSize) {
+      toast.textContent = 'Please select a size';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      return;
+    }
     addToBag(product.name, product.price);
     closeProductPopup();
   };
@@ -251,10 +260,11 @@ function renderProducts(products) {
     return;
   }
   grid.innerHTML = products.map((product, index) => {
-    const details = [product.color, product.category, product.size].filter(Boolean).join(' · ') || 'Made with care';
+    const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
     const action = product.in_stock ? `<button data-item="${escapeHtml(product.name)}" data-price="${product.price || ''}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
-    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
+    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
+    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
   }).join('');
   observeReveals();
 }
@@ -281,7 +291,14 @@ if (grid) {
     const productName = event.target.closest('.product-info h3');
     const sizeBtn = event.target.closest('.size-guide-btn');
     const addBtn = event.target.closest('.buy button[data-item]');
+    const sizeOption = event.target.closest('.product-card-sizes .size-option');
 
+    if (sizeOption) {
+      const card = sizeOption.closest('.product');
+      card.querySelectorAll('.product-card-sizes .size-option').forEach(b => b.classList.remove('selected'));
+      sizeOption.classList.add('selected');
+      return;
+    }
     if (sizeBtn) {
       const sizeGuideOverlay = document.getElementById('size-guide-overlay');
       if (sizeGuideOverlay) {
@@ -291,6 +308,15 @@ if (grid) {
       return;
     }
     if (addBtn) {
+      const card = addBtn.closest('.product');
+      const selectedSize = card.querySelector('.product-card-sizes .size-option.selected');
+      if (!selectedSize) {
+        toast.textContent = 'Please select a size';
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+        return;
+      }
       const price = addBtn.dataset.price || 0;
       addToBag(addBtn.dataset.item, price);
       return;
