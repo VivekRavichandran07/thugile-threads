@@ -9,6 +9,10 @@ const cartClose = document.querySelector('#cart-close');
 const cartItems = document.querySelector('#cart-items');
 const cartTotal = document.querySelector('#cart-total');
 const checkoutBtn = document.querySelector('#checkout-btn');
+const wishlistSidebar = document.querySelector('#wishlist-sidebar');
+const wishlistOverlay = document.querySelector('#wishlist-overlay');
+const wishlistClose = document.querySelector('#wishlist-close');
+const wishlistItems = document.querySelector('#wishlist-items');
 const floatingLogo = document.querySelector('.floating-logo');
 const productOverlay = document.getElementById('product-overlay');
 const productPopup = document.getElementById('product-popup');
@@ -146,6 +150,37 @@ function closeCart() {
   if (cartSidebar) cartSidebar.classList.remove('open');
   if (cartOverlay) cartOverlay.classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function openWishlist() {
+  if (wishlistSidebar) wishlistSidebar.classList.add('open');
+  if (wishlistOverlay) wishlistOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderWishlistItems();
+}
+
+function closeWishlist() {
+  if (wishlistSidebar) wishlistSidebar.classList.remove('open');
+  if (wishlistOverlay) wishlistOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderWishlistItems() {
+  if (!wishlistItems) return;
+  const items = getWishlist();
+  if (!items.length) {
+    wishlistItems.innerHTML = '<p class="wishlist-empty">Your wishlist is empty.</p>';
+    return;
+  }
+  wishlistItems.innerHTML = items.map(item => `
+    <div class="wishlist-item">
+      <img src="${escapeHtml(imageFor(item.image_url, 0, item.name))}" alt="${escapeHtml(item.name)}" class="wishlist-item-image">
+      <div class="wishlist-item-info">
+        <p class="wishlist-item-name">${escapeHtml(item.name)}</p>
+        <p class="wishlist-item-meta">${rupees(item.price)}</p>
+      </div>
+    </div>
+  `).join('');
 }
 
 function getWishlist() {
@@ -368,7 +403,27 @@ if (checkoutBtn) {
 if (bagBtn) bagBtn.addEventListener('click', openCart);
 if (cartClose) cartClose.addEventListener('click', closeCart);
 if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
-document.addEventListener('keydown', event => { if (event.key === 'Escape') { if (cartSidebar && cartSidebar.classList.contains('open')) closeCart(); if (productOverlay && productOverlay.classList.contains('open')) closeProductPopup(); if (sizeGuideOverlay && sizeGuideOverlay.classList.contains('open')) closeSizeGuide(); if (authOverlay && authOverlay.classList.contains('open')) closeAuthModal(); } });
+
+const wishlistBtnHeader = document.querySelector('.wishlist-btn-header');
+if (wishlistBtnHeader) wishlistBtnHeader.addEventListener('click', () => {
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
+  openWishlist();
+});
+if (wishlistClose) wishlistClose.addEventListener('click', closeWishlist);
+if (wishlistOverlay) wishlistOverlay.addEventListener('click', closeWishlist);
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    if (cartSidebar && cartSidebar.classList.contains('open')) closeCart();
+    if (productOverlay && productOverlay.classList.contains('open')) closeProductPopup();
+    if (sizeGuideOverlay && sizeGuideOverlay.classList.contains('open')) closeSizeGuide();
+    if (authOverlay && authOverlay.classList.contains('open')) closeAuthModal();
+    if (wishlistSidebar && wishlistSidebar.classList.contains('open')) closeWishlist();
+  }
+});
 
 const newsletterForm = document.querySelector('.newsletter form');
 if (newsletterForm) {
@@ -808,6 +863,9 @@ async function init() {
   }
   if (typeof loadOrdersPage === 'function') {
     loadOrdersPage();
+  }
+  if (typeof renderCheckout === 'function') {
+    renderCheckout();
   }
 }
 if (document.readyState === 'loading') {
