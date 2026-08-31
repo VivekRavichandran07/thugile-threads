@@ -113,7 +113,7 @@
         const res = await fetch('/api/orders');
         const data = await res.json();
         if (!data.orders || !data.orders.length) {
-          list.innerHTML = '<p class="no-orders">No orders found yet. Start shopping to see your orders here.</p>';
+          list.innerHTML = '<p class="no-orders">Please make an order to see your past orders.</p>';
           return;
         }
         const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
@@ -136,7 +136,6 @@
         list.innerHTML = '<p class="no-orders">Failed to load orders. Please try again.</p>';
       }
     }
-    loadOrdersPage();
   </script>
 </body>
 </html>

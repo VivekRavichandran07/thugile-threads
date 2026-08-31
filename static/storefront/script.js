@@ -271,6 +271,7 @@ async function loadCatalog(retries = 3) {
       await new Promise(r => setTimeout(r, 1000));
       return loadCatalog(retries - 1);
     }
+    console.error('Failed to load catalog after retries:', error);
   }
 }
 
@@ -748,6 +749,9 @@ async function init() {
   updateWishlistUI();
   if (document.querySelector('.collection-section') || document.querySelector('.collections-page')) {
     loadCatalog();
+  }
+  if (typeof loadOrdersPage === 'function') {
+    loadOrdersPage();
   }
 }
 if (document.readyState === 'loading') {

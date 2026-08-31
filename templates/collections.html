@@ -238,6 +238,7 @@
     async function loadAllProducts() {
       try {
         const response = await fetch('/api/store/products');
+        if (!response.ok) throw new Error('Catalog unavailable');
         const { products } = await response.json();
         allProducts.push(...products);
       } catch (e) {
