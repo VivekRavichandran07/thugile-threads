@@ -28,7 +28,7 @@ const fallbackImages = [
   'https://images.pexels.com/photos/37054322/pexels-photo-37054322.jpeg?auto=format&fit=crop&w=900&q=85',
   'https://images.pexels.com/photos/28428053/pexels-photo-28428053.jpeg?auto=format&fit=crop&w=900&q=85'
 ];
-let bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0;
+let bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null;
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const imageFor = (url, index, name) => {
   const imageMap = {
@@ -114,6 +114,7 @@ function renderCartItems() {
 
 function addToBag(name, price) {
   if (!currentUser) {
+    pendingCartItem = { name, price: Number(price) };
     openAuthModal();
     return;
   }
@@ -177,6 +178,7 @@ function updateWishlistUI() {
 
 function toggleWishlist(product) {
   if (!currentUser) {
+    pendingWishlistItem = product;
     openAuthModal();
     return;
   }
@@ -502,6 +504,7 @@ function updateAuthUI() {
   if (!authBtn) return;
   if (currentUser) {
     authBtn.textContent = currentUser.name.charAt(0).toUpperCase();
+    authBtn.classList.add('logged-in');
     if (profileDropdown) {
       profileDropdown.innerHTML = `
         <div class="profile-header">
@@ -692,6 +695,13 @@ loginForm.addEventListener('submit', async e => {
     updateAuthUI();
     closeAuthModal();
     loginForm.reset();
+    if (pendingCartItem) {
+      addToBag(pendingCartItem.name, pendingCartItem.price);
+      pendingCartItem = null;
+    } else if (pendingWishlistItem) {
+      toggleWishlist(pendingWishlistItem);
+      pendingWishlistItem = null;
+    }
     syncCartToServer();
     syncWishlistToServer();
     toast.textContent = `Welcome back, ${currentUser.name}!`;
@@ -724,6 +734,13 @@ signupForm.addEventListener('submit', async e => {
     updateAuthUI();
     closeAuthModal();
     signupForm.reset();
+    if (pendingCartItem) {
+      addToBag(pendingCartItem.name, pendingCartItem.price);
+      pendingCartItem = null;
+    } else if (pendingWishlistItem) {
+      toggleWishlist(pendingWishlistItem);
+      pendingWishlistItem = null;
+    }
     syncCartToServer();
     syncWishlistToServer();
     toast.textContent = `Welcome, ${currentUser.name}!`;
@@ -749,6 +766,7 @@ async function logout() {
   if (authBtn) {
     authBtn.textContent = '👤';
     authBtn.title = 'Account';
+    authBtn.classList.remove('logged-in');
   }
   if (profileDropdown) profileDropdown.classList.remove('open');
   toast.textContent = 'Logged out';
