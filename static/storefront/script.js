@@ -113,6 +113,10 @@ function renderCartItems() {
 }
 
 function addToBag(name, price) {
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
   const existing = bag.find(item => item.name === name);
   if (existing) {
     existing.qty += 1;
@@ -172,6 +176,10 @@ function updateWishlistUI() {
 }
 
 function toggleWishlist(product) {
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
   const items = getWishlist();
   const idx = items.findIndex(i => i.name === product.name);
   if (idx >= 0) {
@@ -205,10 +213,10 @@ function openProductPopup(product) {
   const productImage = imageFor(product.image_url, 0, product.name);
   const images = [
     productImage,
-    fallbackImages[0],
     fallbackImages[1],
     fallbackImages[2],
-    fallbackImages[3]
+    fallbackImages[3],
+    fallbackImages[0]
   ];
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
   productThumbnails.innerHTML = images.map((img, i) => `
@@ -514,7 +522,7 @@ function updateAuthUI() {
       if (logoutBtn) logoutBtn.addEventListener('click', logout);
     }
   } else {
-    authBtn.textContent = '\u{1F444}';
+    authBtn.textContent = '\u{1F464}';
     authBtn.title = 'Account';
     if (profileDropdown) profileDropdown.classList.remove('open');
   }
@@ -735,10 +743,19 @@ signupForm.addEventListener('submit', async e => {
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' });
   currentUser = null;
+  bag = [];
+  localStorage.removeItem('tnt_cart');
+  localStorage.removeItem('tnt_wishlist');
+  if (count) count.textContent = '0';
+  if (wishlistCount) wishlistCount.textContent = '0';
+  if (cartItems) cartItems.innerHTML = '<p class="cart-empty">Your bag is empty.</p>';
+  if (cartTotal) cartTotal.textContent = '₹ 0';
+  if (checkoutBtn) checkoutBtn.disabled = true;
   if (authBtn) {
     authBtn.textContent = '👤';
     authBtn.title = 'Account';
   }
+  if (profileDropdown) profileDropdown.classList.remove('open');
   toast.textContent = 'Logged out';
   toast.classList.add('show');
   clearTimeout(toastTimer);
