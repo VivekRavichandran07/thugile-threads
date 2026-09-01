@@ -32,7 +32,7 @@ const fallbackImages = [
   'https://images.pexels.com/photos/37054322/pexels-photo-37054322.jpeg?auto=format&fit=crop&w=900&q=85',
   'https://images.pexels.com/photos/28428053/pexels-photo-28428053.jpeg?auto=format&fit=crop&w=900&q=85'
 ];
-let bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null;
+var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null;
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const imageFor = (url, index, name) => {
   const imageMap = {
@@ -621,13 +621,53 @@ document.addEventListener('click', e => {
   }
 });
 
+function renderCheckout() {
+  loadCart();
+  const itemsEl = document.getElementById('checkout-items');
+  const totalEl = document.getElementById('checkout-total');
+  const placeBtn = document.getElementById('place-order-btn');
+  const countEl = document.getElementById('bag-count');
+
+  const totalItems = bag.reduce((s, i) => s + i.qty, 0);
+  if (countEl) countEl.textContent = totalItems;
+
+  if (!bag.length) {
+    itemsEl.innerHTML = '<p class="cart-empty" style="padding:40px 0;color:#7a6e62;font-family:var(--mono);font-size:13px">Your bag is empty.</p>';
+    totalEl.textContent = '₹ 0';
+    placeBtn.disabled = true;
+    return;
+  }
+  
+  placeBtn.disabled = false;
+  const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
+  totalEl.textContent = rupees(total);
+  
+  itemsEl.innerHTML = bag.map((item, idx) => `
+    <div class="cart-item">
+      <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
+      <div class="cart-item-info">
+        <p class="cart-item-name">${escapeHtml(item.name)}</p>
+        <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
+        <button class="cart-item-remove" data-idx="${idx}" onclick="removeFromBag(${idx}); renderCheckout();">Remove</button>
+      </div>
+      <strong>${rupees(item.price * item.qty)}</strong>
+    </div>
+  `).join('');
+}
+
 async function loadCartFromServer() {
   if (!currentUser) return;
   try {
     const res = await fetch('/api/user/cart');
     const data = await res.json();
     if (data.cart && data.cart.length) {
-      bag = data.cart.map(item => ({ name: item.product_name, price: item.price, qty: item.qty }));
+      bag = data.cart.map(item => ({
+        name: item.product_name,
+        price: item.price,
+        qty: item.qty,
+        size: item.size || null,
+        image_url: item.image_url || null
+      }));
       updateCartUI();
       localStorage.setItem('tnt_cart', JSON.stringify(bag));
       if (typeof renderCheckout === 'function') renderCheckout();

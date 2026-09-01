@@ -10,6 +10,66 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
   <style>
     .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.cart-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+    /* --- Fix checkout to match cart sidebar exactly --- */
+#checkout-items .cart-item{
+  display:flex;
+  gap:16px;
+  align-items:center;
+  padding:18px 0;
+  border-bottom:1px solid var(--line);
+}
+#checkout-items .cart-item:last-child{border-bottom:none}
+
+#checkout-items .cart-item-image{
+  width:72px;
+  height:90px;
+  object-fit:cover;
+  object-position:top;
+  flex-shrink:0;
+  background:#f5f1ec;
+}
+
+#checkout-items .cart-item-info{
+  flex:1;
+  min-width:0;
+}
+
+#checkout-items .cart-item-name{
+  margin:0;
+  font-size:15px;
+  font-weight:600;
+  line-height:1.3;
+  color:var(--ink);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#checkout-items .cart-item-meta{
+  margin:6px 0 10px;
+  font-size:13px;
+  color:#7a6e62;
+  font-family: var(--mono);
+}
+
+#checkout-items .cart-item-remove{
+  background:none;
+  border:0;
+  padding:0;
+  font:500 11px var(--mono);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#9a8e83;
+  border-bottom:1px solid currentColor;
+  cursor:pointer;
+}
+#checkout-items .cart-item-remove:hover{color:var(--ink)}
+
+#checkout-items .cart-item > strong{
+  font:600 14px var(--mono);
+  margin-left:auto;
+  white-space:nowrap;
+}
   </style>
 </head>
 <body class="inner-page checkout-page">
