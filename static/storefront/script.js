@@ -791,6 +791,8 @@ loginForm.addEventListener('submit', async e => {
     }
     currentUser = data.user;
     updateAuthUI();
+    await loadCartFromServer();
+    await loadWishlistFromServer();
     closeAuthModal();
     loginForm.reset();
     if (pendingCartItem) {
@@ -800,8 +802,6 @@ loginForm.addEventListener('submit', async e => {
       toggleWishlist(pendingWishlistItem);
       pendingWishlistItem = null;
     }
-    syncCartToServer();
-    syncWishlistToServer();
     toast.textContent = `Welcome back, ${currentUser.name}!`;
     toast.classList.add('show');
     clearTimeout(toastTimer);
@@ -861,6 +861,14 @@ async function logout() {
   if (cartItems) cartItems.innerHTML = '<p class="cart-empty">Your bag is empty.</p>';
   if (cartTotal) cartTotal.textContent = '₹ 0';
   if (checkoutBtn) checkoutBtn.disabled = true;
+  const checkoutItems = document.getElementById('checkout-items');
+  if (checkoutItems) {
+    checkoutItems.innerHTML = '<p class="cart-empty">Please login to add items in cart.</p>';
+    const checkoutTotal = document.getElementById('checkout-total');
+    const placeOrderBtn = document.getElementById('place-order-btn');
+    if (checkoutTotal) checkoutTotal.textContent = '₹ 0';
+    if (placeOrderBtn) placeOrderBtn.disabled = true;
+  }
   if (authBtn) {
     authBtn.textContent = '👤';
     authBtn.title = 'Account';
