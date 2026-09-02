@@ -626,11 +626,18 @@ document.addEventListener('click', e => {
   }
 });
 
+// ✅ FIXED: Check if elements exist before using them
 function renderCheckout() {
-  loadCart();
+  // Only run if we're on the checkout page (elements exist)
   const itemsEl = document.getElementById('checkout-items');
   const totalEl = document.getElementById('checkout-total');
   const placeBtn = document.getElementById('place-order-btn');
+  
+  if (!itemsEl || !totalEl || !placeBtn) {
+    return; // Not on checkout page, exit early
+  }
+  
+  loadCart();
   const countEl = document.getElementById('bag-count');
 
   const totalItems = bag.reduce((s, i) => s + i.qty, 0);
