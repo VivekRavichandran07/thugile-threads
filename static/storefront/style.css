@@ -16,3 +16,4 @@
 .profile-links{display:flex;flex-direction:column;gap:8px}
 .profile-link{background:none;border:0;text-align:left;font:500 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;color:var(--ink);padding:4px 0;text-decoration:none}
 .profile-link:hover{opacity:.6}
+.product-popup{overflow-y:auto}

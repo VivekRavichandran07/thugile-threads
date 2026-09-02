@@ -249,8 +249,13 @@ function openProductPopup(product) {
   });
   
   const productImage = imageFor(product.image_url, 0, product.name);
-  const shuffledFallbacks = [fallbackImages[1], fallbackImages[2], fallbackImages[3], fallbackImages[0]];
-  const images = [productImage, ...shuffledFallbacks];
+  const images = [
+    productImage,
+    fallbackImages[1],
+    fallbackImages[2],
+    fallbackImages[3],
+    fallbackImages[0]
+  ];
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
   productThumbnails.innerHTML = images.map((img, i) => `
     <button class="thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
