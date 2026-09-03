@@ -179,9 +179,30 @@ function renderWishlistItems() {
       <div class="wishlist-item-info">
         <p class="wishlist-item-name">${escapeHtml(item.name)}</p>
         <p class="wishlist-item-meta">${rupees(item.price)}</p>
+        <button class="move-to-cart-btn" data-name="${escapeHtml(item.name)}" data-price="${item.price}" data-image="${escapeHtml(item.image_url)}">Move to cart</button>
       </div>
     </div>
   `).join('');
+
+  wishlistItems.querySelectorAll('.move-to-cart-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      const price = Number(btn.dataset.price);
+      const image_url = btn.dataset.image || null;
+      addToBag(name, price, null, image_url);
+      const items = getWishlist();
+      const idx = items.findIndex(i => i.name === name);
+      if (idx >= 0) {
+        items.splice(idx, 1);
+        saveWishlist(items);
+        renderWishlistItems();
+      }
+      toast.textContent = `${name} moved to your bag`;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    });
+  });
 }
 
 function getWishlist() {
@@ -672,18 +693,16 @@ async function loadCartFromServer() {
   try {
     const res = await fetch('/api/user/cart');
     const data = await res.json();
-    if (data.cart && data.cart.length) {
-      bag = data.cart.map(item => ({
-        name: item.product_name,
-        price: item.price,
-        qty: item.qty,
-        size: item.size || null,
-        image_url: item.image_url || null
-      }));
-      updateCartUI();
-      localStorage.setItem('tnt_cart', JSON.stringify(bag));
-      if (typeof renderCheckout === 'function') renderCheckout();
-    }
+    bag = (data.cart || []).map(item => ({
+      name: item.product_name,
+      price: item.price,
+      qty: item.qty,
+      size: item.size || null,
+      image_url: item.image_url || null
+    }));
+    updateCartUI();
+    localStorage.setItem('tnt_cart', JSON.stringify(bag));
+    if (typeof renderCheckout === 'function') renderCheckout();
   } catch {}
 }
 
@@ -929,6 +948,9 @@ async function init() {
   }
   if (typeof renderCheckout === 'function') {
     renderCheckout();
+  }
+  if (document.body.dataset.showLogin === 'true' && !currentUser) {
+    openAuthModal();
   }
 }
 if (document.readyState === 'loading') {

@@ -11,7 +11,6 @@ app.config["SECRET_KEY"] = "change-this-secret-key-please-use-a-random-secret"
 app.config["UPLOAD_FOLDER"] = os.path.join(app.static_folder, "uploads")
 app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "webp"}
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
 init_db()
 
 
@@ -237,8 +236,10 @@ def orders_create():
 # ---------------------------------------------------------------
 # DASHBOARD
 # ---------------------------------------------------------------
-@app.route("/")
+@app.route("/admin/")
 def dashboard():
+    if "user_id" not in session:
+        return render_template("dashboard.html", show_login=True)
     conn = get_connection()
     products = conn.execute("SELECT * FROM products").fetchall()
 
@@ -287,16 +288,22 @@ def dashboard():
 # ---------------------------------------------------------------
 # PRODUCTS
 # ---------------------------------------------------------------
-@app.route("/products")
+@app.route("/admin/products")
 def products():
+    if "user_id" not in session:
+        return render_template("products.html", show_login=True)
     conn = get_connection()
     all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
     conn.close()
     return render_template("products.html", products=all_products)
 
 
-@app.route("/products/add", methods=["GET", "POST"])
+@app.route("/admin/products/add", methods=["GET", "POST"])
 def add_product():
+    if "user_id" not in session:
+        if request.method == "POST":
+            return redirect(url_for("shop"))
+        return render_template("add_product.html", show_login=True)
     if request.method == "POST":
         conn = get_connection()
         try:
@@ -340,8 +347,17 @@ def add_product():
     return render_template("add_product.html")
 
 
-@app.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
+@app.route("/admin/products/<int:product_id>/edit", methods=["GET", "POST"])
 def edit_product(product_id):
+    if "user_id" not in session:
+        if request.method == "POST":
+            return redirect(url_for("shop"))
+        conn = get_connection()
+        product = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
+        conn.close()
+        if product is None:
+            return redirect(url_for("products"))
+        return render_template("edit_product.html", product=product, show_login=True)
     conn = get_connection()
     product = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
 
@@ -396,8 +412,10 @@ def edit_product(product_id):
     return render_template("edit_product.html", product=product)
 
 
-@app.route("/products/<int:product_id>/delete", methods=["POST"])
+@app.route("/admin/products/<int:product_id>/delete", methods=["POST"])
 def delete_product(product_id):
+    if "user_id" not in session:
+        return redirect(url_for("shop"))
     conn = get_connection()
     product = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
     conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
@@ -411,8 +429,10 @@ def delete_product(product_id):
 # ---------------------------------------------------------------
 # PURCHASES (stock coming IN)
 # ---------------------------------------------------------------
-@app.route("/purchases")
+@app.route("/admin/purchases")
 def purchases():
+    if "user_id" not in session:
+        return render_template("purchases.html", show_login=True)
     conn = get_connection()
     rows = conn.execute(
         """
@@ -438,8 +458,15 @@ def purchases():
     return render_template("purchases.html", purchases=all_purchases)
 
 
-@app.route("/purchases/add", methods=["GET", "POST"])
+@app.route("/admin/purchases/add", methods=["GET", "POST"])
 def add_purchase():
+    if "user_id" not in session:
+        if request.method == "POST":
+            return redirect(url_for("shop"))
+        conn = get_connection()
+        all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
+        conn.close()
+        return render_template("add_purchase.html", products=all_products, show_login=True)
     conn = get_connection()
     all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
 
@@ -476,8 +503,10 @@ def add_purchase():
 # ---------------------------------------------------------------
 # SALES (stock going OUT)
 # ---------------------------------------------------------------
-@app.route("/sales")
+@app.route("/admin/sales")
 def sales():
+    if "user_id" not in session:
+        return render_template("sales.html", show_login=True)
     conn = get_connection()
     rows = conn.execute(
         """
@@ -503,8 +532,15 @@ def sales():
     return render_template("sales.html", sales=all_sales)
 
 
-@app.route("/sales/add", methods=["GET", "POST"])
+@app.route("/admin/sales/add", methods=["GET", "POST"])
 def add_sale():
+    if "user_id" not in session:
+        if request.method == "POST":
+            return redirect(url_for("shop"))
+        conn = get_connection()
+        all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
+        conn.close()
+        return render_template("add_sale.html", products=all_products, show_login=True)
     conn = get_connection()
     all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
 

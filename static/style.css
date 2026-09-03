@@ -237,11 +237,114 @@ form.card-form .form-actions {
     font-size: 0.9rem;
 }
 
-.empty-state {
-    color: #a3927c;
-    padding: 24px;
-    text-align: center;
-    background: #fff;
-    border-radius: 10px;
-    border: 1px dashed #ddd0bc;
+body[data-show-login="true"] .navbar,
+body[data-show-login="true"] .container {
+  display: none;
+}
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.92);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+.auth-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.auth-modal {
+  background: #fff;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  border: 1px solid #ddd0bc;
+}
+.auth-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: 0;
+  font-size: 28px;
+  cursor: pointer;
+  color: #2c2620;
+  line-height: 1;
+}
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: 1px solid #ddd0bc;
+  font: 500 11px monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .3s ease;
+}
+.auth-tab.active {
+  background: #2c2620;
+  color: #fff;
+  border-color: #2c2620;
+}
+.auth-form input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd0bc;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.auth-submit {
+  width: 100%;
+  padding: 12px;
+  background: #2c2620;
+  color: #fff;
+  border: 0;
+  font: 500 12px monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.auth-submit:hover {
+  opacity: .85;
+}
+.auth-error {
+  color: #a3392a;
+  font-size: 13px;
+  margin-top: 12px;
+  text-align: center;
+}
+.auth-form.hidden {
+  display: none;
+}
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2c2620;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+.toast.show {
+  opacity: 1;
 }
