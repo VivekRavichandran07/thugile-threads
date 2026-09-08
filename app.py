@@ -585,6 +585,11 @@ def checkout():
     return render_template("checkout.html")
 
 
+@app.route("/shop/our-story")
+def thugil_story():
+    return render_template("thugil_story_page.html")
+
+
 @app.route("/shop/shipping-returns")
 def shipping_returns():
     return render_template("shipping_returns.html")
