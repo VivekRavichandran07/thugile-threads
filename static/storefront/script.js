@@ -826,6 +826,10 @@ loginForm.addEventListener('submit', async e => {
     await loadWishlistFromServer();
     closeAuthModal();
     loginForm.reset();
+    if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
+      window.location.reload();
+      return;
+    }
     if (pendingCartItem) {
       addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
       pendingCartItem = null;
@@ -863,6 +867,10 @@ signupForm.addEventListener('submit', async e => {
     updateAuthUI();
     closeAuthModal();
     signupForm.reset();
+    if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
+      window.location.reload();
+      return;
+    }
     if (pendingCartItem) {
       addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
       pendingCartItem = null;
