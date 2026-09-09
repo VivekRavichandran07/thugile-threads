@@ -456,10 +456,29 @@ document.addEventListener('keydown', event => {
 
 const newsletterForm = document.querySelector('.newsletter form');
 if (newsletterForm) {
-  newsletterForm.addEventListener('submit', event => {
-    event.preventDefault(); event.currentTarget.reset();
-    toast.textContent = 'You\'re on the list — thank you.'; toast.classList.add('show');
+  newsletterForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const emailInput = newsletterForm.querySelector('input[type="email"]');
+    const email = emailInput.value.trim();
+    if (!email) return;
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.textContent = 'You\'re on the list — thank you.';
+      } else {
+        toast.textContent = data.error || 'Subscription failed';
+      }
+    } catch {
+      toast.textContent = 'Network error — please try again';
+    }
+    toast.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    newsletterForm.reset();
   });
 }
 
@@ -577,11 +596,28 @@ const profileDropdown = document.getElementById('profile-dropdown');
 
 const authOverlay = document.getElementById('auth-overlay');
 const authClose = document.getElementById('auth-close');
-const authTabs = document.querySelectorAll('.auth-tab');
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const loginError = document.getElementById('login-error');
 const signupError = document.getElementById('signup-error');
+const authIdentifierForm = document.getElementById('auth-identifier-form');
+const authIdentifierInput = document.getElementById('auth-identifier');
+const authStep1 = document.getElementById('auth-step-1');
+const authStepSignup = document.getElementById('auth-step-signup');
+const authStepLogin = document.getElementById('auth-step-login');
+const authStepForgot = document.getElementById('auth-step-forgot');
+const forgotPasswordLink = document.getElementById('forgot-password-link');
+const forgotPasswordForm = document.getElementById('forgot-password-form');
+const forgotError = document.getElementById('forgot-error');
+let pendingIdentifier = '';
+
+function showAuthStep(step) {
+  [authStep1, authStepSignup, authStepLogin, authStepForgot].forEach(el => { if (el) el.style.display = 'none'; });
+  if (step === 'identifier' && authStep1) authStep1.style.display = 'block';
+  if (step === 'signup' && authStepSignup) authStepSignup.style.display = 'block';
+  if (step === 'login' && authStepLogin) authStepLogin.style.display = 'block';
+  if (step === 'forgot' && authStepForgot) authStepForgot.style.display = 'block';
+}
 
 
 function updateAuthUI() {
@@ -792,102 +828,171 @@ async function loadOrders() {
 
 
 
-authTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    authTabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    const target = tab.dataset.tab;
-    loginForm.classList.toggle('hidden', target !== 'login');
-    signupForm.classList.toggle('hidden', target !== 'signup');
-    loginError.textContent = '';
-    signupError.textContent = '';
+if (authIdentifierForm) {
+  authIdentifierForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const identifier = authIdentifierInput.value.trim();
+    if (!identifier) return;
+    try {
+      const res = await fetch('/api/auth/check-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const data = await res.json();
+      if (data.exists) {
+        pendingIdentifier = identifier;
+        showAuthStep('login');
+        const loginPwd = document.getElementById('login-password');
+        if (loginPwd) loginPwd.value = '';
+        const loginErr = document.getElementById('login-error');
+        if (loginErr) loginErr.textContent = '';
+      } else {
+        pendingIdentifier = identifier;
+        const signupEmail = document.getElementById('signup-email');
+        const signupPhone = document.getElementById('signup-phone');
+        if (signupEmail) signupEmail.value = identifier.includes('@') ? identifier : '';
+        if (signupPhone) signupPhone.value = identifier.includes('@') ? '' : identifier;
+        showAuthStep('signup');
+        const signupErr = document.getElementById('signup-error');
+        if (signupErr) signupErr.textContent = '';
+      }
+    } catch {
+      const errEl = document.getElementById('login-error');
+      if (errEl) errEl.textContent = 'Network error. Try again.';
+    }
   });
-});
+}
 
-loginForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  loginError.textContent = '';
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      loginError.textContent = data.error || 'Login failed';
-      return;
+if (loginForm) {
+  loginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const password = document.getElementById('login-password').value;
+    if (!pendingIdentifier || !password) return;
+    try {
+      const body = { password };
+      if (pendingIdentifier.includes('@')) body.email = pendingIdentifier;
+      else body.phone = pendingIdentifier;
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        loginError.textContent = data.error || 'Login failed';
+        return;
+      }
+      currentUser = data.user;
+      updateAuthUI();
+      await loadCartFromServer();
+      await loadWishlistFromServer();
+      closeAuthModal();
+      loginForm.reset();
+      if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
+        window.location.reload();
+        return;
+      }
+      if (pendingCartItem) {
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
+        pendingCartItem = null;
+      } else if (pendingWishlistItem) {
+        toggleWishlist(pendingWishlistItem);
+        pendingWishlistItem = null;
+      }
+      toast.textContent = `Welcome back, ${currentUser.name}!`;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    } catch {
+      loginError.textContent = 'Network error. Try again.';
     }
-    currentUser = data.user;
-    updateAuthUI();
-    await loadCartFromServer();
-    await loadWishlistFromServer();
-    closeAuthModal();
-    loginForm.reset();
-    if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
-      window.location.reload();
-      return;
-    }
-    if (pendingCartItem) {
-      addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
-      pendingCartItem = null;
-    } else if (pendingWishlistItem) {
-      toggleWishlist(pendingWishlistItem);
-      pendingWishlistItem = null;
-    }
-    toast.textContent = `Welcome back, ${currentUser.name}!`;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
-  } catch {
-    loginError.textContent = 'Network error. Try again.';
-  }
-});
+  });
+}
 
-signupForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  signupError.textContent = '';
-  const name = document.getElementById('signup-name').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  try {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      signupError.textContent = data.error || 'Signup failed';
+if (signupForm) {
+  signupForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    signupError.textContent = '';
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const phone = document.getElementById('signup-phone').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!name || !email || !phone || !password) {
+      signupError.textContent = 'All fields are required.';
       return;
     }
-    currentUser = data.user;
-    updateAuthUI();
-    closeAuthModal();
-    signupForm.reset();
-    if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
-      window.location.reload();
-      return;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        signupError.textContent = data.error || 'Signup failed';
+        return;
+      }
+      currentUser = data.user;
+      updateAuthUI();
+      closeAuthModal();
+      signupForm.reset();
+      if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
+        window.location.reload();
+        return;
+      }
+      if (pendingCartItem) {
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
+        pendingCartItem = null;
+      } else if (pendingWishlistItem) {
+        toggleWishlist(pendingWishlistItem);
+        pendingWishlistItem = null;
+      }
+      syncCartToServer();
+      syncWishlistToServer();
+      toast.textContent = `Welcome, ${currentUser.name}!`;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    } catch {
+      signupError.textContent = 'Network error. Try again.';
     }
-    if (pendingCartItem) {
-      addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
-      pendingCartItem = null;
-    } else if (pendingWishlistItem) {
-      toggleWishlist(pendingWishlistItem);
-      pendingWishlistItem = null;
+  });
+}
+
+if (forgotPasswordLink) {
+  forgotPasswordLink.addEventListener('click', e => {
+    e.preventDefault();
+    showAuthStep('forgot');
+  });
+}
+
+if (forgotPasswordForm) {
+  forgotPasswordForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    forgotError.textContent = '';
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) return;
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        forgotError.textContent = data.error || 'Failed to send reset link';
+        return;
+      }
+      forgotError.style.color = 'green';
+      forgotError.textContent = 'Reset link sent! Check your email.';
+      setTimeout(() => { showAuthStep('identifier'); forgotError.style.color = ''; }, 2000);
+    } catch {
+      forgotError.textContent = 'Network error. Try again.';
     }
-    syncCartToServer();
-    syncWishlistToServer();
-    toast.textContent = `Welcome, ${currentUser.name}!`;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
-  } catch {
-    signupError.textContent = 'Network error. Try again.';
-  }
-});
+  });
+}
 
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' });

@@ -67,6 +67,14 @@ def storefront_products():
 
 
 # ---------------------------------------------------------------
+# PASSWORD RESET PAGE
+# ---------------------------------------------------------------
+@app.route("/shop/reset-password")
+def reset_password_page():
+    return send_from_directory(os.path.join(app.static_folder, "storefront"), "reset-password.html")
+
+
+# ---------------------------------------------------------------
 # AUTHENTICATION
 # ---------------------------------------------------------------
 @app.route("/api/auth/register", methods=["POST"])
@@ -74,6 +82,7 @@ def auth_register():
     data = request.get_json() or {}
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    phone = (data.get("phone") or "").strip()
     password = data.get("password") or ""
     if not name or not email or not password:
         return jsonify({"error": "Name, email and password are required."}), 400
@@ -82,17 +91,18 @@ def auth_register():
     conn = get_connection()
     try:
         conn.execute(
-            "INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-            (name, email, generate_password_hash(password), now_iso()),
+            "INSERT INTO users (name, email, phone, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+            (name, email, phone, generate_password_hash(password), now_iso()),
         )
         conn.commit()
-        user = conn.execute("SELECT id, name, email FROM users WHERE email = ?", (email,)).fetchone()
+        user = conn.execute("SELECT id, name, email, phone FROM users WHERE email = ?", (email,)).fetchone()
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
         session["user_email"] = user["email"]
-        return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+        session["user_phone"] = user["phone"]
+        return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"]}})
     except sqlite3.IntegrityError:
-        return jsonify({"error": "An account with this email already exists."}), 409
+        return jsonify({"error": "An account with this email or phone already exists."}), 409
     finally:
         conn.close()
 
@@ -100,19 +110,40 @@ def auth_register():
 @app.route("/api/auth/login", methods=["POST"])
 def auth_login():
     data = request.get_json() or {}
-    email = (data.get("email") or "").strip().lower()
+    identifier = (data.get("email") or data.get("phone") or "").strip()
     password = data.get("password") or ""
-    if not email or not password:
-        return jsonify({"error": "Email and password are required."}), 400
+    if not identifier or not password:
+        return jsonify({"error": "Email/phone and password are required."}), 400
     conn = get_connection()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    user = conn.execute(
+        "SELECT * FROM users WHERE email = ? OR phone = ?",
+        (identifier.lower(), identifier)
+    ).fetchone()
     conn.close()
     if not user or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid email or password."}), 401
+        return jsonify({"error": "Invalid credentials."}), 401
     session["user_id"] = user["id"]
     session["user_name"] = user["name"]
     session["user_email"] = user["email"]
-    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+    session["user_phone"] = user["phone"]
+    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"]}})
+
+
+@app.route("/api/auth/check-user", methods=["POST"])
+def auth_check_user():
+    data = request.get_json() or {}
+    identifier = (data.get("identifier") or "").strip()
+    if not identifier:
+        return jsonify({"error": "Email or phone required"}), 400
+    conn = get_connection()
+    user = conn.execute(
+        "SELECT id, name, email, phone FROM users WHERE email = ? OR phone = ?",
+        (identifier.lower(), identifier)
+    ).fetchone()
+    conn.close()
+    if user:
+        return jsonify({"exists": True, "user": dict(user)})
+    return jsonify({"exists": False})
 
 
 @app.route("/api/auth/logout", methods=["POST"])
@@ -126,7 +157,7 @@ def auth_logout():
 def auth_me():
     if "user_id" not in session:
         return jsonify({"user": None})
-    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email")}})
+    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email"), "phone": session.get("user_phone")}})
 
 
 # ---------------------------------------------------------------
@@ -192,6 +223,88 @@ def user_wishlist_save():
     conn.commit()
     conn.close()
     return jsonify({"ok": True})
+
+
+@app.route("/api/newsletter/subscribe", methods=["POST"])
+def subscribe_newsletter():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email required"}), 400
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO subscribers (email, subscribed_at) VALUES (?, ?)",
+            (email, now_iso()),
+        )
+        conn.commit()
+        return jsonify({"ok": True, "message": "Subscribed successfully"})
+    finally:
+        conn.close()
+
+
+@app.route("/api/newsletter/subscribers")
+def list_subscribers():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    rows = conn.execute("SELECT email, subscribed_at FROM subscribers ORDER BY subscribed_at DESC").fetchall()
+    conn.close()
+    return jsonify({"subscribers": [dict(r) for r in rows]})
+
+
+# ---------------------------------------------------------------
+# PASSWORD RESET
+# ---------------------------------------------------------------
+@app.route("/api/auth/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+    conn = get_connection()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+    import secrets
+    token = secrets.token_hex(32)
+    expires = (datetime.utcnow()).isoformat()
+    conn.execute(
+        "INSERT INTO password_resets (user_id, token, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)",
+        (user["id"], token, expires, now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    reset_link = f"/shop/reset-password?token={token}"
+    return jsonify({"ok": True, "reset_link": reset_link})
+
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def reset_password():
+    data = request.get_json() or {}
+    token = (data.get("token") or "").strip()
+    new_password = (data.get("password") or "").strip()
+    if not token or not new_password:
+        return jsonify({"error": "Token and password required"}), 400
+    if len(new_password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > ?",
+        (token, now_iso()),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Invalid or expired token"}), 400
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (generate_password_hash(new_password), row["user_id"]),
+    )
+    conn.execute("UPDATE password_resets SET used = 1 WHERE id = ?", (row["id"],))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "message": "Password reset successfully"})
 
 
 # ---------------------------------------------------------------
