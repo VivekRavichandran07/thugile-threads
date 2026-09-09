@@ -109,8 +109,23 @@
         <p>Artisan crafted</p>
         <span class="card-arrow">→</span>
       </div>
+      <div class="collection-card" data-category="Summer Edit">
+        <h3>Summer Edit</h3>
+        <p>Light and breezy</p>
+        <span class="card-arrow">→</span>
+      </div>
+      <div class="collection-card" data-category="Winter Collection">
+        <h3>Winter Collection</h3>
+        <p>Warm layered looks</p>
+        <span class="card-arrow">→</span>
+      </div>
+      <div class="collection-card" data-category="Fusion Wear">
+        <h3>Fusion Wear</h3>
+        <p>Contemporary cuts</p>
+        <span class="card-arrow">→</span>
+      </div>
     </div>
-    <div id="filtered-products" style="display:none; margin-top:48px;">
+    <div id="filtered-products" style="display:none; margin:48px auto 64px; max-width:800px;">
       <div class="section-header" style="border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:48px;">
         <div>
           <p class="eyebrow">Filtered</p>
@@ -281,7 +296,14 @@
     });
 
     function showFilteredProducts(category) {
-      const filtered = allProducts.filter(p => p.category === category);
+      const keywords = category.toLowerCase().replace(/ collection| edit| wear/gi).trim().split(/\s+/).filter(Boolean).map(kw => kw.replace(/s$/, ''));
+      let filtered = allProducts.filter(p =>
+        keywords.some(kw => (p.category && p.category.toLowerCase().includes(kw)) ||
+                            (p.name && p.name.toLowerCase().includes(kw)))
+      );
+      if (!filtered.length && allProducts.length) {
+        filtered = allProducts;
+      }
       const grid = document.getElementById('filtered-products-grid');
       if (!grid) return;
       if (!filtered.length) {
