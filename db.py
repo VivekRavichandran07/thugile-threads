@@ -63,10 +63,11 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             product_name TEXT NOT NULL,
+            size TEXT NOT NULL DEFAULT 'M',
             price REAL NOT NULL DEFAULT 0,
             qty INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE(user_id, product_name)
+            UNIQUE(user_id, product_name, size)
         );
 
         CREATE TABLE IF NOT EXISTS user_wishlists (
@@ -122,6 +123,31 @@ def init_db():
         );
         """
     )
+    cart_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
+    if "size" not in cart_columns:
+        conn.execute("ALTER TABLE user_carts RENAME TO user_carts_legacy")
+        conn.execute(
+            """
+            CREATE TABLE user_carts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                product_name TEXT NOT NULL,
+                size TEXT NOT NULL DEFAULT 'M',
+                price REAL NOT NULL DEFAULT 0,
+                qty INTEGER NOT NULL DEFAULT 1,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(user_id, product_name, size)
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO user_carts (id, user_id, product_name, size, price, qty)
+            SELECT id, user_id, product_name, 'M', price, qty
+            FROM user_carts_legacy
+            """
+        )
+        conn.execute("DROP TABLE user_carts_legacy")
     # Keep existing inventory databases compatible when the storefront adds image support.
     columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}
     if "image_url" not in columns:
@@ -145,20 +171,6 @@ def init_db():
         conn.execute("ALTER TABLE user_addresses ADD COLUMN email TEXT")
     if "address_line_2" not in address_columns:
         conn.execute("ALTER TABLE user_addresses ADD COLUMN address_line_2 TEXT")
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS user_addresses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                address TEXT NOT NULL,
-                city TEXT NOT NULL,
-                pincode TEXT NOT NULL,
-                is_default INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        """)
     
     conn.commit()
     conn.close()

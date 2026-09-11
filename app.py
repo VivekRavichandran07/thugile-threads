@@ -295,7 +295,12 @@ def user_cart_get():
         return jsonify({"cart": []})
     conn = get_connection()
     rows = conn.execute(
-        "SELECT product_name, price, qty FROM user_carts WHERE user_id = ?",
+        """
+        SELECT product_name, size, MAX(price) AS price, SUM(qty) AS qty
+        FROM user_carts
+        WHERE user_id = ?
+        GROUP BY product_name, size
+        """,
         (session["user_id"],),
     ).fetchall()
     conn.close()
@@ -310,10 +315,21 @@ def user_cart_save():
     cart = data.get("cart", [])
     conn = get_connection()
     conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
+    merged_cart = {}
     for item in cart:
+        name = item.get("name", "")
+        size = item.get("size") or "M"
+        key = (name, size)
+        if key not in merged_cart:
+            merged_cart[key] = {
+                "price": float(item.get("price", 0)),
+                "qty": 0,
+            }
+        merged_cart[key]["qty"] += int(item.get("qty", 1))
+    for (name, size), item in merged_cart.items():
         conn.execute(
-            "INSERT INTO user_carts (user_id, product_name, price, qty) VALUES (?, ?, ?, ?)",
-            (session["user_id"], item.get("name", ""), float(item.get("price", 0)), int(item.get("qty", 1))),
+            "INSERT INTO user_carts (user_id, product_name, size, price, qty) VALUES (?, ?, ?, ?, ?)",
+            (session["user_id"], name, size, item["price"], item["qty"]),
         )
     conn.commit()
     conn.close()

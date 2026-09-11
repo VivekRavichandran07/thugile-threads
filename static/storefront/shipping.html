@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/storefront/style.css" />
+  <link rel="icon" href="/static/storefront/assets/thugile-and-threads-logo.png" type="image/png">
 </head>
 <body class="inner-page">
   <div class="grain"></div>
@@ -27,6 +28,10 @@
       </nav>
       <div class="header-actions">
         <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <div id="search-overlay" class="search-overlay">
+          <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
+          <div id="search-results" class="search-results"></div>
+        </div>
         <button class="wishlist-btn-header" aria-label="Wishlist">
           ♥ <span id="wishlist-count">0</span>
         </button>
@@ -70,7 +75,7 @@
         <h2 style="font-size:18px;margin:0 0 16px;letter-spacing:-.02em;">Saved Addresses</h2>
         <div id="addresses-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;"></div>
         <div id="add-address-wrapper" style="margin-top:16px;">
-          <button id="add-address-btn" type="button" onclick="document.getElementById('shipping-form').style.display='flex'; document.getElementById('add-address-wrapper').style.display='none'; console.log('form forced open')" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase; position:relative; z-index:9999;">
+          <button id="add-address-btn" type="button" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase; position:relative; z-index:9999;">
             <span>+</span> Add New Address
           </button>
         </div>
@@ -219,6 +224,11 @@
 
   <script src="/static/storefront/script.js"></script>
    <script>
+  // Define escapeHtml function if not already defined
+  if (typeof escapeHtml === 'undefined') {
+    window.escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+  }
+
   const shippingForm = document.getElementById('shipping-form');
   const addressesList = document.getElementById('addresses-list');
   const addAddressWrapper = document.getElementById('add-address-wrapper');
@@ -239,6 +249,14 @@
     if (addAddressWrapper) addAddressWrapper.style.display = 'block';
     if (shippingError) shippingError.textContent = '';
   }
+
+  // Add event listener for add address button
+  document.addEventListener('DOMContentLoaded', function() {
+    const addAddressBtn = document.getElementById('add-address-btn');
+    if (addAddressBtn) {
+      addAddressBtn.addEventListener('click', showAddForm);
+    }
+  });
 
   async function loadAddresses() {
     try {

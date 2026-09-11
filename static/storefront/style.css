@@ -17,3 +17,7 @@
 .profile-link{background:none;border:0;text-align:left;font:500 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;color:var(--ink);padding:4px 0;text-decoration:none}
 .profile-link:hover{opacity:.6}
 .product-popup{overflow-y:auto}
+.search-overlay{position:fixed;top:100%;right:0;left:0;background:var(--cream);z-index:90;transition:opacity .3s ease;opacity:0;pointer-events:none}
+.search-overlay.open{opacity:1;pointer-events:auto}
+.search-input{width:100%;max-width:800px;margin:20px auto;padding:16px 24px;font:400 16px var(--sans);border:0;border-bottom:2px solid var(--ink);outline:none;background:transparent}
+.search-results{max-width:800px;margin:0 auto;padding:0 24px}

@@ -26,6 +26,10 @@ const productSizes = document.getElementById('product-popup-sizes');
 const productAddToBag = document.getElementById('product-add-to-bag');
 const productWishlistBtn = document.getElementById('product-wishlist-btn');
 const productSizeGuide = document.getElementById('product-size-guide');
+const searchBtn = document.querySelector('.search-btn');
+const searchOverlay = document.getElementById('search-overlay');
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
 const fallbackImages = [
   'https://images.pexels.com/photos/13155751/pexels-photo-13155751.jpeg?auto=format&fit=crop&w=1100&q=85',
   'https://images.pexels.com/photos/9419023/pexels-photo-9419023.jpeg?auto=format&fit=crop&w=900&q=85',
@@ -73,20 +77,40 @@ const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFra
 function loadCart() {
   try {
     const saved = localStorage.getItem('tnt_cart');
-    bag = saved ? JSON.parse(saved) : [];
+    bag = mergeCartItems(saved ? JSON.parse(saved) : []);
   } catch {
     bag = [];
   }
   updateCartUI();
 }
 
+function mergeCartItems(items) {
+  return items.reduce((merged, item) => {
+    const size = item.size || 'M';
+    const existing = merged.find(cartItem => cartItem.name === item.name && (cartItem.size || 'M') === size);
+    if (existing) {
+      existing.qty += Number(item.qty) || 0;
+    } else {
+      merged.push({
+        ...item,
+        size,
+        price: Number(item.price) || 0,
+        qty: Number(item.qty) || 1,
+      });
+    }
+    return merged;
+  }, []);
+}
+
 function saveCart() {
+  bag = mergeCartItems(bag);
   localStorage.setItem('tnt_cart', JSON.stringify(bag));
   updateCartUI();
   syncCartToServer();
 }
 
 function updateCartUI() {
+  bag = mergeCartItems(bag);
   const totalItems = bag.reduce((sum, item) => sum + item.qty, 0);
   if (count) count.textContent = totalItems;
   renderCartItems();
@@ -123,7 +147,7 @@ function addToBag(name, price, size, image_url) {
     openAuthModal();
     return;
   }
-  const existing = bag.find(item => item.name === name && item.size === size);
+  const existing = bag.find(item => item.name === name && (item.size || 'M') === (size || 'M'));
   if (existing) {
     existing.qty += 1;
   } else {
@@ -730,15 +754,16 @@ async function loadCartFromServer() {
   try {
     const res = await fetch('/api/user/cart');
     const data = await res.json();
-    bag = (data.cart || []).map(item => ({
+    bag = mergeCartItems((data.cart || []).map(item => ({
       name: item.product_name,
       price: item.price,
       qty: item.qty,
       size: item.size || null,
       image_url: item.image_url || null
-    }));
+    })));
     updateCartUI();
     localStorage.setItem('tnt_cart', JSON.stringify(bag));
+    syncCartToServer();
     if (typeof renderCheckout === 'function') renderCheckout();
   } catch {}
 }
@@ -1066,6 +1091,67 @@ async function init() {
   if (document.body.dataset.showLogin === 'true' && !currentUser) {
     openAuthModal();
   }
+  setupSearch();
+}
+
+function setupSearch() {
+  if (!searchBtn || !searchOverlay || !searchInput || !searchResults) return;
+  
+  searchBtn.addEventListener('click', () => {
+    searchOverlay.classList.add('open');
+    searchInput.focus();
+  });
+  
+  searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    if (!query) {
+      searchResults.innerHTML = '';
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/store/products');
+      const data = await res.json();
+      const products = data.products || [];
+      
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        (p.category && p.category.toLowerCase().includes(query))
+      );
+      
+      if (filtered.length === 0) {
+        searchResults.innerHTML = '<p style="padding:16px;color:#7a6e62;">No products found</p>';
+        return;
+      }
+      
+      searchResults.innerHTML = filtered.slice(0, 5).map(p => `
+        <a href="/shop/collections#${p.category?.toLowerCase() || 'collection'}" style="display:block;padding:12px 16px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);">
+          <span style="font-weight:600;">${escapeHtml(p.name)}</span>
+          ${p.category ? `<span style="color:#7a6e62;font-size:12px;display:block">${escapeHtml(p.category)}</span>` : ''}
+        </a>
+      `).join('');
+    } catch {
+      searchResults.innerHTML = '<p style="padding:16px;color:#7a6e62;">Error loading results</p>';
+    }
+  });
+  
+  // Close search when clicking outside
+  searchOverlay.addEventListener('click', (e) => {
+    if (e.target === searchOverlay) {
+      searchOverlay.classList.remove('open');
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+    }
+  });
+  
+  // Close on escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchOverlay.classList.contains('open')) {
+      searchOverlay.classList.remove('open');
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+    }
+  });
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
