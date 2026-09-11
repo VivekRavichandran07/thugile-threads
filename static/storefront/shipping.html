@@ -68,9 +68,9 @@
       
       <div id="saved-addresses" style="margin-bottom:32px;">
         <h2 style="font-size:18px;margin:0 0 16px;letter-spacing:-.02em;">Saved Addresses</h2>
-        <div id="addresses-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <div id="addresses-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;"></div>
         <div id="add-address-wrapper" style="margin-top:16px;">
-          <button id="add-address-btn" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;">
+          <button id="add-address-btn" type="button" onclick="document.getElementById('shipping-form').style.display='flex'; document.getElementById('add-address-wrapper').style.display='none'; console.log('form forced open')" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase; position:relative; z-index:9999;">
             <span>+</span> Add New Address
           </button>
         </div>
@@ -99,11 +99,11 @@
         </div>
         <button type="button" id="proceed-btn" onclick="saveAndGo()" style="width:100%;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Proceed to Pay</button>
         <p id="shipping-error" style="margin:0;font-size:13px;color:#c0392b;min-height:18px;"></p>
-        <button type="button" id="cancel-form-btn" style="width:100%;padding:10px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;">Cancel</button>
+        <button type="button" id="cancel-form-btn" onclick="hideAddForm()" style="width:100%;padding:10px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;">Cancel</button>
       </form>
       
-      <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--line);">
-        <a href="/shop/orders" style="color:var(--ink);text-decoration:none;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;">My Orders →</a>
+      <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--line);text-align:left;">
+        <a href="/shop/orders" style="color:var(--ink);text-decoration:none;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;display:inline-block;">My Orders →</a>
       </div>
     </div>
   </main>
@@ -209,220 +209,106 @@
   <div class="toast" id="toast" role="status"></div>
 
   <script src="/static/storefront/script.js"></script>
-  <script>
-    function escapeHtml(value) {
-      return String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+   <script>
+  const shippingForm = document.getElementById('shipping-form');
+  const addressesList = document.getElementById('addresses-list');
+  const addAddressWrapper = document.getElementById('add-address-wrapper');
+  const shippingError = document.getElementById('shipping-error');
+
+  // Make these global so onclick works
+  window.showAddForm = function() {
+    console.log("Add clicked");
+    if (shippingForm) {
+      shippingForm.style.display = 'flex';
+      shippingForm.querySelectorAll('input, textarea').forEach(i => i.value = '');
+    }
+    if (addAddressWrapper) addAddressWrapper.style.display = 'none';
+  }
+
+  window.hideAddForm = function() {
+    if (shippingForm) shippingForm.style.display = 'none';
+    if (addAddressWrapper) addAddressWrapper.style.display = 'block';
+    if (shippingError) shippingError.textContent = '';
+  }
+
+  async function loadAddresses() {
+    try {
+      const checkRes = await fetch('/api/auth/me');
+      const checkData = await checkRes.json();
+      if (!checkData.user) {
+        addressesList.innerHTML = '<p style="color:#7a6e62;">Please log in to manage addresses.</p>';
+        return;
+      }
+      const res = await fetch('/api/user/addresses');
+      const data = await res.json();
+      if (res.ok && data.addresses && data.addresses.length) {
+        addressesList.innerHTML = data.addresses.map(addr => `
+          <div style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);">
+            <strong>${escapeHtml(addr.name)}</strong>
+            <p style="margin:4px 0 0;font-size:13px;color:#7a6e62;">${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
+          </div>
+        `).join('');
+      } else {
+        addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
+      }
+    } catch (err) {
+      addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
+    }
+  }
+
+  window.saveAndGo = async function() {
+    const nameInput = document.getElementById('shipping-name');
+    const phoneInput = document.getElementById('shipping-phone');
+    const addressInput = document.getElementById('shipping-address');
+    const cityInput = document.getElementById('shipping-city');
+    const pincodeInput = document.getElementById('shipping-pincode');
+
+    if (!nameInput || !phoneInput || !addressInput || !cityInput || !pincodeInput) {
+      return;
     }
 
-    function formatPhoneNumber(phone) {
-      if (!phone) return '';
-      const cleaned = phone.replace(/\D/g, '');
-      if (cleaned.length > 10) {
-        const countryCode = cleaned.slice(0, -10);
-        const number = cleaned.slice(-10);
-        return `+${countryCode} ${number}`;
-      }
-      return phone;
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const address = addressInput.value.trim();
+    const city = cityInput.value.trim();
+    const pincode = pincodeInput.value.trim();
+
+    if (!name || !phone || !address || !city || !pincode) {
+      shippingError.textContent = 'Please fill in all required fields.';
+      return;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-      const shippingForm = document.getElementById('shipping-form');
-      const shippingError = document.getElementById('shipping-error');
-      const addressesList = document.getElementById('addresses-list');
-      const addAddressBtn = document.getElementById('add-address-btn');
-      const addAddressWrapper = document.getElementById('add-address-wrapper');
-      console.log('addAddressBtn:', addAddressBtn);
-      console.log('addAddressWrapper:', addAddressWrapper);
-      const cancelFormBtn = document.getElementById('cancel-form-btn');
-      const proceedBtn = document.getElementById('proceed-btn');
+    const shippingData = { name, phone, address, city, pincode };
+    try {
+      const res = await fetch('/api/user/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shippingData),
+      });
 
-      window.toggleForm = function(show) {
-        if (show) {
-          if (shippingForm) {
-            shippingForm.style.display = 'flex';
-            // Clear form fields
-            const inputs = shippingForm.querySelectorAll('input, textarea');
-            inputs.forEach(input => input.value = '');
-          }
-          if (addAddressWrapper) addAddressWrapper.style.display = 'none';
-        } else {
-          if (shippingForm) shippingForm.style.display = 'none';
-          if (addAddressWrapper) addAddressWrapper.style.display = 'block';
-          if (shippingError) shippingError.textContent = '';
-        }
-      };
-
-      async function loadAddresses() {
-        try {
-          const checkRes = await fetch('/api/auth/me');
-          const checkData = await checkRes.json();
-          if (!checkData.user) {
-            if (addressesList) {
-              addressesList.innerHTML = '<p style="color:#7a6e62;font-size:14px;margin:8px 0 16px;">Please log in to save and manage addresses.</p>';
-            }
-            return;
-          }
-          
-          const res = await fetch('/api/user/addresses');
-          const data = await res.json();
-          console.log('Addresses response:', data); // Debug log
-          
-          if (res.ok && data.addresses && data.addresses.length) {
-            if (addressesList) {
-              addressesList.innerHTML = data.addresses.map(addr => `
-                <div class="address-card" data-id="${addr.id}" style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                      <strong style="display:block;font-size:15px;color:var(--ink);margin-bottom:4px;">${escapeHtml(addr.name)}</strong>
-                      <p style="margin:0;font-size:13px;color:#7a6e62;line-height:1.5;">
-                        ${escapeHtml(addr.phone)}<br>
-                        ${escapeHtml(addr.address)}<br>
-                        ${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}
-                      </p>
-                    </div>
-                    ${addr.is_default ? '<span style="background:var(--ink);color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;">Default</span>' : ''}
-                  </div>
-                  <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.1);display:flex;gap:8px;justify-content:flex-end;">
-                    <button class="set-default-btn" data-id="${addr.id}" style="padding:6px 12px;background:none;border:1px solid var(--line);border-radius:6px;cursor:pointer;font:500 11px var(--mono);letter-spacing:.04em;text-transform:uppercase;">Set Default</button>
-                    <button class="delete-address-btn" data-id="${addr.id}" style="padding:6px 12px;background:none;border:1px solid #c0392b;border-radius:6px;cursor:pointer;color:#c0392b;font:500 11px var(--mono);letter-spacing:.04em;text-transform:uppercase;">Delete</button>
-                  </div>
-                </div>
-              `).join('');
-              
-              addressesList.querySelectorAll('.delete-address-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                  const id = parseInt(e.target.dataset.id);
-                  if (confirm('Are you sure you want to delete this address?')) {
-                    try {
-                      await fetch(`/api/user/addresses/${id}`, { method: 'DELETE' });
-                      loadAddresses();
-                    } catch {}
-                  }
-                });
-              });
-              
-              addressesList.querySelectorAll('.set-default-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                  const id = parseInt(e.target.dataset.id);
-                  try {
-                    await fetch(`/api/user/addresses/${id}/set-default`, { method: 'POST' });
-                    loadAddresses();
-                  } catch {}
-                });
-              });
-            }
-          } else {
-            if (addressesList) {
-              addressesList.innerHTML = '<p style="color:#7a6e62;font-size:14px;margin:8px 0 16px;">No saved addresses yet.</p>';
-            }
-          }
-        } catch (err) {
-          console.error('Failed to load addresses:', err);
-          if (addressesList) {
-            addressesList.innerHTML = '<p style="color:#7a6e62;font-size:14px;margin:8px 0 16px;">No saved addresses yet.</p>';
-          }
-        }
+      if (!res.ok) {
+        const data = await res.json();
+        shippingError.textContent = data.error || 'Failed to save address';
+        return;
       }
+    } catch (e) {
+      shippingError.textContent = 'Network error. Please try again.';
+      return;
+    }
 
-      async function loadShippingData() {
-        try {
-          const res = await fetch('/api/auth/me');
-          const data = await res.json();
-          if (data.user && shippingForm) {
-            const nameParts = (data.user.name || '').split(' ');
-            const nameInput = shippingForm.querySelector('#shipping-name');
-            const phoneInput = shippingForm.querySelector('#shipping-phone');
-            if (nameParts[0] && nameInput) nameInput.value = nameParts[0];
-            if (nameParts.slice(1).join(' ') && nameInput) nameInput.value = nameParts.join(' ');
-            if (data.user.phone && phoneInput) phoneInput.value = formatPhoneNumber(data.user.phone);
-          }
-        } catch {}
-      }
+    try {
+      sessionStorage.removeItem('shipping_form_data');
+    } catch {}
 
-      async function saveAndGo() {
-        const nameInput = document.getElementById('shipping-name');
-        const phoneInput = document.getElementById('shipping-phone');
-        const addressInput = document.getElementById('shipping-address');
-        const cityInput = document.getElementById('shipping-city');
-        const pincodeInput = document.getElementById('shipping-pincode');
+    toast.textContent = 'Address saved! Proceeding to checkout...';
+    try { toast.classList.add('show'); } catch {}
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { try { toast.classList.remove('show'); } catch {} }, 2600);
 
-        if (!nameInput || !phoneInput || !addressInput || !cityInput || !pincodeInput) {
-          return;
-        }
+    window.location.href = '/shop/checkout';
+  };
 
-        const name = nameInput.value.trim();
-        const phone = phoneInput.value.trim();
-        const address = addressInput.value.trim();
-        const city = cityInput.value.trim();
-        const pincode = pincodeInput.value.trim();
-
-        if (!name || !phone || !address || !city || !pincode) {
-          if (shippingError) shippingError.textContent = 'Please fill in all required fields.';
-          return;
-        }
-
-        const shippingData = { name, phone, address, city, pincode };
-        try {
-          const res = await fetch('/api/user/addresses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(shippingData),
-          });
-          
-          if (!res.ok) {
-            const data = await res.json();
-            if (shippingError) shippingError.textContent = data.error || 'Failed to save address';
-            return;
-          }
-        } catch (e) {
-          if (shippingError) shippingError.textContent = 'Network error. Please try again.';
-          return;
-        }
-
-        // Clear form data from session and redirect
-        try {
-          sessionStorage.removeItem('shipping_form_data');
-        } catch {}
-
-        toast.textContent = 'Address saved! Proceeding to checkout...';
-        try { toast.classList.add('show'); } catch {}
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { try { toast.classList.remove('show'); } catch {} }, 2600);
-        
-        window.location.href = '/shop/checkout';
-      }
-
-      if (addAddressBtn) {
-        addAddressBtn.addEventListener('click', function() {
-          console.log('Add address button clicked'); // Debug log
-          toggleForm(true);
-        });
-      }
-      
-      if (cancelFormBtn) {
-        cancelFormBtn.addEventListener('click', function() {
-          toggleForm(false);
-        });
-      }
-
-      if (shippingForm) {
-        shippingForm.addEventListener('submit', async e => {
-          e.preventDefault();
-          if (shippingError) shippingError.textContent = '';
-          await saveAndGo();
-        });
-      }
-
-      if (proceedBtn) {
-        proceedBtn.addEventListener('click', async e => {
-          if (shippingError) shippingError.textContent = '';
-          await saveAndGo();
-        });
-      }
-
-      loadAddresses();
-      loadShippingData();
-    });
-  </script>
+  loadAddresses();
+</script>
 </body>
 </html>
