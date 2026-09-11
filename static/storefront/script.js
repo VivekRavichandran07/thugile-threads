@@ -36,7 +36,7 @@ const fallbackImages = [
   'https://images.pexels.com/photos/37054322/pexels-photo-37054322.jpeg?auto=format&fit=crop&w=900&q=85',
   'https://images.pexels.com/photos/28428053/pexels-photo-28428053.jpeg?auto=format&fit=crop&w=900&q=85'
 ];
-var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null;
+var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null, searchProducts = [];
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const imageFor = (url, index, name) => {
   const imageMap = {
@@ -366,7 +366,13 @@ async function loadCatalog(retries = 3) {
     const response = await fetch('/api/store/products');
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
+    searchProducts = products;
     renderProducts(products);
+    const requestedProduct = new URLSearchParams(window.location.search).get('product');
+    if (requestedProduct) {
+      const product = products.find(item => item.name === requestedProduct);
+      if (product) openProductPopup(product);
+    }
   } catch (error) {
     if (retries > 0) {
       await new Promise(r => setTimeout(r, 1000));
@@ -1097,6 +1103,12 @@ async function init() {
 function setupSearch() {
   if (!searchBtn || !searchOverlay || !searchInput || !searchResults) return;
   
+  const closeSearch = () => {
+    searchOverlay.classList.remove('open');
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+  };
+
   searchBtn.addEventListener('click', () => {
     searchOverlay.classList.add('open');
     searchInput.focus();
@@ -1110,9 +1122,13 @@ function setupSearch() {
     }
     
     try {
-      const res = await fetch('/api/store/products');
-      const data = await res.json();
-      const products = data.products || [];
+      if (!searchProducts.length) {
+        const res = await fetch('/api/store/products');
+        if (!res.ok) throw new Error('Catalog unavailable');
+        const data = await res.json();
+        searchProducts = data.products || [];
+      }
+      const products = searchProducts;
       
       const filtered = products.filter(p => 
         p.name.toLowerCase().includes(query) || 
@@ -1120,27 +1136,50 @@ function setupSearch() {
       );
       
       if (filtered.length === 0) {
-        searchResults.innerHTML = '<p style="padding:16px;color:#7a6e62;">No products found</p>';
+        searchResults.innerHTML = '<p class="search-state">No products found</p>';
         return;
       }
       
-      searchResults.innerHTML = filtered.slice(0, 5).map(p => `
-        <a href="/shop/collections#${p.category?.toLowerCase() || 'collection'}" style="display:block;padding:12px 16px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);">
-          <span style="font-weight:600;">${escapeHtml(p.name)}</span>
-          ${p.category ? `<span style="color:#7a6e62;font-size:12px;display:block">${escapeHtml(p.category)}</span>` : ''}
-        </a>
+      searchResults.innerHTML = filtered.slice(0, 8).map((p, index) => `
+        <button class="search-result" type="button" data-product-index="${products.indexOf(p)}">
+          <span class="search-result-image"><img src="${escapeHtml(imageFor(p.image_url, index, p.name))}" alt=""></span>
+          <span class="search-result-copy">
+            <strong>${escapeHtml(p.name)}</strong>
+            <small>${escapeHtml([p.category, p.color].filter(Boolean).join(' · ') || 'Thugile & Threads')}</small>
+          </span>
+          <span class="search-result-arrow">↗</span>
+        </button>
       `).join('');
     } catch {
-      searchResults.innerHTML = '<p style="padding:16px;color:#7a6e62;">Error loading results</p>';
+      searchResults.innerHTML = '<p class="search-state">Search is unavailable right now.</p>';
     }
+  });
+
+  searchResults.addEventListener('click', event => {
+    const result = event.target.closest('.search-result');
+    if (!result) return;
+    const product = searchProducts[Number(result.dataset.productIndex)];
+    if (!product) return;
+    closeSearch();
+    if (productOverlay && productPopup) {
+      openProductPopup(product);
+    } else {
+      window.location.href = `/shop/collections?product=${encodeURIComponent(product.name)}`;
+    }
+  });
+
+  document.addEventListener('click', event => {
+    const target = event.target;
+    if (!searchOverlay.classList.contains('open') || !(target instanceof Element)) return;
+    if (target.closest('.search-input, .search-results, .search-btn')) return;
+    closeSearch();
   });
   
   // Close search when clicking outside
   searchOverlay.addEventListener('click', (e) => {
     if (e.target === searchOverlay) {
       searchOverlay.classList.remove('open');
-      searchInput.value = '';
-      searchResults.innerHTML = '';
+      closeSearch();
     }
   });
   
@@ -1148,8 +1187,7 @@ function setupSearch() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && searchOverlay.classList.contains('open')) {
       searchOverlay.classList.remove('open');
-      searchInput.value = '';
-      searchResults.innerHTML = '';
+      closeSearch();
     }
   });
 }
