@@ -38,6 +38,11 @@ input,textarea,select,button{border-radius:10px}
 .auth-modal,.cart-sidebar,.wishlist-sidebar,.profile-dropdown,.popup,.collection-card,.payment-option,.newsletter,.newsletter form,.search-results{border-radius:14px}
 .auth-close,.cart-close,.wishlist-close,.popup-close,.icon-btn,.wishlist-btn-header,.bag,.auth-btn-header{border-radius:50%}
 .auth-submit,.checkout-btn,.place-order-btn,.add-to-bag-btn,.cart-item-remove,.back-link,.newsletter button,.buy button{border-radius:10px}
+.back-link{border-bottom:0!important;text-decoration:none!important}
+.add-to-bag-btn,.size-guide-btn{border-bottom:0!important;text-decoration:none!important}
+.footer-col a{white-space:nowrap}
+#collection{background:#fff;position:relative;z-index:6}
+.collection-spacer{height:40px;background:#fff;position:relative;z-index:6}
 .auth-form input,.newsletter input,.search-input,.payment-option input{border-radius:10px}
 .cart-sidebar,.wishlist-sidebar{overflow:hidden}
 .footer-logo{border-radius:18px}
