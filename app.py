@@ -787,6 +787,31 @@ def sales():
     return render_template("sales.html", sales=all_sales)
 
 
+@app.route("/admin/subscribers")
+def subscribers():
+    if "user_id" not in session:
+        return render_template("subscribers.html", subscribers=[], show_login=True)
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT email, subscribed_at FROM subscribers ORDER BY subscribed_at DESC"
+    ).fetchall()
+    conn.close()
+    return render_template("subscribers.html", subscribers=rows)
+
+
+@app.route("/admin/subscribers/delete", methods=["POST"])
+def delete_subscriber():
+    if "user_id" not in session:
+        return redirect(url_for("subscribers"))
+    email = (request.form.get("email") or "").strip().lower()
+    conn = get_connection()
+    conn.execute("DELETE FROM subscribers WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+    flash("Subscriber removed.", "success")
+    return redirect(url_for("subscribers"))
+
+
 @app.route("/admin/sales/add", methods=["GET", "POST"])
 def add_sale():
     if "user_id" not in session:

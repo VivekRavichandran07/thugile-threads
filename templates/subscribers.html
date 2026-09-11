@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Newsletter Subscribers - Inventory{% endblock %}
+{% block content %}
+    <h1>Newsletter Subscribers</h1>
+    <p class="subtitle">Manage the people who signed up for store updates. Connect this list to an email provider to send campaigns.</p>
+
+    {% if subscribers %}
+        <table>
+            <tr><th>Email</th><th>Subscribed</th><th>Actions</th></tr>
+            {% for subscriber in subscribers %}
+            <tr>
+                <td>{{ subscriber.email }}</td>
+                <td>{{ subscriber.subscribed_at }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('delete_subscriber') }}" style="margin:0;">
+                        <input type="hidden" name="email" value="{{ subscriber.email }}">
+                        <button type="submit">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p class="empty-state">No newsletter subscribers yet.</p>
+    {% endif %}
+{% endblock %}

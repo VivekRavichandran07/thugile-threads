@@ -20,7 +20,7 @@
 .search-overlay{position:fixed;inset:0;z-index:350;background:rgba(26,21,18,.38);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .2s ease;padding:clamp(72px,12vh,140px) 20px 20px}
 .search-overlay.open{opacity:1;pointer-events:auto}
 .search-overlay:before{content:"";position:absolute;inset:0;pointer-events:none}
-.search-input{position:relative;display:block;width:min(680px,100%);margin:0 auto;padding:18px 22px 18px 52px;border:1px solid var(--line);border-bottom-color:transparent;border-radius:14px 14px 0 0;box-shadow:0 18px 50px rgba(26,21,18,.2);font:400 17px var(--sans);outline:none;background:#fff;color:var(--ink)}
+.search-input{position:relative;display:block;width:min(680px,100%);margin:0 auto;padding:18px 22px 18px 52px;border:1px solid var(--line);border-bottom:0;border-radius:14px 14px 0 0;box-shadow:0 18px 50px rgba(26,21,18,.2);font:400 17px var(--sans);outline:none;background:#fff;color:var(--ink)}
 .search-input:focus{border-color:var(--ink);border-bottom-color:transparent}
 .search-results{position:relative;width:min(680px,100%);max-height:min(520px,65vh);overflow:auto;margin:0 auto;padding:8px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;box-shadow:0 18px 50px rgba(26,21,18,.2)}
 .search-result{display:flex;align-items:center;gap:14px;width:100%;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:var(--ink);text-align:left;cursor:pointer;font-family:var(--sans)}
@@ -32,3 +32,15 @@
 .search-result-copy small{color:#7a6e62;font-size:12px}
 .search-result-arrow{margin-left:auto;color:#9a4d35;font-size:18px}
 .search-state{margin:0;padding:28px 16px;text-align:center;color:#7a6e62;font-size:14px}
+
+/* Shared soft-corner treatment for the storefront UI. */
+input,textarea,select,button{border-radius:10px}
+.auth-modal,.cart-sidebar,.wishlist-sidebar,.profile-dropdown,.popup,.collection-card,.payment-option,.newsletter,.newsletter form,.search-results{border-radius:14px}
+.auth-close,.cart-close,.wishlist-close,.popup-close,.icon-btn,.wishlist-btn-header,.bag,.auth-btn-header{border-radius:50%}
+.auth-submit,.checkout-btn,.place-order-btn,.add-to-bag-btn,.cart-item-remove,.back-link,.newsletter button,.buy button{border-radius:10px}
+.auth-form input,.newsletter input,.search-input,.payment-option input{border-radius:10px}
+.cart-sidebar,.wishlist-sidebar{overflow:hidden}
+.footer-logo{border-radius:18px}
+.product-image,.product-popup-main-image,.product-popup-gallery,.product-popup-thumbnails .thumb,.search-result-image{border-radius:12px}
+.search-input{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.search-results{border-top-left-radius:0;border-top-right-radius:0}
