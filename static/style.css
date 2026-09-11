@@ -2,7 +2,7 @@
 
 body {
     margin: 0;
-    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-family: "Inter Tight", -apple-system, "Segoe UI", Arial, sans-serif;
     background: #faf6f0;
     color: #2c2620;
 }
@@ -14,6 +14,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 14px 32px;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
 }
 
 .navbar .brand a {
