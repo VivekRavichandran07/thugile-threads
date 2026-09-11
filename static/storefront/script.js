@@ -620,7 +620,7 @@ function showAuthStep(step) {
 }
 
 
-function updateAuthUI() {
+async function updateAuthUI() {
   if (!authBtn) return;
   if (currentUser) {
     authBtn.textContent = currentUser.name.charAt(0).toUpperCase();
@@ -632,6 +632,7 @@ function updateAuthUI() {
           <span class="profile-email">${escapeHtml(currentUser.email)}</span>
         </div>
         <div class="profile-links">
+          <a href="/shop/shipping" class="profile-link">Shipping Address</a>
           <a href="/shop/orders" class="profile-link">My Orders</a>
           <button class="profile-link" id="logout-btn">Logout</button>
         </div>

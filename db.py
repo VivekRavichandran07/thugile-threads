@@ -105,6 +105,19 @@ def init_db():
             created_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS user_addresses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            address TEXT NOT NULL,
+            city TEXT NOT NULL,
+            pincode TEXT NOT NULL,
+            is_default INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
         """
     )
     # Keep existing inventory databases compatible when the storefront adds image support.
@@ -117,6 +130,31 @@ def init_db():
     if "phone" not in user_columns:
         conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone)")
+    if "address" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN address TEXT")
+    if "city" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN city TEXT")
+    if "pincode" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN pincode TEXT")
+    
+    # Add user_addresses table if not exists
+    address_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_addresses)")}
+    if len(address_columns) < 7:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_addresses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                address TEXT NOT NULL,
+                city TEXT NOT NULL,
+                pincode TEXT NOT NULL,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+    
     conn.commit()
     conn.close()
 

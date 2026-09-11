@@ -137,6 +137,7 @@
 
       <div class="checkout-section">
         <h2>Payment method</h2>
+        <div id="selected-address-display" style="padding:16px;margin-bottom:24px;background:#f8f6f3;border-radius:8px;font-size:14px;line-height:1.5;"></div>
         <label class="payment-option">
           <input type="radio" name="payment" value="upi" checked>
           <span class="payment-icon">📱</span>
@@ -269,7 +270,44 @@
       return String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
     }
 
+    async function renderSelectedAddress() {
+      const displayEl = document.getElementById('selected-address-display');
+      if (!displayEl) return;
+      
+      // First check sessionStorage
+      const stored = sessionStorage.getItem('shipping_form_data');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          const addressParts = [data.name, data.phone, data.address].filter(Boolean).join('<br>');
+          displayEl.innerHTML = '<strong>Shipping Address:</strong><br>' + escapeHtml(addressParts);
+          return;
+        } catch {}
+      }
+      
+      // Then check for saved addresses from API
+      try {
+        const res = await fetch('/api/user/addresses');
+        const data = await res.json();
+        if (data.addresses && data.addresses.length > 0) {
+          const defaultAddr = data.addresses.find(a => a.is_default) || data.addresses[0];
+          const addressParts = [
+            defaultAddr.name,
+            defaultAddr.phone,
+            defaultAddr.address,
+            `${defaultAddr.city} - ${defaultAddr.pincode}`
+          ].filter(Boolean).join('<br>');
+          displayEl.innerHTML = '<strong>Shipping Address:</strong><br>' + escapeHtml(addressParts);
+          return;
+        }
+      } catch {}
+      
+      // No address found
+      displayEl.innerHTML = '<span style="color:#9a8e83;">No shipping address saved. Please add one on the shipping page.</span>';
+    }
+
     function renderCheckout() {
+      renderSelectedAddress();
       loadCart();
       const itemsEl = document.getElementById('checkout-items');
       const totalEl = document.getElementById('checkout-total');

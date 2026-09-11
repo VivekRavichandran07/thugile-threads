@@ -95,12 +95,15 @@ def auth_register():
             (name, email, phone, generate_password_hash(password), now_iso()),
         )
         conn.commit()
-        user = conn.execute("SELECT id, name, email, phone FROM users WHERE email = ?", (email,)).fetchone()
+        user = conn.execute("SELECT id, name, email, phone, address, city, pincode FROM users WHERE email = ?", (email,)).fetchone()
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
         session["user_email"] = user["email"]
         session["user_phone"] = user["phone"]
-        return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"]}})
+        session["user_address"] = user["address"] if user["address"] else None
+        session["user_city"] = user["city"] if user["city"] else None
+        session["user_pincode"] = user["pincode"] if user["pincode"] else None
+        return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"], "address": user["address"] if user["address"] else None, "city": user["city"] if user["city"] else None, "pincode": user["pincode"] if user["pincode"] else None}})
     except sqlite3.IntegrityError:
         return jsonify({"error": "An account with this email or phone already exists."}), 409
     finally:
@@ -126,7 +129,10 @@ def auth_login():
     session["user_name"] = user["name"]
     session["user_email"] = user["email"]
     session["user_phone"] = user["phone"]
-    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"]}})
+    session["user_address"] = user["address"] if user["address"] else None
+    session["user_city"] = user["city"] if user["city"] else None
+    session["user_pincode"] = user["pincode"] if user["pincode"] else None
+    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"], "address": user["address"] if user["address"] else None, "city": user["city"] if user["city"] else None, "pincode": user["pincode"] if user["pincode"] else None}})
 
 
 @app.route("/api/auth/check-user", methods=["POST"])
@@ -153,11 +159,130 @@ def auth_logout():
     return jsonify({"ok": True})
 
 
+@app.route("/api/auth/update-profile", methods=["POST"])
+def auth_update_profile():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    phone = (data.get("phone") or "").strip()
+    address = (data.get("address") or "").strip()
+    city = (data.get("city") or "").strip()
+    pincode = (data.get("pincode") or "").strip()
+    if not name or not phone or not address or not city or not pincode:
+        return jsonify({"error": "Name, phone, address, city and pincode are required."}), 400
+    conn = get_connection()
+    try:
+        conn.execute(
+            "UPDATE users SET name = ?, phone = ?, address = ?, city = ?, pincode = ? WHERE id = ?",
+            (name, phone, address, city, pincode, session["user_id"]),
+        )
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses", methods=["GET"])
+def user_addresses_get():
+    if "user_id" not in session:
+        return jsonify({"addresses": []})
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC",
+        (session["user_id"],),
+    ).fetchall()
+    conn.close()
+    return jsonify({"addresses": [dict(row) for row in rows]})
+
+
+@app.route("/api/user/addresses", methods=["POST"])
+def user_addresses_add():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    phone = (data.get("phone") or "").strip()
+    address = (data.get("address") or "").strip()
+    city = (data.get("city") or "").strip()
+    pincode = (data.get("pincode") or "").strip()
+    if not name or not phone or not address or not city or not pincode:
+        return jsonify({"error": "All address fields are required."}), 400
+    conn = get_connection()
+    try:
+        # If this is being set as default, unset others
+        if data.get("is_default"):
+            conn.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?", (session["user_id"],))
+        conn.execute(
+            "INSERT INTO user_addresses (user_id, name, phone, address, city, pincode, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (session["user_id"], name, phone, address, city, pincode, 1 if data.get("is_default") else 0, now_iso()),
+        )
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses/<int:address_id>", methods=["GET"])
+def user_addresses_get_single(address_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    try:
+        addr = conn.execute("SELECT * FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, session["user_id"])).fetchone()
+        if not addr:
+            return jsonify({"error": "Address not found"}), 404
+        return jsonify({"address": dict(addr)})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses/<int:address_id>", methods=["DELETE"])
+def user_addresses_delete(address_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    try:
+        # Check if address belongs to user
+        addr = conn.execute("SELECT id, is_default FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, session["user_id"])).fetchone()
+        if not addr:
+            return jsonify({"error": "Address not found"}), 404
+        # If deleting the default address, we need to set another as default or leave none
+        if addr["is_default"]:
+            # Try to set another address as default
+            other = conn.execute("SELECT id FROM user_addresses WHERE user_id = ? AND id != ? LIMIT 1", (session["user_id"], address_id)).fetchone()
+            if other:
+                conn.execute("UPDATE user_addresses SET is_default = 1 WHERE id = ?", (other["id"],))
+        conn.execute("DELETE FROM user_addresses WHERE id = ?", (address_id,))
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses/<int:address_id>/set-default", methods=["POST"])
+def user_addresses_set_default(address_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    try:
+        # Check if address exists and belongs to user
+        addr = conn.execute("SELECT id FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, session["user_id"])).fetchone()
+        if not addr:
+            return jsonify({"error": "Address not found"}), 404
+        conn.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?", (session["user_id"],))
+        conn.execute("UPDATE user_addresses SET is_default = 1 WHERE id = ?", (address_id,))
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
 @app.route("/api/auth/me")
 def auth_me():
     if "user_id" not in session:
         return jsonify({"user": None})
-    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email"), "phone": session.get("user_phone")}})
+    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email"), "phone": session.get("user_phone"), "address": session.get("user_address"), "city": session.get("user_city"), "pincode": session.get("user_pincode")}})
 
 
 # ---------------------------------------------------------------
@@ -691,6 +816,11 @@ def add_sale():
 
     conn.close()
     return render_template("add_sale.html", products=all_products)
+
+
+@app.route("/shop/shipping")
+def shipping():
+    return send_from_directory(os.path.join(app.static_folder, "storefront"), "shipping.html")
 
 
 @app.route("/shop/checkout")
