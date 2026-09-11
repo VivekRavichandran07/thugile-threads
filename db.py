@@ -110,8 +110,10 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             name TEXT NOT NULL,
+            email TEXT NOT NULL,
             phone TEXT NOT NULL,
             address TEXT NOT NULL,
+            address_line_2 TEXT,
             city TEXT NOT NULL,
             pincode TEXT NOT NULL,
             is_default INTEGER NOT NULL DEFAULT 0,
@@ -139,7 +141,10 @@ def init_db():
     
     # Add user_addresses table if not exists
     address_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_addresses)")}
-    if len(address_columns) < 7:
+    if "email" not in address_columns:
+        conn.execute("ALTER TABLE user_addresses ADD COLUMN email TEXT")
+    if "address_line_2" not in address_columns:
+        conn.execute("ALTER TABLE user_addresses ADD COLUMN address_line_2 TEXT")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_addresses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

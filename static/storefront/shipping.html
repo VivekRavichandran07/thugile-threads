@@ -77,24 +77,33 @@
       </div>
       
       <form id="shipping-form" style="display:none;flex-direction:column;gap:16px;">
+        <img src="https://ucarecdn.com/412d5bde-bec7-49c8-94c9-f6df6434ed12/address.png" alt="Address Form Image" class="form-img" style="display:block;margin:0 auto 24px;max-width:160px;width:100%;">
         <div>
-          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Full Name *</label>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Full Name*</label>
           <input type="text" id="shipping-name" placeholder="Enter your full name" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Phone Number *</label>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Email Address*</label>
+          <input type="email" id="shipping-email" placeholder="Enter your email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Phone Number*</label>
           <input type="tel" id="shipping-phone" placeholder="+91 9876543210" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Shipping Address *</label>
-          <textarea id="shipping-address" placeholder="Enter your shipping address" required rows="4" style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;resize:vertical;"></textarea>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Street Address (Line 1)*</label>
+          <input type="text" id="shipping-address" placeholder="House No., Road Name, etc." required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">City *</label>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Street Address (Line 2) (Optional)</label>
+          <input type="text" id="shipping-address-line-2" placeholder="Apartment, Suite, Floor, etc." style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">City*</label>
           <input type="text" id="shipping-city" placeholder="City" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Pincode *</label>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Pincode*</label>
           <input type="text" id="shipping-pincode" placeholder="Pincode" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
         <button type="button" id="proceed-btn" onclick="saveAndGo()" style="width:100%;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Proceed to Pay</button>
@@ -245,7 +254,7 @@
         addressesList.innerHTML = data.addresses.map(addr => `
           <div style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);">
             <strong>${escapeHtml(addr.name)}</strong>
-            <p style="margin:4px 0 0;font-size:13px;color:#7a6e62;">${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
+            <p style="margin:4px 0 0;font-size:13px;color:#7a6e62;">${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
           </div>
         `).join('');
       } else {
@@ -258,27 +267,31 @@
 
   window.saveAndGo = async function() {
     const nameInput = document.getElementById('shipping-name');
+    const emailInput = document.getElementById('shipping-email');
     const phoneInput = document.getElementById('shipping-phone');
     const addressInput = document.getElementById('shipping-address');
+    const addressLine2Input = document.getElementById('shipping-address-line-2');
     const cityInput = document.getElementById('shipping-city');
     const pincodeInput = document.getElementById('shipping-pincode');
 
-    if (!nameInput || !phoneInput || !addressInput || !cityInput || !pincodeInput) {
+    if (!nameInput || !emailInput || !phoneInput || !addressInput || !cityInput || !pincodeInput) {
       return;
     }
 
     const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
     const phone = phoneInput.value.trim();
     const address = addressInput.value.trim();
+    const address_line_2 = addressLine2Input ? addressLine2Input.value.trim() : '';
     const city = cityInput.value.trim();
     const pincode = pincodeInput.value.trim();
 
-    if (!name || !phone || !address || !city || !pincode) {
+    if (!name || !email || !phone || !address || !city || !pincode) {
       shippingError.textContent = 'Please fill in all required fields.';
       return;
     }
 
-    const shippingData = { name, phone, address, city, pincode };
+    const shippingData = { name, email, phone, address, address_line_2, city, pincode };
     try {
       const res = await fetch('/api/user/addresses', {
         method: 'POST',

@@ -202,20 +202,21 @@ def user_addresses_add():
         return jsonify({"error": "Not authenticated"}), 401
     data = request.get_json() or {}
     name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
     phone = (data.get("phone") or "").strip()
     address = (data.get("address") or "").strip()
+    address_line_2 = (data.get("address_line_2") or "").strip()
     city = (data.get("city") or "").strip()
     pincode = (data.get("pincode") or "").strip()
-    if not name or not phone or not address or not city or not pincode:
-        return jsonify({"error": "All address fields are required."}), 400
+    if not name or not email or not phone or not address or not city or not pincode:
+        return jsonify({"error": "All required address fields are required."}), 400
     conn = get_connection()
     try:
-        # If this is being set as default, unset others
         if data.get("is_default"):
             conn.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?", (session["user_id"],))
         conn.execute(
-            "INSERT INTO user_addresses (user_id, name, phone, address, city, pincode, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (session["user_id"], name, phone, address, city, pincode, 1 if data.get("is_default") else 0, now_iso()),
+            "INSERT INTO user_addresses (user_id, name, email, phone, address, address_line_2, city, pincode, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (session["user_id"], name, email, phone, address, address_line_2, city, pincode, 1 if data.get("is_default") else 0, now_iso()),
         )
         conn.commit()
         return jsonify({"ok": True})
