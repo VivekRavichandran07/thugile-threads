@@ -37,7 +37,7 @@
         </button>
         <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-          <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
           <div class="profile-dropdown" id="profile-dropdown"></div>
         </div>
       </div>
@@ -270,14 +270,35 @@
       const data = await res.json();
       if (res.ok && data.addresses && data.addresses.length) {
         addressesList.innerHTML = data.addresses.map(addr => `
-          <div style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);">
+          <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);text-align:left;cursor:pointer;font:inherit;color:inherit;">
             <strong>${escapeHtml(addr.name)}</strong>
             <p style="margin:4px 0 0;font-size:13px;color:#7a6e62;">${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
-          </div>
+          </button>
         `).join('');
+        addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" disabled onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Continue to payment</button>');
       } else {
         addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
       }
+
+      window.selectAddress = function(addressId) {
+        sessionStorage.setItem('selected_address_id', String(addressId));
+        document.querySelectorAll('.saved-address-card').forEach(card => {
+          const selected = card.dataset.addressId === String(addressId);
+          card.classList.toggle('selected', selected);
+          card.style.borderColor = selected ? 'var(--ink)' : 'var(--line)';
+          card.style.background = selected ? '#fff' : '#f8f6f3';
+        });
+        const continueButton = document.getElementById('continue-to-payment-btn');
+        if (continueButton) continueButton.disabled = false;
+      };
+
+      window.continueToPayment = function() {
+        if (!sessionStorage.getItem('selected_address_id')) {
+          shippingError.textContent = 'Please select a shipping address first.';
+          return;
+        }
+        window.location.href = '/shop/checkout';
+      };
     } catch (err) {
       addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
     }
@@ -336,7 +357,13 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { try { toast.classList.remove('show'); } catch {} }, 2600);
 
-    window.location.href = '/shop/checkout';
+    const res = await fetch('/api/user/addresses');
+    const data = await res.json();
+    const savedAddress = data.addresses && data.addresses[data.addresses.length - 1];
+    if (savedAddress) {
+      selectAddress(savedAddress.id);
+      window.location.href = '/shop/checkout';
+    }
   };
 
   loadAddresses();

@@ -455,7 +455,8 @@ if (checkoutBtn) {
   checkoutBtn.addEventListener('click', () => {
     if (bag.length) {
       closeCart();
-      setTimeout(() => { window.location.href = '/shop/checkout'; }, 350);
+      sessionStorage.removeItem('selected_address_id');
+      setTimeout(() => { window.location.href = '/shop/shipping'; }, 350);
     }
   });
 }
@@ -671,8 +672,9 @@ async function updateAuthUI() {
       if (logoutBtn) logoutBtn.addEventListener('click', logout);
     }
   } else {
-    authBtn.textContent = '\u{1F464}';
+    authBtn.innerHTML = '<img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true">';
     authBtn.title = 'Account';
+    authBtn.classList.remove('logged-in');
     if (profileDropdown) profileDropdown.classList.remove('open');
   }
 }
@@ -1046,7 +1048,7 @@ async function logout() {
     if (placeOrderBtn) placeOrderBtn.disabled = true;
   }
   if (authBtn) {
-    authBtn.textContent = '👤';
+    authBtn.innerHTML = '<img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true">';
     authBtn.title = 'Account';
     authBtn.classList.remove('logged-in');
   }

@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" type="image/png">
   <style>
-    .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.cart-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+    .checkout-wrap{max-width:1200px;margin:0 auto;padding:150px 5vw 80px}.checkout-header{margin-bottom:48px}.checkout-header h1{margin:0;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}.checkout-header p{margin:8px 0 0;font-size:16px;color:#5c5248}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}.checkout-section{padding:0}.checkout-section h2{margin:0 0 24px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.03em}.checkout-address-block{margin-bottom:40px}.checkout-address-heading{display:flex;justify-content:space-between;align-items:baseline;gap:16px}.checkout-address-heading h2{margin-bottom:16px}.change-address-link{color:var(--terracotta);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px}.selected-address-display{display:flex;flex-direction:column;gap:2px;padding:18px 20px;background:#f8f6f3;border:1px solid var(--line);border-radius:12px;font-size:14px;line-height:1.7}.selected-address-display strong{display:block;margin-bottom:4px}.address-load-error{color:var(--terracotta)}.cart-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}.cart-item:last-child{border-bottom:none}.cart-item-name{margin:0;font-size:16px;font-weight:600}.cart-item-meta{margin:4px 0 0;font-size:13px;color:#7a6e62}.cart-item-price{font:500 12px var(--mono);letter-spacing:.04em;white-space:nowrap}.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:24px;padding-top:20px;border-top:1px solid var(--ink);font:500 13px var(--mono);letter-spacing:.06em;text-transform:uppercase}.payment-option{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:all .3s ease}.payment-option:hover{padding-left:8px}.payment-option input{accent-color:var(--ink);width:18px;height:18px;flex-shrink:0}.payment-icon{font-size:24px;width:40px;text-align:center;flex-shrink:0}.payment-info h3{margin:0;font-size:16px;font-weight:600}.payment-info p{margin:4px 0 0;font-size:13px;color:#7a6e62}.place-order-btn{width:100%;padding:18px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:28px;transition:opacity .3s ease}.place-order-btn:hover:not(:disabled){opacity:.85}.place-order-btn:disabled{opacity:.35;cursor:not-allowed}.back-link{display:inline-block;margin-top:28px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
     /* --- Fix checkout to match cart sidebar exactly --- */
 #checkout-items .cart-item{
   display:flex;
@@ -95,7 +95,7 @@
         </button>
         <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-          <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
           <div class="profile-dropdown" id="profile-dropdown"></div>
         </div>
       </div>
@@ -141,8 +141,16 @@
       </div>
 
       <div class="checkout-section">
+        <div class="checkout-address-block">
+          <div class="checkout-address-heading">
+            <h2>Shipping address</h2>
+            <a href="/shop/shipping" class="change-address-link">Change</a>
+          </div>
+          <div id="selected-address-display" class="selected-address-display" aria-live="polite">
+            <span>Loading selected address...</span>
+          </div>
+        </div>
         <h2>Payment method</h2>
-        <div id="selected-address-display" style="padding:16px;margin-bottom:24px;background:#f8f6f3;border-radius:8px;font-size:14px;line-height:1.5;"></div>
         <label class="payment-option">
           <input type="radio" name="payment" value="upi" checked>
           <span class="payment-icon">📱</span>
@@ -268,51 +276,51 @@
 
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
   <script>
-    function rupees(val) {
-      return '₹ ' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    }
-    function escapeHtml(value) {
-      return String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-    }
-
     async function renderSelectedAddress() {
       const displayEl = document.getElementById('selected-address-display');
       if (!displayEl) return;
       
-      // First check sessionStorage
-      const stored = sessionStorage.getItem('shipping_form_data');
-      if (stored) {
-        try {
-          const data = JSON.parse(stored);
-          const addressParts = [data.name, data.phone, data.address].filter(Boolean).join('<br>');
-          displayEl.innerHTML = '<strong>Shipping Address:</strong><br>' + escapeHtml(addressParts);
-          return;
-        } catch {}
+      const selectedAddressId = sessionStorage.getItem('selected_address_id');
+      if (!selectedAddressId) {
+        window.location.replace('/shop/shipping');
+        return;
       }
-      
-      // Then check for saved addresses from API
+
+      displayEl.innerHTML = '<span>Loading selected address...</span>';
+
       try {
-        const res = await fetch('/api/user/addresses');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch('/api/user/addresses', {
+          credentials: 'same-origin',
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
         const data = await res.json();
-        if (data.addresses && data.addresses.length > 0) {
-          const defaultAddr = data.addresses.find(a => a.is_default) || data.addresses[0];
-          const addressParts = [
-            defaultAddr.name,
-            defaultAddr.phone,
-            defaultAddr.address,
-            `${defaultAddr.city} - ${defaultAddr.pincode}`
-          ].filter(Boolean).join('<br>');
-          displayEl.innerHTML = '<strong>Shipping Address:</strong><br>' + escapeHtml(addressParts);
+        const selectedAddr = (data.addresses || []).find(address =>
+          String(address.id) === String(selectedAddressId)
+        );
+        if (res.ok && selectedAddr) {
+          displayEl.innerHTML = `
+            <strong>Selected address</strong>
+            <span>${escapeHtml(selectedAddr.name)}</span>
+            <span>${escapeHtml(selectedAddr.phone)}</span>
+            <span>${escapeHtml(selectedAddr.address)}${selectedAddr.address_line_2 ? `<br>${escapeHtml(selectedAddr.address_line_2)}` : ''}</span>
+            <span>${escapeHtml(selectedAddr.city)} - ${escapeHtml(selectedAddr.pincode)}</span>
+          `;
           return;
         }
-      } catch {}
-      
-      // No address found
-      displayEl.innerHTML = '<span style="color:#9a8e83;">No shipping address saved. Please add one on the shipping page.</span>';
+        throw new Error(data.error || 'Selected address was not found');
+      } catch (error) {
+        console.error('Failed to load selected shipping address:', error);
+        displayEl.innerHTML = '<span class="address-load-error">We could not load this address. Please choose it again.</span>';
+        sessionStorage.removeItem('selected_address_id');
+        setTimeout(() => window.location.replace('/shop/shipping'), 800);
+      }
     }
 
-    function renderCheckout() {
-      renderSelectedAddress();
+    async function renderCheckout() {
+      await renderSelectedAddress();
       loadCart();
       const itemsEl = document.getElementById('checkout-items');
       const totalEl = document.getElementById('checkout-total');
@@ -345,10 +353,15 @@
     }
 
     function placeOrder() {
+      if (!sessionStorage.getItem('selected_address_id')) {
+        window.location.href = '/shop/shipping';
+        return;
+      }
       const method = document.querySelector('input[name="payment"]:checked').value;
       const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
       alert('Order placed successfully!\n\nPayment: ' + method.toUpperCase() + '\nTotal: ' + rupees(total) + '\n\nThank you for shopping with Thugile & Threads.');
       localStorage.removeItem('tnt_cart');
+      sessionStorage.removeItem('selected_address_id');
       bag = [];
       updateCartUI();
       renderCheckout();
