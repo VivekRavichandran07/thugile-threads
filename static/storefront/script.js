@@ -141,17 +141,17 @@ function renderCartItems() {
   `).join('');
 }
 
-function addToBag(name, price, size, image_url) {
+function addToBag(name, price, size, image_url, quantity = 1) {
   if (!currentUser) {
-    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null };
+    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null, quantity };
     openAuthModal();
     return;
   }
   const existing = bag.find(item => item.name === name && (item.size || 'M') === (size || 'M'));
   if (existing) {
-    existing.qty += 1;
+    existing.qty += quantity;
   } else {
-    bag.push({ name, price: Number(price), qty: 1, size: size || null, image_url: image_url || null });
+    bag.push({ name, price: Number(price), qty: quantity, size: size || null, image_url: image_url || null });
   }
   saveCart();
   toast.textContent = `${name} added to your bag`;
@@ -280,6 +280,9 @@ function toggleWishlist(product) {
 function openProductPopup(product) {
   currentProduct = product;
   currentImageIndex = 0;
+  const quantityOutput = document.getElementById('product-quantity');
+  if (quantityOutput) quantityOutput.value = '1';
+  if (quantityOutput) quantityOutput.textContent = '1';
   productName.textContent = product.name;
   productPrice.textContent = rupees(product.price);
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
@@ -314,6 +317,7 @@ function openProductPopup(product) {
       productMainImage.innerHTML = `<img src="${images[currentImageIndex]}" alt="${escapeHtml(product.name)}">`;
       productThumbnails.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
       thumb.classList.add('active');
+      thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     });
   });
   
@@ -326,7 +330,8 @@ function openProductPopup(product) {
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
       return;
     }
-    addToBag(product.name, product.price, selectedSize.dataset.size, product.image_url);
+    const quantity = Math.max(1, Number(document.getElementById('product-quantity')?.textContent || 1));
+    addToBag(product.name, product.price, selectedSize.dataset.size, product.image_url, quantity);
     closeProductPopup();
   };
   
@@ -336,6 +341,19 @@ function openProductPopup(product) {
   productOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+const productQuantity = document.getElementById('product-quantity');
+const productQuantityDecrease = document.getElementById('product-quantity-decrease');
+const productQuantityIncrease = document.getElementById('product-quantity-increase');
+function updateProductQuantity(delta) {
+  if (!productQuantity) return;
+  const next = Math.max(1, Number(productQuantity.textContent || 1) + delta);
+  productQuantity.textContent = String(next);
+}
+if (productQuantityDecrease) productQuantityDecrease.addEventListener('click', () => updateProductQuantity(-1));
+if (productQuantityIncrease) productQuantityIncrease.addEventListener('click', () => updateProductQuantity(1));
+const productSizeGuideButton = document.getElementById('product-size-guide');
+if (productSizeGuideButton) productSizeGuideButton.addEventListener('click', () => openSizeGuide());
 
 function closeProductPopup() {
   if (productOverlay) productOverlay.classList.remove('open');
@@ -564,6 +582,16 @@ if (productSizeGuide) {
 const parallax = document.querySelectorAll('.parallax');
 function moveParallax(){ parallax.forEach(el => { const rect = el.parentElement.getBoundingClientRect(); const speed = Number(el.dataset.speed); el.style.transform = `translateY(${(rect.top + rect.height / 2) * speed}px)`; }); }
 moveParallax(); window.addEventListener('scroll', moveParallax, {passive:true});
+
+document.querySelectorAll('[data-before-after]').forEach(compare => {
+  const range = compare.querySelector('.before-after-range');
+  if (!range) return;
+  const updateCompare = () => {
+    compare.style.setProperty('--before-after-position', `${range.value}%`);
+  };
+  range.addEventListener('input', updateCompare);
+  updateCompare();
+});
 
 function handleLogoScroll() {
   if (!floatingLogo) return;
@@ -929,7 +957,7 @@ if (loginForm) {
         return;
       }
       if (pendingCartItem) {
-        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity);
         pendingCartItem = null;
       } else if (pendingWishlistItem) {
         toggleWishlist(pendingWishlistItem);
@@ -977,7 +1005,7 @@ if (signupForm) {
         return;
       }
       if (pendingCartItem) {
-        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity);
         pendingCartItem = null;
       } else if (pendingWishlistItem) {
         toggleWishlist(pendingWishlistItem);

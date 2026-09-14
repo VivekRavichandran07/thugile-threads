@@ -183,6 +183,31 @@
       <blockquote>“The things we choose to wear become part of the stories we tell.”</blockquote>
     </section>
 
+    <section class="before-after-section reveal" aria-labelledby="before-after-title">
+      <div class="before-after-heading">
+        <p class="eyebrow">From field to fabric</p>
+        <h2 id="before-after-title">The making of <em>every thread</em></h2>
+        <p>Rooted in natural cotton. Finished with thoughtful detail.</p>
+      </div>
+      <div class="before-after" data-before-after>
+        <div class="before-after-panel before-after-panel-after">
+          <img src="/static/storefront/assets/cotton1.jpeg" alt="Cotton field at sunset" loading="lazy">
+          <span class="before-after-label">The source</span>
+        </div>
+        <div class="before-after-panel before-after-panel-before">
+          <img src="/static/storefront/assets/Cotton1.jpg" alt="Cotton field in warm morning light" loading="lazy">
+          <span class="before-after-label">The beginning</span>
+        </div>
+        <div class="before-after-divider" aria-hidden="true">
+          <span class="blouse-hook-handle">
+            <i class="blouse-closure" aria-hidden="true"></i>
+          </span>
+        </div>
+        <label class="sr-only" for="before-after-range">Compare the cotton field images</label>
+        <input class="before-after-range" id="before-after-range" type="range" min="0" max="100" value="50" aria-label="Compare the cotton field images">
+      </div>
+    </section>
+
     <section class="testimonials reveal">
       <div class="section-header">
         <div>
@@ -192,14 +217,29 @@
       </div>
       <div class="testimonial-grid">
         <div class="testimonial">
+          <div class="review-product-images" aria-label="Thalaikku Workwear product photos">
+            <img src="/static/storefront/assets/Chudidar/ThalaikkuWorkwear.png" alt="Thalaikku Workwear">
+            <img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png" alt="" aria-hidden="true">
+            <img src="/static/storefront/assets/Chudidar/ThenralCottonCoord.png" alt="" aria-hidden="true">
+          </div>
           <p class="testimonial-text">“The fabric quality is unmatched. I wore my Gulmohar Set to a wedding and received so many compliments. It feels like it was made just for me.”</p>
           <p class="testimonial-author">Priya R. <span>— Gulmohar Set</span></p>
         </div>
         <div class="testimonial">
+          <div class="review-product-images" aria-label="Rosa Set product photos">
+            <img src="/static/storefront/assets/Chudidar/KonguCottonCoord.png" alt="Kongu Cotton Coord">
+            <img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.png" alt="" aria-hidden="true">
+            <img src="/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.png" alt="" aria-hidden="true">
+          </div>
           <p class="testimonial-text">“Finally, chudidars that are comfortable and elegant. The attention to detail in the embroidery is beautiful. I’m already ordering another.”</p>
           <p class="testimonial-author">Ananya S. <span>— Rosa Set</span></p>
         </div>
         <div class="testimonial">
+          <div class="review-product-images" aria-label="Maragatham Set product photos">
+            <img src="/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.png" alt="Meenakari Embroidered Set">
+            <img src="/static/storefront/assets/Chudidar/ThalaikkuWorkwear.png" alt="" aria-hidden="true">
+            <img src="/static/storefront/assets/Chudidar/KanakavalliSilkCoord.png" alt="" aria-hidden="true">
+          </div>
           <p class="testimonial-text">“The colors are so rich and the fit is perfect. It’s rare to find clothing that feels this special. Thugile & Threads is now my go-to for every celebration.”</p>
           <p class="testimonial-author">Meera K. <span>— Maragatham Set</span></p>
         </div>
@@ -296,7 +336,18 @@
         <p class="product-popup-price" id="product-popup-price"></p>
         <p class="product-popup-desc" id="product-popup-desc"></p>
          <div class="product-popup-sizes" id="product-popup-sizes"></div>
-         <div class="product-popup-actions">
+        <div class="product-popup-quantity">
+          <span>Quantity</span>
+          <button type="button" id="product-quantity-decrease" aria-label="Decrease quantity">−</button>
+          <output id="product-quantity" aria-live="polite">1</output>
+          <button type="button" id="product-quantity-increase" aria-label="Increase quantity">+</button>
+        </div>
+        <div class="product-popup-care">
+          <h3>Wash care</h3>
+          <p>Hand wash cold with like colours. Do not bleach. Dry in shade and iron on reverse.</p>
+        </div>
+        <button type="button" class="product-popup-size-guide" id="product-size-guide">View size guide</button>
+        <div class="product-popup-actions">
            <button class="add-to-bag-btn" id="product-add-to-bag">Add to bag</button>
            <button class="wishlist-btn" id="product-wishlist-btn" aria-label="Add to wishlist">
              <span class="wishlist-icon">♡</span> <span class="wishlist-text">Add to wishlist</span>

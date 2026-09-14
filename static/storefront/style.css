@@ -43,6 +43,40 @@ input,textarea,select,button{border-radius:10px}
 .footer-col a{white-space:nowrap}
 #collection{background:#fff;position:relative;z-index:6}
 .collection-spacer{height:40px;background:#fff;position:relative;z-index:6}
+.before-after-section{padding:120px 5vw 130px;background:#fff}
+.before-after-heading{max-width:620px;margin:0 auto 40px;text-align:center}
+.before-after-heading h2{font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}
+.before-after-heading p:last-child{margin:18px 0 0;color:#5c5248;font-size:16px}
+.before-after{--before-after-position:50%;position:relative;max-width:1180px;margin:0 auto;aspect-ratio:16/8;overflow:hidden;background:var(--sand);isolation:isolate}
+.before-after-panel{position:absolute;inset:0}
+.before-after-panel img{width:100%;height:100%;display:block;object-fit:cover}
+.before-after-panel-before{z-index:2;clip-path:inset(0 calc(100% - var(--before-after-position)) 0 0)}
+.before-after-panel-before img{width:100%}
+.before-after-label{position:absolute;top:20px;padding:8px 12px;background:rgba(255,255,255,.9);font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.before-after-panel-after .before-after-label{right:20px}
+.before-after-panel-before .before-after-label{left:20px}
+.before-after-divider{position:absolute;z-index:3;top:0;bottom:0;left:var(--before-after-position);width:2px;background:#fff;transform:translateX(-1px);pointer-events:none;box-shadow:0 0 14px rgba(0,0,0,.16)}
+.before-after-divider .blouse-hook-handle{position:absolute;top:50%;left:50%;display:grid;place-items:center;width:78px;height:34px;border:1px solid rgba(255,255,255,.95);border-radius:4px;background:#fff;transform:translate(-50%,-50%);box-shadow:0 2px 10px rgba(0,0,0,.16)}
+.blouse-closure{position:relative;display:block;width:46px;height:18px;border:2px solid var(--ink);border-left:0;border-radius:0 12px 12px 0}
+.blouse-closure::before{content:"";position:absolute;left:-8px;top:50%;width:9px;height:9px;border:2px solid var(--ink);border-radius:50%;background:#fff;transform:translateY(-50%)}
+.blouse-closure::after{content:"";position:absolute;right:5px;top:50%;width:5px;height:5px;border:1.5px solid var(--ink);border-radius:50%;background:#fff;transform:translateY(-50%)}
+.before-after-range{position:absolute;z-index:4;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}
+.review-product-images{display:flex;align-items:center;height:52px;margin-bottom:22px}
+.review-product-images img{width:52px;height:52px;object-fit:cover;border:3px solid var(--cream);border-radius:50%;margin-left:-12px;background:var(--sand)}
+.review-product-images img:first-child{margin-left:0}
+.buy button,.add-to-bag-btn{border-bottom:0!important;text-decoration:none!important}
+.product-popup-main-image{overflow:hidden;cursor:zoom-in}
+.product-popup-main-image img{transition:transform .45s ease;transform-origin:center}
+.product-popup-main-image:hover img{transform:scale(1.14)}
+.product-popup-quantity{display:flex;align-items:center;gap:14px;font:500 12px var(--mono);letter-spacing:.04em}
+.product-popup-quantity span{margin-right:auto;text-transform:uppercase}
+.product-popup-quantity button{width:30px;height:30px;border:1px solid var(--line);background:#fff;font:18px var(--sans);cursor:pointer}
+.product-popup-quantity output{min-width:18px;text-align:center}
+.product-popup-care{padding-top:12px;border-top:1px solid var(--line)}
+.product-popup-care h3{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.product-popup-care p{margin:7px 0 0;font-size:13px;line-height:1.6;color:#5c5248}
+.product-popup-size-guide{align-self:flex-start;border:0;border-bottom:1px solid var(--ink);background:none;padding:0 0 2px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+@media(max-width:640px){.before-after-section{padding:88px 6vw 96px}.before-after{aspect-ratio:4/5}.before-after-label{top:12px;padding:6px 8px;font-size:8px}.before-after-panel-after .before-after-label{right:12px}.before-after-panel-before .before-after-label{left:12px}.before-after-divider .blouse-hook-handle{width:66px;height:30px}.blouse-closure{transform:scale(.85)}}
 .auth-form input,.newsletter input,.search-input,.payment-option input{border-radius:10px}
 .cart-sidebar,.wishlist-sidebar{overflow:hidden}
 .footer-logo{border-radius:18px}
