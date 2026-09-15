@@ -140,7 +140,15 @@
           <p class="eyebrow">Shop the collections</p>
           <h2>The Chudidar <em>Collection</em></h2>
         </div>
-        <a class="shop-all" href="#">Shop all</a>
+        <label class="sort-control">Sort by
+          <select id="product-sort" aria-label="Sort products">
+            <option value="newest">Newest first</option>
+            <option value="discounts">Discounts</option>
+            <option value="views">Most viewed</option>
+            <option value="price-low">Price lowest first</option>
+            <option value="price-high">Price highest first</option>
+          </select>
+        </label>
       </div>
       <div class="products">
         <article class="product">
@@ -176,6 +184,16 @@
           <div class="product-info"><div><h3>Mayil Set</h3><p>Mulberry · silk blend</p></div><div class="buy"><strong>₹ 5,950</strong><button data-item="Mayil Set" data-price="5950">Add to bag</button><button class="size-guide-btn" data-item="Mayil Set">Size Guide</button></div></div>
         </article>
       </div>
+    </section>
+
+    <section class="new-launches-section reveal" aria-labelledby="new-launches-title">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Just in</p>
+          <h2 id="new-launches-title">New <em>launches</em></h2>
+        </div>
+      </div>
+      <div class="new-launches-track" id="new-launches-track" aria-label="New launches"></div>
     </section>
 
     <section class="quote parallax-section reveal">
@@ -347,16 +365,16 @@
           <output id="product-quantity" aria-live="polite">1</output>
           <button type="button" id="product-quantity-increase" aria-label="Increase quantity">+</button>
         </div>
-        <div class="product-popup-care">
-          <h3>Wash care</h3>
-          <p>Hand wash cold with like colours. Do not bleach. Dry in shade and iron on reverse.</p>
-        </div>
         <div class="product-popup-actions">
            <button class="add-to-bag-btn" id="product-add-to-bag">Add to bag</button>
            <button class="wishlist-btn" id="product-wishlist-btn" aria-label="Add to wishlist">
              <span class="wishlist-icon">♡</span> <span class="wishlist-text">Add to wishlist</span>
            </button>
          </div>
+        <div class="product-popup-care">
+          <h3>Wash care</h3>
+          <p>Hand wash cold with like colours. Do not bleach. Dry in shade and iron on reverse.</p>
+        </div>
         <section class="product-popup-size-details" aria-labelledby="product-size-guide-heading">
           <h3 id="product-size-guide-heading">Size guide</h3>
           <div class="product-popup-size-chart">

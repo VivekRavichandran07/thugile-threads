@@ -42,7 +42,7 @@ def storefront_products():
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT id, name, sku, category, size, color, selling_price, quantity, image_url
+        SELECT id, name, sku, category, size, color, selling_price, quantity, image_url, created_at
         FROM products
         ORDER BY created_at DESC, id DESC
         """
@@ -60,6 +60,7 @@ def storefront_products():
                 "price": product["selling_price"],
                 "image_url": product["image_url"] or "",
                 "in_stock": product["quantity"] > 0,
+                "created_at": product["created_at"],
             }
             for product in rows
         ]

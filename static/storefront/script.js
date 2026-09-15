@@ -2,6 +2,8 @@ const count = document.querySelector('#bag-count');
 const wishlistCount = document.querySelector('#wishlist-count');
 const toast = document.querySelector('#toast');
 const grid = document.querySelector('.products');
+const productSort = document.getElementById('product-sort');
+const newLaunchesTrack = document.getElementById('new-launches-track');
 const bagBtn = document.querySelector('#bag-btn');
 const cartSidebar = document.querySelector('#cart-sidebar');
 const cartOverlay = document.querySelector('#cart-overlay');
@@ -73,6 +75,16 @@ const imageFor = (url, index, name) => {
   return imageMap[name] || (url && /^https?:\/\//i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+const discountedPrice = value => Math.round(Number(value || 0) * 0.9);
+const priceMarkup = value => `<del>${rupees(value)}</del><strong>${rupees(discountedPrice(value))}</strong>`;
+const viewCounts = () => {
+  try { return JSON.parse(localStorage.getItem('tnt_product_views') || '{}'); } catch { return {}; }
+};
+const trackProductView = name => {
+  const counts = viewCounts();
+  counts[name] = (Number(counts[name]) || 0) + 1;
+  localStorage.setItem('tnt_product_views', JSON.stringify(counts));
+};
 
 function loadCart() {
   try {
@@ -279,12 +291,13 @@ function toggleWishlist(product) {
 
 function openProductPopup(product) {
   currentProduct = product;
+  trackProductView(product.name);
   currentImageIndex = 0;
   const quantityOutput = document.getElementById('product-quantity');
   if (quantityOutput) quantityOutput.value = '1';
   if (quantityOutput) quantityOutput.textContent = '1';
   productName.textContent = product.name;
-  productPrice.textContent = rupees(product.price);
+  productPrice.innerHTML = `${priceMarkup(product.price)}<span class="discount-label">10% off</span>`;
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
   
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -333,7 +346,7 @@ function openProductPopup(product) {
       return;
     }
     const quantity = Math.max(1, Number(document.getElementById('product-quantity')?.textContent || 1));
-    addToBag(product.name, product.price, selectedSize.dataset.size, product.image_url, quantity);
+    addToBag(product.name, discountedPrice(product.price), selectedSize.dataset.size, product.image_url, quantity);
     closeProductPopup();
   };
   
@@ -370,12 +383,54 @@ function renderProducts(products) {
   }
   grid.innerHTML = products.map((product, index) => {
     const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
-    const action = product.in_stock ? `<button data-item="${escapeHtml(product.name)}" data-price="${product.price || ''}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
+    const action = product.in_stock ? `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price)}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
     const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
-    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
+    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
   }).join('');
   observeReveals();
+}
+
+function sortProducts(products, sort) {
+  const sorted = [...products];
+  const views = viewCounts();
+  if (sort === 'price-low') return sorted.sort((a, b) => Number(a.price) - Number(b.price));
+  if (sort === 'price-high') return sorted.sort((a, b) => Number(b.price) - Number(a.price));
+  if (sort === 'views') return sorted.sort((a, b) => (Number(views[b.name]) || 0) - (Number(views[a.name]) || 0));
+  if (sort === 'discounts') return sorted.sort((a, b) => Number(b.price) - Number(a.price));
+  return sorted;
+}
+
+function renderNewLaunches(products) {
+  if (!newLaunchesTrack) return;
+  newLaunchesTrack.innerHTML = products.slice(0, 8).map((product, index) => `
+    <button class="new-launch-card" type="button" data-product-index="${index}">
+      <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
+      <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price)}</small></span>
+    </button>
+  `).join('');
+  newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const product = products[Number(card.dataset.productIndex)];
+      if (product) openProductPopup(product);
+    });
+  });
+  let scrollTimer = setInterval(() => {
+    if (newLaunchesTrack.scrollWidth <= newLaunchesTrack.clientWidth) return;
+    newLaunchesTrack.scrollLeft += 1;
+    if (newLaunchesTrack.scrollLeft + newLaunchesTrack.clientWidth >= newLaunchesTrack.scrollWidth) {
+      newLaunchesTrack.scrollLeft = 0;
+    }
+  }, 35);
+  newLaunchesTrack.addEventListener('mouseenter', () => clearInterval(scrollTimer));
+  newLaunchesTrack.addEventListener('mouseleave', () => {
+    clearInterval(scrollTimer);
+    scrollTimer = setInterval(() => {
+      if (newLaunchesTrack.scrollWidth <= newLaunchesTrack.clientWidth) return;
+      newLaunchesTrack.scrollLeft += 1;
+      if (newLaunchesTrack.scrollLeft + newLaunchesTrack.clientWidth >= newLaunchesTrack.scrollWidth) newLaunchesTrack.scrollLeft = 0;
+    }, 35);
+  });
 }
 
 async function loadCatalog(retries = 3) {
@@ -385,11 +440,19 @@ async function loadCatalog(retries = 3) {
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
     searchProducts = products;
-    renderProducts(products);
+    renderProducts(sortProducts(products, productSort?.value || 'newest'));
+    renderNewLaunches(products);
     const requestedProduct = new URLSearchParams(window.location.search).get('product');
     if (requestedProduct) {
       const product = products.find(item => item.name === requestedProduct);
       if (product) openProductPopup(product);
+    }
+
+    if (productSort) {
+      productSort.addEventListener('change', async () => {
+        if (!searchProducts.length) return;
+        renderProducts(sortProducts(searchProducts, productSort.value));
+      });
     }
   } catch (error) {
     if (retries > 0) {
@@ -449,10 +512,12 @@ if (grid) {
         const detailsEl = article.querySelector('.product-info p');
         const name = nameEl?.textContent?.trim() || '';
         const priceText = priceEl?.textContent?.trim() || '';
-        const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+        const displayedPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
         const image_url = imgEl?.src || '';
         const details = detailsEl?.textContent?.trim() || '';
-        product = { name, price, image_url, details };
+        product = searchProducts.find(item => item.name === name) || {
+          name, price: Math.round(displayedPrice / 0.9), image_url, details
+        };
       }
     }
     if (product) {
