@@ -403,33 +403,23 @@ function sortProducts(products, sort) {
 
 function renderNewLaunches(products) {
   if (!newLaunchesTrack) return;
-  newLaunchesTrack.innerHTML = products.slice(0, 8).map((product, index) => `
-    <button class="new-launch-card" type="button" data-product-index="${index}">
-      <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
-      <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price)}</small></span>
-    </button>
-  `).join('');
+  const launches = products.slice(0, 8);
+  const renderLaunchSet = (setIndex) => `
+    <div class="new-launch-set">
+      ${launches.map((product, index) => `
+        <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
+          <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
+          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price)}</small></span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
   newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
     card.addEventListener('click', () => {
-      const product = products[Number(card.dataset.productIndex)];
+      const product = launches[Number(card.dataset.productIndex)];
       if (product) openProductPopup(product);
     });
-  });
-  let scrollTimer = setInterval(() => {
-    if (newLaunchesTrack.scrollWidth <= newLaunchesTrack.clientWidth) return;
-    newLaunchesTrack.scrollLeft += 1;
-    if (newLaunchesTrack.scrollLeft + newLaunchesTrack.clientWidth >= newLaunchesTrack.scrollWidth) {
-      newLaunchesTrack.scrollLeft = 0;
-    }
-  }, 35);
-  newLaunchesTrack.addEventListener('mouseenter', () => clearInterval(scrollTimer));
-  newLaunchesTrack.addEventListener('mouseleave', () => {
-    clearInterval(scrollTimer);
-    scrollTimer = setInterval(() => {
-      if (newLaunchesTrack.scrollWidth <= newLaunchesTrack.clientWidth) return;
-      newLaunchesTrack.scrollLeft += 1;
-      if (newLaunchesTrack.scrollLeft + newLaunchesTrack.clientWidth >= newLaunchesTrack.scrollWidth) newLaunchesTrack.scrollLeft = 0;
-    }, 35);
   });
 }
 
@@ -1170,6 +1160,10 @@ async function syncWishlistToServer() {
 
 async function init() {
   console.log('init() called');
+  document.querySelectorAll('img:not([loading])').forEach(image => {
+    if (!image.closest('.site-header, .floating-logo')) image.loading = 'lazy';
+    image.decoding = 'async';
+  });
   await checkAuth();
   handleLogoScroll();
   updateWishlistUI();
