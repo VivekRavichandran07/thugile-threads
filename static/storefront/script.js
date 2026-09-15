@@ -19,13 +19,13 @@ const productPopup = document.getElementById('product-popup');
 const productPopupClose = document.getElementById('product-popup-close');
 const productMainImage = document.getElementById('product-main-image');
 const productThumbnails = document.getElementById('product-thumbnails');
+const productImageStack = document.getElementById('product-image-stack');
 const productName = document.getElementById('product-popup-name');
 const productPrice = document.getElementById('product-popup-price');
 const productDesc = document.getElementById('product-popup-desc');
 const productSizes = document.getElementById('product-popup-sizes');
 const productAddToBag = document.getElementById('product-add-to-bag');
 const productWishlistBtn = document.getElementById('product-wishlist-btn');
-const productSizeGuide = document.getElementById('product-size-guide');
 const searchBtn = document.querySelector('.search-btn');
 const searchOverlay = document.getElementById('search-overlay');
 const searchInput = document.getElementById('search-input');
@@ -310,16 +310,18 @@ function openProductPopup(product) {
       <img src="${img}" alt="View ${i + 1}" loading="lazy">
     </button>
   `).join('');
+  productImageStack.innerHTML = images.map((img, i) => `
+    <img class="product-stack-image" src="${img}" alt="${escapeHtml(product.name)} image ${i + 1}" loading="lazy">
+  `).join('');
   
-  productThumbnails.querySelectorAll('.thumb').forEach(thumb => {
-    thumb.addEventListener('click', () => {
-      currentImageIndex = Number(thumb.dataset.index);
+  const selectProductImage = (imageControl) => {
+      currentImageIndex = Number(imageControl.dataset.index);
       productMainImage.innerHTML = `<img src="${images[currentImageIndex]}" alt="${escapeHtml(product.name)}">`;
       productThumbnails.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
-      thumb.classList.add('active');
-      thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    });
-  });
+      productThumbnails.querySelector(`.thumb[data-index="${currentImageIndex}"]`)?.classList.add('active');
+      imageControl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  };
+  productThumbnails.querySelectorAll('.thumb').forEach(thumb => thumb.addEventListener('click', () => selectProductImage(thumb)));
   
   productAddToBag.onclick = () => {
     const selectedSize = productSizes.querySelector('.size-option.selected');
@@ -352,8 +354,6 @@ function updateProductQuantity(delta) {
 }
 if (productQuantityDecrease) productQuantityDecrease.addEventListener('click', () => updateProductQuantity(-1));
 if (productQuantityIncrease) productQuantityIncrease.addEventListener('click', () => updateProductQuantity(1));
-const productSizeGuideButton = document.getElementById('product-size-guide');
-if (productSizeGuideButton) productSizeGuideButton.addEventListener('click', () => openSizeGuide());
 
 function closeProductPopup() {
   if (productOverlay) productOverlay.classList.remove('open');
@@ -569,13 +569,6 @@ if (sizeGuideClose) {
 if (sizeGuideOverlay) {
   sizeGuideOverlay.addEventListener('click', (e) => {
     if (e.target === sizeGuideOverlay) closeSizeGuide();
-  });
-}
-
-if (productSizeGuide) {
-  productSizeGuide.addEventListener('click', (e) => {
-    e.preventDefault();
-    openSizeGuide();
   });
 }
 

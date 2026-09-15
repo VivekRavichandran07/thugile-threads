@@ -239,6 +239,40 @@ form.card-form .form-actions {
     font-size: 0.9rem;
 }
 
+@media (max-width: 640px) {
+    .navbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+        padding: 14px 18px;
+    }
+
+    .navbar ul {
+        flex-wrap: wrap;
+        gap: 10px 16px;
+    }
+
+    .navbar ul a {
+        font-size: 0.85rem;
+    }
+
+    .container {
+        width: auto;
+        margin: 22px auto;
+        padding: 0 16px;
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 620px;
+    }
+
+    form.card-form,
+    .form-actions {
+        width: 100%;
+    }
+}
+
 body[data-show-login="true"] .navbar,
 body[data-show-login="true"] .container {
   display: none;
