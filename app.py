@@ -27,6 +27,14 @@ def parse_date(iso_str):
     return datetime.fromisoformat(iso_str)
 
 
+def parse_product_prices(form):
+    selling_price = float(form["selling_price"])
+    discounted_price = float(form.get("discounted_price") or selling_price)
+    if discounted_price < 0 or discounted_price > selling_price:
+        raise ValueError("Discounted price must be between ₹0 and the selling price.")
+    return selling_price, discounted_price
+
+
 # ---------------------------------------------------------------
 # STOREFRONT
 # ---------------------------------------------------------------
@@ -42,8 +50,10 @@ def storefront_products():
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT id, name, sku, category, size, color, selling_price, quantity, image_url, created_at
+        SELECT id, name, sku, category, size, color, selling_price, discounted_price,
+               quantity, image_url, created_at
         FROM products
+        WHERE quantity > 0
         ORDER BY created_at DESC, id DESC
         """
     ).fetchall()
@@ -58,8 +68,9 @@ def storefront_products():
                 "size": product["size"] or "",
                 "color": product["color"] or "",
                 "price": product["selling_price"],
+                "discounted_price": product["discounted_price"] or product["selling_price"],
                 "image_url": product["image_url"] or "",
-                "in_stock": product["quantity"] > 0,
+                "in_stock": True,
                 "created_at": product["created_at"],
             }
             for product in rows
@@ -575,8 +586,9 @@ def add_product():
             conn.execute(
                 """
                 INSERT INTO products
-                    (name, sku, category, size, color, image_url, cost_price, selling_price, quantity, reorder_level, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (name, sku, category, size, color, image_url, cost_price, selling_price,
+                     discounted_price, quantity, reorder_level, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     request.form["name"].strip(),
@@ -586,7 +598,8 @@ def add_product():
                     request.form.get("color", "").strip(),
                     image_url,
                     float(request.form["cost_price"]),
-                    float(request.form["selling_price"]),
+                    selling_price,
+                    discounted_price,
                     int(request.form.get("quantity", 0)),
                     int(request.form.get("reorder_level", 5)),
                     now_iso(),
@@ -633,11 +646,12 @@ def edit_product(product_id):
                     file.save(os.path.join(app.config["UPLOAD_FOLDER"], unique_name))
                     image_url = f"/uploads/{unique_name}"
 
+            selling_price, discounted_price = parse_product_prices(request.form)
             conn.execute(
                 """
                 UPDATE products
                 SET name = ?, sku = ?, category = ?, size = ?, color = ?, image_url = ?,
-                    cost_price = ?, selling_price = ?, quantity = ?, reorder_level = ?
+                    cost_price = ?, selling_price = ?, discounted_price = ?, quantity = ?, reorder_level = ?
                 WHERE id = ?
                 """,
                 (
@@ -648,7 +662,8 @@ def edit_product(product_id):
                     request.form.get("color", "").strip(),
                     image_url,
                     float(request.form["cost_price"]),
-                    float(request.form["selling_price"]),
+                    selling_price,
+                    discounted_price,
                     int(request.form.get("quantity", 0)),
                     int(request.form.get("reorder_level", 5)),
                     product_id,

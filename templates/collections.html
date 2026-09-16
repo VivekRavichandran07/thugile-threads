@@ -336,9 +336,8 @@
         filteredTitle.textContent = category;
         grid.innerHTML = filtered.map((product, index) => {
           const details = [product.color, product.category, product.size].filter(Boolean).join(' · ') || 'Made with care';
-          const action = product.in_stock ? `<button data-item="${product.name}" data-price="${product.price || ''}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
-          const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
-          return `<article class="product reveal"><div class="product-image reveal"><img src="${imageFor(product.image_url, index, product.name)}" alt="${product.name}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${product.name}</h3><p>${details}</p></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${product.name}">Size Guide</button></div></div></article>`;
+          const action = `<button data-item="${product.name}" data-price="${product.discounted_price || product.price || ''}">Add to bag</button>`;
+          return `<article class="product reveal"><div class="product-image reveal"><img src="${imageFor(product.image_url, index, product.name)}" alt="${product.name}" loading="lazy"></div><div class="product-info"><div><h3>${product.name}</h3><p>${details}</p></div><div class="buy"><span class="product-card-price">${product.discounted_price < product.price ? `<del>${rupees(product.price)}</del>` : ''}<strong>${rupees(product.discounted_price || product.price)}</strong></span>${action}<button class="size-guide-btn" data-item="${product.name}">Size Guide</button></div></div></article>`;
         }).join('');
         observeReveals();
         if (window.setupImageHoverSlides) window.setupImageHoverSlides();

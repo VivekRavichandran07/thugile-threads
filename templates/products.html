@@ -10,7 +10,7 @@
         <table>
             <tr>
                 <th>Image</th><th>Name</th><th>SKU</th><th>Category</th><th>Size</th><th>Color</th>
-                <th>Cost</th><th>Price</th><th>Qty</th><th>Status</th><th></th>
+                <th>Cost</th><th>Price</th><th>Discounted</th><th>Qty</th><th>Status</th><th></th>
             </tr>
             {% for p in products %}
             <tr class="{{ 'low-stock' if p.quantity <= p.reorder_level else '' }}">
@@ -22,6 +22,7 @@
                 <td>{{ p.color or '—' }}</td>
                 <td>₹{{ p.cost_price }}</td>
                 <td>₹{{ p.selling_price }}</td>
+                <td>₹{{ p.discounted_price or p.selling_price }}</td>
                 <td>{{ p.quantity }}</td>
                 <td>
                     {% if p.quantity <= p.reorder_level %}

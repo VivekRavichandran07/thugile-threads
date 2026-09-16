@@ -72,8 +72,14 @@ const productImageVariants = image => {
   return [image, `${match[1]}-1.png`, `${match[1]}-2.png`, `${match[1]}-3.png`, `${match[1]}-4.png`];
 };
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
-const discountedPrice = value => Math.round(Number(value || 0) * 0.9);
-const priceMarkup = value => `<del>${rupees(value)}</del><strong>${rupees(discountedPrice(value))}</strong>`;
+const discountedPrice = (value, discounted) => Number(discounted || value || 0);
+const priceMarkup = (value, discounted) => {
+  const original = Number(value || 0);
+  const sale = discountedPrice(original, discounted);
+  return sale < original
+    ? `<del>${rupees(original)}</del><strong>${rupees(sale)}</strong>`
+    : `<strong>${rupees(original)}</strong>`;
+};
 const viewCounts = () => {
   try { return JSON.parse(localStorage.getItem('tnt_product_views') || '{}'); } catch { return {}; }
 };
@@ -294,7 +300,7 @@ function openProductPopup(product) {
   if (quantityOutput) quantityOutput.value = '1';
   if (quantityOutput) quantityOutput.textContent = '1';
   productName.textContent = product.name;
-  productPrice.innerHTML = `${priceMarkup(product.price)}<span class="discount-label">10% off</span>`;
+  productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
   
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -337,7 +343,7 @@ function openProductPopup(product) {
       return;
     }
     const quantity = Math.max(1, Number(document.getElementById('product-quantity')?.textContent || 1));
-    addToBag(product.name, discountedPrice(product.price), selectedSize.dataset.size, product.image_url, quantity);
+    addToBag(product.name, discountedPrice(product.price, product.discounted_price), selectedSize.dataset.size, product.image_url, quantity);
     closeProductPopup();
   };
   
@@ -374,10 +380,10 @@ function renderProducts(products) {
   }
   grid.innerHTML = products.map((product, index) => {
     const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
-    const action = product.in_stock ? `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price)}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
+    const action = `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`;
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
     const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
-    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
+    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
   }).join('');
   observeReveals();
   setupImageHoverSlides();
@@ -427,7 +433,7 @@ function renderNewLaunches(products) {
       ${launches.map((product, index) => `
         <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
           <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
-          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price)}</small></span>
+          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price, product.discounted_price)}</small></span>
         </button>
       `).join('')}
     </div>
