@@ -1,6 +1,8 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 import os
+import re
+from urllib.parse import unquote
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -35,6 +37,41 @@ def parse_product_prices(form):
     return selling_price, discounted_price
 
 
+def product_image_variants(name, image_url):
+    assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
+    image_path = unquote((image_url or "").split("?", 1)[0])
+    raw_image_stem = os.path.splitext(os.path.basename(image_path))[0].lower()
+    if "_" in raw_image_stem:
+        raw_image_stem = raw_image_stem.split("_", 1)[-1]
+    image_stem = re.sub(r"[^a-z0-9]", "", raw_image_stem)
+    normalized_name = re.sub(r"[^a-z0-9]", "", (name or "").lower())
+    variants = []
+    for filename in os.listdir(assets_dir):
+        stem, extension = os.path.splitext(filename)
+        if ":" in filename or extension.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+            continue
+        normalized_stem = re.sub(r"[^a-z0-9]", "", stem.lower())
+        matches_image = image_stem and (
+            normalized_stem == image_stem
+            or re.fullmatch(rf"{re.escape(image_stem)}\d+", normalized_stem)
+        )
+        matches_name = not image_stem and (
+            normalized_stem == normalized_name
+            or normalized_stem.startswith(normalized_name)
+        )
+        if matches_image or matches_name:
+            variants.append("/static/storefront/assets/Chudidar/" + filename)
+    if not variants and image_url:
+        variants.append(image_url)
+    return sorted(
+        variants,
+        key=lambda path: (
+            1 if re.search(r"-\d+\.[a-z0-9]+$", path, re.I) else 0,
+            path.lower(),
+        ),
+    )
+
+
 # ---------------------------------------------------------------
 # STOREFRONT
 # ---------------------------------------------------------------
@@ -58,22 +95,25 @@ def storefront_products():
         """
     ).fetchall()
     conn.close()
+    grouped = {}
+    for product in rows:
+        key = (product["name"], product["color"] or "")
+        item = grouped.setdefault(key, {
+            "id": product["id"], "name": product["name"], "sku": product["sku"],
+            "category": product["category"] or "Chudidar", "color": product["color"] or "",
+            "price": product["selling_price"], "discounted_price": product["discounted_price"] or product["selling_price"],
+            "image_url": product["image_url"] or "", "created_at": product["created_at"],
+            "available_sizes": [], "size_quantities": {}, "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
+        })
+        size = product["size"] or "M"
+        item["size_quantities"][size] = item["size_quantities"].get(size, 0) + product["quantity"]
+        if product["quantity"] > 0 and size not in item["available_sizes"]:
+            item["available_sizes"].append(size)
     return jsonify({
         "products": [
-            {
-                "id": product["id"],
-                "name": product["name"],
-                "sku": product["sku"],
-                "category": product["category"] or "Chudidar",
-                "size": product["size"] or "",
-                "color": product["color"] or "",
-                "price": product["selling_price"],
-                "discounted_price": product["discounted_price"] or product["selling_price"],
-                "image_url": product["image_url"] or "",
-                "in_stock": True,
-                "created_at": product["created_at"],
-            }
-            for product in rows
+            {**product, "size": ", ".join(product["available_sizes"]), "in_stock": True}
+            for product in grouped.values()
+            if product["available_sizes"]
         ]
     })
 
@@ -562,7 +602,11 @@ def products():
     conn = get_connection()
     all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
     conn.close()
-    return render_template("products.html", products=all_products)
+    groups = {}
+    for product in all_products:
+        key = (product["name"], product["color"] or "")
+        groups.setdefault(key, []).append(product)
+    return render_template("products.html", products=all_products, product_groups=list(groups.values()))
 
 
 @app.route("/admin/products/add", methods=["GET", "POST"])
@@ -583,28 +627,29 @@ def add_product():
                     file.save(os.path.join(app.config["UPLOAD_FOLDER"], unique_name))
                     image_url = f"/uploads/{unique_name}"
 
-            conn.execute(
-                """
-                INSERT INTO products
-                    (name, sku, category, size, color, image_url, cost_price, selling_price,
-                     discounted_price, quantity, reorder_level, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    request.form["name"].strip(),
-                    request.form["sku"].strip(),
-                    request.form.get("category", "").strip(),
-                    request.form.get("size", "").strip(),
-                    request.form.get("color", "").strip(),
-                    image_url,
-                    float(request.form["cost_price"]),
-                    selling_price,
-                    discounted_price,
-                    int(request.form.get("quantity", 0)),
-                    int(request.form.get("reorder_level", 5)),
-                    now_iso(),
-                ),
-            )
+            selling_price, discounted_price = parse_product_prices(request.form)
+
+            sizes = request.form.getlist("size") or ["M"]
+            for size in sizes:
+                sku = request.form["sku"].strip()
+                if len(sizes) > 1:
+                    sku = f"{sku}-{size.lower().replace(' ', '-')}"
+                conn.execute(
+                    """
+                    INSERT INTO products
+                        (name, sku, category, size, color, image_url, cost_price, selling_price,
+                         discounted_price, quantity, reorder_level, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        request.form["name"].strip(), sku,
+                        request.form.get("category", "").strip(), size,
+                        request.form.get("color", "").strip(), image_url,
+                        float(request.form["cost_price"]), selling_price,
+                        discounted_price, int(request.form.get("quantity", 0)),
+                        int(request.form.get("reorder_level", 5)), now_iso(),
+                    ),
+                )
             conn.commit()
             flash(f'Product "{request.form["name"]}" added.', "success")
             conn.close()
@@ -634,6 +679,10 @@ def edit_product(product_id):
         conn.close()
         flash("Product not found.", "error")
         return redirect(url_for("products"))
+    variants = conn.execute(
+        "SELECT * FROM products WHERE name = ? AND COALESCE(color, '') = COALESCE(?, '') ORDER BY id",
+        (product["name"], product["color"]),
+    ).fetchall()
 
     if request.method == "POST":
         try:
@@ -647,28 +696,28 @@ def edit_product(product_id):
                     image_url = f"/uploads/{unique_name}"
 
             selling_price, discounted_price = parse_product_prices(request.form)
-            conn.execute(
-                """
-                UPDATE products
-                SET name = ?, sku = ?, category = ?, size = ?, color = ?, image_url = ?,
-                    cost_price = ?, selling_price = ?, discounted_price = ?, quantity = ?, reorder_level = ?
-                WHERE id = ?
-                """,
-                (
-                    request.form["name"].strip(),
-                    request.form["sku"].strip(),
-                    request.form.get("category", "").strip(),
-                    request.form.get("size", "").strip(),
-                    request.form.get("color", "").strip(),
-                    image_url,
-                    float(request.form["cost_price"]),
-                    selling_price,
-                    discounted_price,
-                    int(request.form.get("quantity", 0)),
-                    int(request.form.get("reorder_level", 5)),
-                    product_id,
-                ),
-            )
+            for variant in variants:
+                quantity = int(request.form.get(f"quantity_{variant['id']}", variant["quantity"]))
+                conn.execute(
+                    """
+                    UPDATE products
+                    SET name = ?, category = ?, color = ?, image_url = ?, cost_price = ?,
+                        selling_price = ?, discounted_price = ?, quantity = ?, reorder_level = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        request.form["name"].strip(),
+                        request.form.get("category", "").strip(),
+                        request.form.get("color", "").strip(),
+                        image_url,
+                        float(request.form["cost_price"]),
+                        selling_price,
+                        discounted_price,
+                        quantity,
+                        int(request.form.get("reorder_level", 5)),
+                        variant["id"],
+                    ),
+                )
             conn.commit()
             flash(f'Product "{request.form["name"]}" updated.', "success")
             conn.close()
@@ -676,11 +725,11 @@ def edit_product(product_id):
         except (sqlite3.IntegrityError, ValueError, KeyError) as e:
             flash(f"Error updating product: {e}", "error")
             conn.close()
-            return render_template("edit_product.html", product=product)
+            return render_template("edit_product.html", product=product, product_variants=variants)
     else:
         conn.close()
 
-    return render_template("edit_product.html", product=product)
+    return render_template("edit_product.html", product=product, product_variants=variants)
 
 
 @app.route("/admin/products/<int:product_id>/delete", methods=["POST"])

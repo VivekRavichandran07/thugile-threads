@@ -222,6 +222,7 @@ input,textarea,select,button{border-radius:10px}
 .product-image:hover img,.review-product-images img:hover,.search-result:hover img,.popup img:hover{transform:scale(1.06)}
 .review-product-images img,.search-result img{transition:transform .45s ease}
 .product-popup-main-image:hover img,.product-popup-image-stack .product-stack-image:hover{transform:scale(1.14)}
+.size-option.unavailable,.size-option:disabled{opacity:.42;text-decoration:line-through;cursor:not-allowed}
 main img{transition:transform .45s ease}
 main img:hover{transform:scale(1.04)}
 .header-actions .search-btn:hover,.header-actions .bag:hover,.header-actions .wishlist-btn-header:hover,.header-actions .auth-btn-header:hover{transform:scale(1.12);opacity:.78}

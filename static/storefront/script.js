@@ -62,14 +62,28 @@ const imageFor = (url, index, name) => {
     'Maragatham Set': '/static/storefront/assets/Chudidar/image-2.jpg',
     'Rosa Set': '/static/storefront/assets/Chudidar/Rosaset.png',
     'Neelam Set': '/static/storefront/assets/Chudidar/image-3.jpg',
-    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png'
+    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png',
+    'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.png',
+    'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.png'
   };
-  return imageMap[name] || (url && /^https?:\/\//i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
+  return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
   const match = String(image).match(/^(.*)\.([a-z0-9]+)$/i);
   if (!match || !match[1].includes('/static/storefront/assets/Chudidar/')) return [image];
   return [image, `${match[1]}-1.png`, `${match[1]}-2.png`, `${match[1]}-3.png`, `${match[1]}-4.png`];
+};
+const availableImageVariants = async image => {
+  const candidates = productImageVariants(image);
+  const results = await Promise.all(candidates.map(async candidate => {
+    try {
+      const response = await fetch(candidate, { method: 'HEAD' });
+      return response.ok ? candidate : null;
+    } catch {
+      return null;
+    }
+  }));
+  return results.filter(Boolean);
 };
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
 const discountedPrice = (value, discounted) => Number(discounted || value || 0);
@@ -304,7 +318,8 @@ function openProductPopup(product) {
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
   
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  productSizes.innerHTML = sizes.map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
+  const availableSizes = product.available_sizes || [];
+  productSizes.innerHTML = sizes.map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
   productSizes.querySelectorAll('.size-option').forEach(btn => {
     btn.addEventListener('click', () => {
       productSizes.querySelectorAll('.size-option').forEach(b => b.classList.remove('selected'));
@@ -313,7 +328,7 @@ function openProductPopup(product) {
   });
   
   const productImage = imageFor(product.image_url, 0, product.name);
-  const images = productImageVariants(productImage);
+  const images = product.image_variants?.length ? product.image_variants : productImageVariants(productImage);
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
   productThumbnails.innerHTML = images.map((img, i) => `
     <button class="thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
@@ -382,7 +397,8 @@ function renderProducts(products) {
     const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
     const action = `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`;
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
-    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
+    const availableSizes = product.available_sizes || [];
+    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
     return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
   }).join('');
   observeReveals();
@@ -392,25 +408,26 @@ function renderProducts(products) {
 function setupImageHoverSlides() {
   document.querySelectorAll('.collection-card img, .product-image img').forEach(image => {
     if (image.dataset.hoverSlidesReady === 'true') return;
-    const variants = productImageVariants(image.currentSrc || image.src);
-    if (variants.length < 2) return;
-    image.dataset.hoverSlidesReady = 'true';
-    let index = 0;
-    let timer = null;
-    const stop = () => {
-      clearInterval(timer);
-      timer = null;
-      index = 0;
-      image.src = variants[0];
-    };
-    image.closest('.collection-card, .product-image')?.addEventListener('mouseenter', () => {
-      clearInterval(timer);
-      timer = setInterval(() => {
-        index = (index + 1) % variants.length;
-        image.src = variants[index];
-      }, 1000);
+    availableImageVariants(image.currentSrc || image.src).then(variants => {
+      if (variants.length < 2) return;
+      image.dataset.hoverSlidesReady = 'true';
+      let index = 0;
+      let timer = null;
+      const stop = () => {
+        clearInterval(timer);
+        timer = null;
+        index = 0;
+        image.src = variants[0];
+      };
+      image.closest('.collection-card, .product-image')?.addEventListener('mouseenter', () => {
+        clearInterval(timer);
+        timer = setInterval(() => {
+          index = (index + 1) % variants.length;
+          image.src = variants[index];
+        }, 1000);
+      });
+      image.closest('.collection-card, .product-image')?.addEventListener('mouseleave', stop);
     });
-    image.closest('.collection-card, .product-image')?.addEventListener('mouseleave', stop);
   });
 }
 window.setupImageHoverSlides = setupImageHoverSlides;

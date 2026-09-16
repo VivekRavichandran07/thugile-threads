@@ -14,7 +14,11 @@
         <input type="text" name="category" value="{{ product.category or '' }}">
 
         <label>Size</label>
-        <input type="text" name="size" value="{{ product.size or '' }}">
+        <select name="size" required>
+            {% for size in ['S', 'M', 'L', 'XL', 'XXL', 'Free Size'] %}
+            <option value="{{ size }}" {% if product.size == size %}selected{% endif %}>{{ size }}</option>
+            {% endfor %}
+        </select>
 
         <label>Color</label>
         <input type="text" name="color" value="{{ product.color or '' }}">
@@ -33,8 +37,14 @@
         <label>Discounted Price (₹ per unit)</label>
         <input type="number" step="0.01" min="0" name="discounted_price" value="{{ product.discounted_price or product.selling_price }}" required>
 
-        <label>Quantity in Stock</label>
-        <input type="number" min="0" name="quantity" value="{{ product.quantity }}">
+        <label>Quantity by Size</label>
+        <div class="size-quantity-list">
+            {% for variant in product_variants %}
+            <label>{{ variant.size or 'Free Size' }}
+                <input type="number" min="0" name="quantity_{{ variant.id }}" value="{{ variant.quantity }}">
+            </label>
+            {% endfor %}
+        </div>
 
         <label>Reorder Level</label>
         <input type="number" min="0" name="reorder_level" value="{{ product.reorder_level }}">

@@ -13,8 +13,16 @@
         <label>Category</label>
         <input type="text" name="category" placeholder="e.g. Saree, Kurti, Shirt">
 
-        <label>Size</label>
-        <input type="text" name="size" placeholder="e.g. S, M, L, Free Size">
+        <label>Sizes</label>
+        <select name="size" multiple required>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+            <option value="Free Size">Free Size</option>
+        </select>
+        <small>Hold Ctrl (Windows) or Command (Mac) to select multiple sizes.</small>
 
         <label>Color</label>
         <input type="text" name="color">
