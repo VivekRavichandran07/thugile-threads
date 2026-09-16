@@ -199,12 +199,12 @@ input,textarea,select,button{border-radius:10px}
   .product-popup-thumbnails{display:none}
 }
 .new-launches-section{padding:0 5vw 120px;background:#fff}
-.new-launches-track{display:flex;width:max-content;gap:0;overflow:visible;padding:4px 0 14px;animation:new-launches-marquee 70s linear infinite;will-change:transform}
+.new-launches-track{display:flex;width:max-content;min-width:max-content;gap:0;overflow:visible;padding:4px 0 14px;animation:new-launches-marquee 70s linear infinite;will-change:transform}
 .new-launches-section{overflow:hidden}
 .new-launches-track:has(.new-launch-card:hover),.new-launches-track:has(.new-launch-card:focus-visible){animation-play-state:paused}
 @keyframes new-launches-marquee{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
 .new-launches-track::-webkit-scrollbar{display:none}
-.new-launch-set{display:flex;flex:0 0 auto;gap:18px}
+.new-launch-set{display:flex;flex:0 0 auto;gap:18px;padding-right:18px}
 .new-launch-card{flex:0 0 clamp(190px,22vw,280px);border:0;background:none;padding:0;text-align:left;cursor:pointer;scroll-snap-align:start}
 .new-launch-image{display:block;aspect-ratio:3/4;overflow:hidden;background:var(--sand);border-radius:14px}
 .new-launch-image img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
@@ -227,3 +227,36 @@ main img:hover{transform:scale(1.04)}
 .header-actions .search-btn:hover,.header-actions .bag:hover,.header-actions .wishlist-btn-header:hover,.header-actions .auth-btn-header:hover{transform:scale(1.12);opacity:.78}
 .header-actions .search-btn,.header-actions .bag,.header-actions .wishlist-btn-header,.header-actions .auth-btn-header{transition:transform .2s ease,opacity .2s ease}
 .auth-menu:hover .profile-dropdown{opacity:1;pointer-events:auto}
+.collections-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:0 0 18px;margin:0}
+.collection-card{position:relative;min-width:0;height:390px;padding:0;overflow:hidden;border:0;background:var(--sand);display:flex;align-items:flex-end;justify-content:flex-end;text-align:left;color:#fff}
+.collection-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.65,.25,1)}
+.collection-card::after{content:"";position:absolute;inset:35% 0 0;background:linear-gradient(transparent,rgba(20,14,10,.78))}
+.collection-card div,.collection-card .card-arrow{position:relative;z-index:1}
+.collection-card div{position:absolute;left:0;right:0;bottom:0;width:100%;padding:20px;background:rgba(20,14,10,.78)}
+.collection-card h3{font-size:23px;margin:0 0 5px}
+.collection-card p{margin:0;color:rgba(255,255,255,.82);font-size:12px}
+.collection-card .card-arrow{position:absolute;right:18px;top:18px;font-size:22px}
+.collection-card:hover img{transform:scale(1.08)}
+.collections-page .collections-grid{padding:0 0 18px;margin:0 50px 64px 236px}
+.home-collections-carousel{padding:0 5vw 120px;background:#fff}
+.home-collections-grid{padding-left:0!important;margin:0!important}
+.before-after-section{padding:20px 5vw 0;background:#fff}
+.testimonials{padding:40px 10vw;background:#fff}
+.breadcrumbs{display:flex;align-items:center;gap:9px;padding:18px 5vw 0;font:500 11px var(--sans);color:#7a6e62}
+.breadcrumbs a{color:var(--ink);text-decoration:none}
+.breadcrumbs a:hover{text-decoration:underline}
+.collections-page .breadcrumbs{padding:0;margin:0 50px 20px 236px}
+@media(max-width:640px){
+  .collections-grid{grid-template-columns:1fr}
+  .collection-card{height:360px}
+  .collections-page .collections-grid{margin:0 6vw 48px}
+  .home-collections-carousel{padding:0 6vw 90px}
+  .before-after-section{padding:20px 6vw 0}
+  .testimonials{padding:40px 10vw}
+  .breadcrumbs{padding:14px 6vw 0}
+  .collections-page .breadcrumbs{margin:0 0 20px;padding:0}
+}
+.product-popup-gallery{background:transparent}
+.product-popup-details{overflow:visible}
+.product-popup{max-height:90vh;overflow-y:auto;overflow-x:hidden}
+@media(max-width:640px){.product-popup{max-height:calc(100svh - 20px)}}

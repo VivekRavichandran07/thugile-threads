@@ -33,10 +33,10 @@ const searchOverlay = document.getElementById('search-overlay');
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 const fallbackImages = [
-  'https://images.pexels.com/photos/13155751/pexels-photo-13155751.jpeg?auto=format&fit=crop&w=1100&q=85',
-  'https://images.pexels.com/photos/9419023/pexels-photo-9419023.jpeg?auto=format&fit=crop&w=900&q=85',
-  'https://images.pexels.com/photos/37054322/pexels-photo-37054322.jpeg?auto=format&fit=crop&w=900&q=85',
-  'https://images.pexels.com/photos/28428053/pexels-photo-28428053.jpeg?auto=format&fit=crop&w=900&q=85'
+  '/static/storefront/assets/Chudidar/image-1.png',
+  '/static/storefront/assets/Chudidar/image-2.jpg',
+  '/static/storefront/assets/Chudidar/image-3.jpg',
+  '/static/storefront/assets/Chudidar/image-4.jpg'
 ];
 var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null, searchProducts = [];
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -54,25 +54,22 @@ const imageFor = (url, index, name) => {
     'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.png',
     'Kanakavalli Silk Co-ord': '/static/storefront/assets/Chudidar/KanakavalliSilkCoord.png',
     'Thaai Silk Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.png',
-    'Kodi Silk Coord': '/static/storefront/assets/Chudidar/KodiSilkCoord.png',
-    'Valli Rayon Kurta': '/static/storefront/assets/Chudidar/ValliRayonKurta.png',
-    'Poonkodi Linen Set': '/static/storefront/assets/Chudidar/PoonkodiLinenSet.png',
-    'Malli Cotton Kurta': '/static/storefront/assets/Chudidar/MalliCottonKurta.png',
-    'Nila Daily Wear Kurti': '/static/storefront/assets/Chudidar/NilaDailyWearKurti.png',
-    'Sindhu Business Co-ord': '/static/storefront/assets/Chudidar/SindhuBusinessCoord.png',
-    'Pavithra Workwear Set': '/static/storefront/assets/Chudidar/PavithraWorkwearSet.png',
-    'Mala Office Kurta': '/static/storefront/assets/Chudidar/MalaOfficeKurta.png',
-    'Kaveri Executive Set': '/static/storefront/assets/Chudidar/KaveriExecutiveSet.png',
-    'Mayil Set': '/static/storefront/assets/Chudidar/MayilSet.png',
-    'Thamarai Set': '/static/storefront/assets/Chudidar/ThamaraiSet.png',
-    'Vennila Set': '/static/storefront/assets/Chudidar/VennilaSet.png',
-    'Manjal Set': '/static/storefront/assets/Chudidar/ManjalSet.png',
-    'Maragatham Set': '/static/storefront/assets/Chudidar/MaragathamSet.png',
-    'Rosa Set': '/static/storefront/assets/Chudidar/RosaSet.png',
-    'Neelam Set': '/static/storefront/assets/Chudidar/NeelamSet.png',
-    'Gulmohar Set': '/static/storefront/assets/Chudidar/GulmoharSet.png'
+    'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.png',
+    'Mayil Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.png',
+    'Thamarai Set': '/static/storefront/assets/Chudidar/KalamkariPrintSet.png',
+    'Vennila Set': '/static/storefront/assets/Chudidar/PavaiHandloomSet.png',
+    'Manjal Set': '/static/storefront/assets/Chudidar/image-1.png',
+    'Maragatham Set': '/static/storefront/assets/Chudidar/image-2.jpg',
+    'Rosa Set': '/static/storefront/assets/Chudidar/Rosaset.png',
+    'Neelam Set': '/static/storefront/assets/Chudidar/image-3.jpg',
+    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png'
   };
   return imageMap[name] || (url && /^https?:\/\//i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
+};
+const productImageVariants = image => {
+  const match = String(image).match(/^(.*)\.([a-z0-9]+)$/i);
+  if (!match || !match[1].includes('/static/storefront/assets/Chudidar/')) return [image];
+  return [image, `${match[1]}-1.png`, `${match[1]}-2.png`, `${match[1]}-3.png`, `${match[1]}-4.png`];
 };
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
 const discountedPrice = value => Math.round(Number(value || 0) * 0.9);
@@ -310,13 +307,7 @@ function openProductPopup(product) {
   });
   
   const productImage = imageFor(product.image_url, 0, product.name);
-  const images = [
-    productImage,
-    fallbackImages[1],
-    fallbackImages[2],
-    fallbackImages[3],
-    fallbackImages[0]
-  ];
+  const images = productImageVariants(productImage);
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
   productThumbnails.innerHTML = images.map((img, i) => `
     <button class="thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
@@ -389,7 +380,34 @@ function renderProducts(products) {
     return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
   }).join('');
   observeReveals();
+  setupImageHoverSlides();
 }
+
+function setupImageHoverSlides() {
+  document.querySelectorAll('.collection-card img, .product-image img').forEach(image => {
+    if (image.dataset.hoverSlidesReady === 'true') return;
+    const variants = productImageVariants(image.currentSrc || image.src);
+    if (variants.length < 2) return;
+    image.dataset.hoverSlidesReady = 'true';
+    let index = 0;
+    let timer = null;
+    const stop = () => {
+      clearInterval(timer);
+      timer = null;
+      index = 0;
+      image.src = variants[0];
+    };
+    image.closest('.collection-card, .product-image')?.addEventListener('mouseenter', () => {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        index = (index + 1) % variants.length;
+        image.src = variants[index];
+      }, 1000);
+    });
+    image.closest('.collection-card, .product-image')?.addEventListener('mouseleave', stop);
+  });
+}
+window.setupImageHoverSlides = setupImageHoverSlides;
 
 function sortProducts(products, sort) {
   const sorted = [...products];
@@ -453,8 +471,7 @@ async function loadCatalog(retries = 3) {
   }
 }
 
-if (grid) {
-  grid.addEventListener('click', event => {
+function handleProductCardClick(event) {
     const productImage = event.target.closest('.product-image');
     const productName = event.target.closest('.product-info h3');
     const sizeBtn = event.target.closest('.size-guide-btn');
@@ -513,8 +530,12 @@ if (grid) {
     if (product) {
       openProductPopup(product);
     }
-  });
 }
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.product-image, .product-info h3')) return;
+  handleProductCardClick(event);
+});
 
 if (cartItems) {
   cartItems.addEventListener('click', event => {
@@ -1180,6 +1201,7 @@ async function init() {
     openAuthModal();
   }
   setupSearch();
+  setupImageHoverSlides();
 }
 
 function setupSearch() {

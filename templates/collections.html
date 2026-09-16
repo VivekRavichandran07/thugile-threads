@@ -74,61 +74,14 @@
       <p>Choose the mood, find your fit.</p>
     </div>
     <div class="collections-grid" id="collections-grid">
-      <div class="collection-card" data-category="Festive Wear">
-        <h3>Festive Wear</h3>
-        <p>Occasion-ready silhouettes</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Office Wear">
-        <h3>Office Wear</h3>
-        <p>Polished everyday sets</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Coord Set">
-        <h3>Coord Sets</h3>
-        <p>Effortlessly matched</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Casual Kurtas">
-        <h3>Casual Kurtas</h3>
-        <p>Relaxed, everyday ease</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Silk Collection">
-        <h3>Silk Collection</h3>
-        <p>Luxe handfeel</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Cotton Collection">
-        <h3>Cotton Collection</h3>
-        <p>Breathable comfort</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Embroidered">
-        <h3>Embroidered</h3>
-        <p>Hand-finished details</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Block Print">
-        <h3>Block Print</h3>
-        <p>Artisan crafted</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Summer Edit">
-        <h3>Summer Edit</h3>
-        <p>Light and breezy</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Winter Collection">
-        <h3>Winter Collection</h3>
-        <p>Warm layered looks</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Fusion Wear">
-        <h3>Fusion Wear</h3>
-        <p>Contemporary cuts</p>
-        <span class="card-arrow">→</span>
-      </div>
+      <div class="collection-card" data-category="Festive Wear"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.png" alt="Festive Wear" loading="lazy"><div><h3>Festive Wear</h3><p>Occasion-ready silhouettes</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Office Wear"><img src="/static/storefront/assets/Chudidar/KonguCottonCoord.png" alt="Office Wear" loading="lazy"><div><h3>Office Wear</h3><p>Polished everyday sets</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Coord Set"><img src="/static/storefront/assets/Chudidar/AjrakhCoordSet.png" alt="Coord Sets" loading="lazy"><div><h3>Coord Sets</h3><p>Effortlessly matched</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Casual Kurtas"><img src="/static/storefront/assets/Chudidar/AcharamBlockPrintKurta.png" alt="Casual Kurtas" loading="lazy"><div><h3>Casual Kurtas</h3><p>Relaxed, everyday ease</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Silk Collection"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.png" alt="Silk Collection" loading="lazy"><div><h3>Silk Collection</h3><p>Luxe handfeel</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Cotton Collection"><img src="/static/storefront/assets/Chudidar/ThenralCottonCoord.png" alt="Cotton Collection" loading="lazy"><div><h3>Cotton Collection</h3><p>Breathable comfort</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Embroidered"><img src="/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.png" alt="Embroidered collection" loading="lazy"><div><h3>Embroidered</h3><p>Hand-finished details</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Block Print"><img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png" alt="Block Print collection" loading="lazy"><div><h3>Block Print</h3><p>Artisan crafted</p></div><span class="card-arrow">↗</span></div>
     </div>
     <div id="filtered-products" style="display:none; margin:48px auto 64px; max-width:800px;">
       <div class="section-header" style="border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:48px;">
@@ -222,14 +175,25 @@
     <div class="popup product-popup" id="product-popup">
       <button class="popup-close" id="product-popup-close" aria-label="Close">×</button>
       <div class="product-popup-gallery">
-        <div class="product-popup-main-image" id="product-main-image"></div>
-        <div class="product-popup-thumbnails" id="product-thumbnails"></div>
+        <div class="product-popup-gallery-layout">
+          <div class="product-popup-thumbnails" id="product-thumbnails"></div>
+          <div class="product-popup-gallery-stage">
+            <div class="product-popup-main-image" id="product-main-image"></div>
+            <div class="product-popup-image-stack" id="product-image-stack" aria-label="Product images"></div>
+          </div>
+        </div>
       </div>
       <div class="product-popup-details">
         <h2 id="product-popup-name"></h2>
         <p class="product-popup-price" id="product-popup-price"></p>
         <p class="product-popup-desc" id="product-popup-desc"></p>
          <div class="product-popup-sizes" id="product-popup-sizes"></div>
+        <div class="product-popup-quantity">
+          <span>Quantity</span>
+          <button type="button" id="product-quantity-decrease" aria-label="Decrease quantity">−</button>
+          <output id="product-quantity" aria-live="polite">1</output>
+          <button type="button" id="product-quantity-increase" aria-label="Increase quantity">+</button>
+        </div>
          <div class="product-popup-actions">
            <button class="add-to-bag-btn" id="product-add-to-bag">Add to bag</button>
            <button class="wishlist-btn" id="product-wishlist-btn" aria-label="Add to wishlist">
@@ -351,9 +315,10 @@
           const details = [product.color, product.category, product.size].filter(Boolean).join(' · ') || 'Made with care';
           const action = product.in_stock ? `<button data-item="${product.name}" data-price="${product.price || ''}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
           const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
-          return `<article class="product reveal"><div class="product-image reveal"><img src="${imageFor(product.image_url, index)}" alt="${product.name}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${product.name}</h3><p>${details}</p></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${product.name}">Size Guide</button></div></div></article>`;
+          return `<article class="product reveal"><div class="product-image reveal"><img src="${imageFor(product.image_url, index, product.name)}" alt="${product.name}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${product.name}</h3><p>${details}</p></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${product.name}">Size Guide</button></div></div></article>`;
         }).join('');
         observeReveals();
+        if (window.setupImageHoverSlides) window.setupImageHoverSlides();
       }
       collectionsGrid.style.display = 'none';
       filteredProducts.style.display = '';
