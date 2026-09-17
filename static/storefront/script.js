@@ -464,27 +464,36 @@ function renderNewLaunches(products) {
   });
 }
 
+function renderNewLaunches(products) {
+  if (!newLaunchesTrack) return;
+  const launches = products; // all products — no slice
+  const renderLaunchSet = (setIndex) => `
+    <div class="new-launch-set">
+      ${launches.map((product, index) => `
+        <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
+          <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
+          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${rupees(product.price)}</small></span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
+  newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const product = launches[Number(card.dataset.productIndex)];
+      if (product) openProductPopup(product);
+    });
+  });
+}
+
 async function loadCatalog(retries = 3) {
   if (!grid) return;
   try {
     const response = await fetch('/api/store/products');
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
-    searchProducts = products;
-    renderProducts(sortProducts(products, productSort?.value || 'newest'));
+    renderProducts(products);
     renderNewLaunches(products);
-    const requestedProduct = new URLSearchParams(window.location.search).get('product');
-    if (requestedProduct) {
-      const product = products.find(item => item.name === requestedProduct);
-      if (product) openProductPopup(product);
-    }
-
-    if (productSort) {
-      productSort.addEventListener('change', async () => {
-        if (!searchProducts.length) return;
-        renderProducts(sortProducts(searchProducts, productSort.value));
-      });
-    }
   } catch (error) {
     if (retries > 0) {
       await new Promise(r => setTimeout(r, 1000));
