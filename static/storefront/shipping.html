@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shipping Information | Thugile & Threads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter+Tight:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/storefront/style.css" />
+  <link rel="icon" href="/static/storefront/assets/thugile-and-threads-logo.png" type="image/png">
+</head>
+<body class="inner-page">
+  <div class="grain"></div>
+
+  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
+    <img src="/static/storefront/assets/thugile-and-threads-logo.png" alt="Thugile & Threads">
+    <span class="logo-text">Thugile & Threads</span>
+  </a>
+
+  <header class="site-header">
+    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
+    <div class="header-inner">
+      <nav class="main-nav">
+        <a href="/shop/collections">Collections</a>
+        <a href="/shop/our-story">Our story</a>
+        <a href="/shop/#contact">Visit us</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <div id="search-overlay" class="search-overlay">
+          <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
+          <div id="search-results" class="search-results"></div>
+        </div>
+        <button class="wishlist-btn-header" aria-label="Wishlist">
+          ♥ <span id="wishlist-count">0</span>
+        </button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
+        <div class="auth-menu">
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
+          <div class="profile-dropdown" id="profile-dropdown"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="cart-overlay" id="cart-overlay"></div>
+  <aside class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+      <h3>Your bag</h3>
+      <button class="cart-close" id="cart-close" aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <p class="cart-total">Total: <span id="cart-total">₹ 0</span></p>
+      <button class="checkout-btn" id="checkout-btn" disabled>Checkout</button>
+    </div>
+  </aside>
+
+  <div class="wishlist-overlay" id="wishlist-overlay"></div>
+  <aside class="wishlist-sidebar" id="wishlist-sidebar">
+    <div class="wishlist-header">
+      <h3>Your wishlist</h3>
+      <button class="wishlist-close" id="wishlist-close" aria-label="Close wishlist">×</button>
+    </div>
+    <div class="wishlist-items" id="wishlist-items"></div>
+  </aside>
+
+  <main style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:100px 20px;">
+    <div style="max-width:600px;width:100%;">
+      <h1 style="font-family:var(--serif);font-size:clamp(2rem,4.5vw,3rem);margin:0 0 8px;letter-spacing:-.03em;">Shipping Information</h1>
+      <p style="margin:0 0 24px;color:#5c5248;font-size:16px;">Please fill in your shipping details below</p>
+      
+      <div id="saved-addresses" style="margin-bottom:32px;">
+        <h2 style="font-size:18px;margin:0 0 16px;letter-spacing:-.02em;">Saved Addresses</h2>
+        <div id="addresses-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;"></div>
+        <div id="add-address-wrapper" style="margin-top:16px;">
+          <button id="add-address-btn" type="button" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase; position:relative; z-index:1;">
+            <span>+</span> Add New Address
+          </button>
+        </div>
+      </div>
+      
+      <form id="shipping-form" style="display:none;flex-direction:column;gap:16px;">
+        <img src="https://ucarecdn.com/412d5bde-bec7-49c8-94c9-f6df6434ed12/address.png" alt="Address Form Image" class="form-img" style="display:block;margin:0 auto 24px;max-width:160px;width:100%;">
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Full Name*</label>
+          <input type="text" id="shipping-name" placeholder="Enter your full name" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Email Address*</label>
+          <input type="email" id="shipping-email" placeholder="Enter your email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Phone Number*</label>
+          <input type="tel" id="shipping-phone" placeholder="+91 9876543210" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Street Address (Line 1)*</label>
+          <input type="text" id="shipping-address" placeholder="House No., Road Name, etc." required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Street Address (Line 2) (Optional)</label>
+          <input type="text" id="shipping-address-line-2" placeholder="Apartment, Suite, Floor, etc." style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">City*</label>
+          <input type="text" id="shipping-city" placeholder="City" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Pincode*</label>
+          <input type="text" id="shipping-pincode" placeholder="Pincode" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
+        </div>
+        <button type="button" id="proceed-btn" onclick="saveAndGo()" style="width:100%;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Proceed to Pay</button>
+        <p id="shipping-error" style="margin:0;font-size:13px;color:#c0392b;min-height:18px;"></p>
+        <button type="button" id="cancel-form-btn" onclick="hideAddForm()" style="width:100%;padding:10px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;">Cancel</button>
+      </form>
+      
+      <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--line);text-align:left;">
+        <a href="/shop/orders" style="color:var(--ink);text-decoration:none;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;display:inline-block;">My Orders →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="/static/storefront/assets/thugile-and-threads-logo.png" alt="Thugile & Threads" class="footer-logo">
+        <p>Thoughtfully tailored by us to you.</p>
+      </div>
+      <section class="newsletter reveal visible" id="contact">
+        <p class="eyebrow">A little note from us</p>
+        <h2>Good things are<br><em>on their way.</em></h2>
+        <p>New drops, intimate trunk shows and stories from our studio.</p>
+        <form>
+          <label class="sr-only" for="email">Email address</label>
+          <input id="email" type="email" autocomplete="email" placeholder="Your email address" required>
+          <button type="submit">Keep me posted <span>→</span></button>
+        </form>
+      </section>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Shop</h4>
+          <a href="/shop/#collection">Collection</a>
+          <a href="/shop/collections">Collections</a>
+          <a href="#">New Arrivals</a>
+          <a href="#">Bestsellers</a>
+        </div>
+        <div class="footer-col">
+          <h4>About</h4>
+          <a href="/shop/our-story">Our Story</a>
+          <a href="/shop/#contact">Visit Us</a>
+          <a href="#">Contact</a>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <a href="/shop/shipping-returns">Shipping & Returns</a>
+          <a href="#" id="size-guide-link">Size Guide</a>
+          <a href="/shop/privacy-policy">Privacy Policy</a>
+          <a href="/shop/terms">Terms & Conditions</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Thugile & Threads</p>
+    </div>
+  </footer>
+
+  <div class="auth-overlay" id="auth-overlay">
+      <div class="auth-modal" id="auth-modal">
+        <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+        
+        <!-- Step 1: Enter mobile or email -->
+        <div id="auth-step-1">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Sign in or create account</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter mobile number or email</p>
+          <form id="auth-identifier-form">
+            <input type="text" id="auth-identifier" placeholder="Mobile number or email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Continue</button>
+          </form>
+          <p style="margin:16px 0 0;font-size:12px;color:#7a6e62;text-align:center;">By continuing, you agree to Thugile & Threads's Conditions</p>
+          <p style="margin:8px 0 0;font-size:12px;text-align:center;"><a href="#" id="forgot-password-link" style="color:var(--terracotta);text-decoration:none;">Forgot password?</a></p>
+        </div>
+
+        <!-- Step 2: Sign up form (shown if user doesn't exist) -->
+        <div id="auth-step-signup" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Create Account</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Complete your details</p>
+          <form class="auth-form" id="signup-form">
+            <input type="text" id="signup-name" placeholder="Full Name" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="email" id="signup-email" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="tel" id="signup-phone" placeholder="Mobile Number" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Create Account</button>
+            <p class="auth-error" id="signup-error"></p>
+          </form>
+        </div>
+
+        <!-- Step 3: Login form (shown if user exists) -->
+        <div id="auth-step-login" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Welcome back</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter your password</p>
+          <form class="auth-form" id="login-form">
+            <input type="password" id="login-password" placeholder="Password" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Login</button>
+            <p class="auth-error" id="login-error"></p>
+          </form>
+        </div>
+
+        <!-- Step 4: Forgot password -->
+        <div id="auth-step-forgot" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Reset Password</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter your email to receive a reset link</p>
+          <form id="forgot-password-form">
+            <input type="email" id="forgot-email" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Send Reset Link</button>
+            <p class="auth-error" id="forgot-error"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="/static/storefront/script.js"></script>
+   <script>
+  // Define escapeHtml function if not already defined
+  if (typeof escapeHtml === 'undefined') {
+    window.escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+  }
+
+  const shippingForm = document.getElementById('shipping-form');
+  const addressesList = document.getElementById('addresses-list');
+  const addAddressWrapper = document.getElementById('add-address-wrapper');
+  const shippingError = document.getElementById('shipping-error');
+
+  // Make these global so onclick works
+  window.showAddForm = function() {
+    console.log("Add clicked");
+    if (shippingForm) {
+      shippingForm.style.display = 'flex';
+      shippingForm.querySelectorAll('input, textarea').forEach(i => i.value = '');
+    }
+    if (addAddressWrapper) addAddressWrapper.style.display = 'none';
+  }
+
+  window.hideAddForm = function() {
+    if (shippingForm) shippingForm.style.display = 'none';
+    if (addAddressWrapper) addAddressWrapper.style.display = 'block';
+    if (shippingError) shippingError.textContent = '';
+  }
+
+  // Add event listener for add address button
+  document.addEventListener('DOMContentLoaded', function() {
+    const addAddressBtn = document.getElementById('add-address-btn');
+    if (addAddressBtn) {
+      addAddressBtn.addEventListener('click', showAddForm);
+    }
+  });
+
+  async function loadAddresses() {
+    try {
+      const checkRes = await fetch('/api/auth/me');
+      const checkData = await checkRes.json();
+      if (!checkData.user) {
+        addressesList.innerHTML = '<p style="color:#7a6e62;">Please log in to manage addresses.</p>';
+        return;
+      }
+      const res = await fetch('/api/user/addresses');
+      const data = await res.json();
+      if (res.ok && data.addresses && data.addresses.length) {
+        addressesList.innerHTML = data.addresses.map(addr => `
+          <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);text-align:left;cursor:pointer;font:inherit;color:inherit;">
+            <strong>${escapeHtml(addr.name)}</strong>
+            <p style="margin:4px 0 0;font-size:13px;color:#7a6e62;">${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
+          </button>
+        `).join('');
+        addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" disabled onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Continue to payment</button>');
+      } else {
+        addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
+      }
+
+      window.selectAddress = function(addressId) {
+        sessionStorage.setItem('selected_address_id', String(addressId));
+        document.querySelectorAll('.saved-address-card').forEach(card => {
+          const selected = card.dataset.addressId === String(addressId);
+          card.classList.toggle('selected', selected);
+          card.style.borderColor = selected ? 'var(--ink)' : 'var(--line)';
+          card.style.background = selected ? '#fff' : '#f8f6f3';
+        });
+        const continueButton = document.getElementById('continue-to-payment-btn');
+        if (continueButton) continueButton.disabled = false;
+      };
+
+      window.continueToPayment = function() {
+        if (!sessionStorage.getItem('selected_address_id')) {
+          shippingError.textContent = 'Please select a shipping address first.';
+          return;
+        }
+        window.location.href = '/shop/checkout';
+      };
+    } catch (err) {
+      addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
+    }
+  }
+
+  window.saveAndGo = async function() {
+    const nameInput = document.getElementById('shipping-name');
+    const emailInput = document.getElementById('shipping-email');
+    const phoneInput = document.getElementById('shipping-phone');
+    const addressInput = document.getElementById('shipping-address');
+    const addressLine2Input = document.getElementById('shipping-address-line-2');
+    const cityInput = document.getElementById('shipping-city');
+    const pincodeInput = document.getElementById('shipping-pincode');
+
+    if (!nameInput || !emailInput || !phoneInput || !addressInput || !cityInput || !pincodeInput) {
+      return;
+    }
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const address = addressInput.value.trim();
+    const address_line_2 = addressLine2Input ? addressLine2Input.value.trim() : '';
+    const city = cityInput.value.trim();
+    const pincode = pincodeInput.value.trim();
+
+    if (!name || !email || !phone || !address || !city || !pincode) {
+      shippingError.textContent = 'Please fill in all required fields.';
+      return;
+    }
+
+    const shippingData = { name, email, phone, address, address_line_2, city, pincode };
+    try {
+      const res = await fetch('/api/user/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shippingData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        shippingError.textContent = data.error || 'Failed to save address';
+        return;
+      }
+    } catch (e) {
+      shippingError.textContent = 'Network error. Please try again.';
+      return;
+    }
+
+    try {
+      sessionStorage.removeItem('shipping_form_data');
+    } catch {}
+
+    toast.textContent = 'Address saved! Proceeding to checkout...';
+    try { toast.classList.add('show'); } catch {}
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { try { toast.classList.remove('show'); } catch {} }, 2600);
+
+    const res = await fetch('/api/user/addresses');
+    const data = await res.json();
+    const savedAddress = data.addresses && data.addresses[data.addresses.length - 1];
+    if (savedAddress) {
+      selectAddress(savedAddress.id);
+      window.location.href = '/shop/checkout';
+    }
+  };
+
+  loadAddresses();
+</script>
+</body>
+</html>

@@ -7,8 +7,9 @@
   <title>Collections | Thugile & Threads</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter+Tight:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" type="image/png">
 </head>
 <body class="inner-page">
   <div class="grain"></div>
@@ -28,12 +29,16 @@
       </nav>
       <div class="header-actions">
         <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <div id="search-overlay" class="search-overlay">
+          <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
+          <div id="search-results" class="search-results"></div>
+        </div>
         <button class="wishlist-btn-header" aria-label="Wishlist">
           ♥ <span id="wishlist-count">0</span>
         </button>
         <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-          <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
           <div class="profile-dropdown" id="profile-dropdown"></div>
         </div>
       </div>
@@ -69,48 +74,16 @@
       <p>Choose the mood, find your fit.</p>
     </div>
     <div class="collections-grid" id="collections-grid">
-      <div class="collection-card" data-category="Festive Wear">
-        <h3>Festive Wear</h3>
-        <p>Occasion-ready silhouettes</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Office Wear">
-        <h3>Office Wear</h3>
-        <p>Polished everyday sets</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Coord Set">
-        <h3>Coord Sets</h3>
-        <p>Effortlessly matched</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Casual Kurtas">
-        <h3>Casual Kurtas</h3>
-        <p>Relaxed, everyday ease</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Silk Collection">
-        <h3>Silk Collection</h3>
-        <p>Luxe handfeel</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Cotton Collection">
-        <h3>Cotton Collection</h3>
-        <p>Breathable comfort</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Embroidered">
-        <h3>Embroidered</h3>
-        <p>Hand-finished details</p>
-        <span class="card-arrow">→</span>
-      </div>
-      <div class="collection-card" data-category="Block Print">
-        <h3>Block Print</h3>
-        <p>Artisan crafted</p>
-        <span class="card-arrow">→</span>
-      </div>
+      <div class="collection-card" data-category="Festive Wear"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.png" alt="Festive Wear" loading="lazy"><div><h3>Festive Wear</h3><p>Occasion-ready silhouettes</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Office Wear"><img src="/static/storefront/assets/Chudidar/KonguCottonCoord.png" alt="Office Wear" loading="lazy"><div><h3>Office Wear</h3><p>Polished everyday sets</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Coord Set"><img src="/static/storefront/assets/Chudidar/AjrakhCoordSet.png" alt="Coord Sets" loading="lazy"><div><h3>Coord Sets</h3><p>Effortlessly matched</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Casual Kurtas"><img src="/static/storefront/assets/Chudidar/AcharamBlockPrintKurta.png" alt="Casual Kurtas" loading="lazy"><div><h3>Casual Kurtas</h3><p>Relaxed, everyday ease</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Silk Collection"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.png" alt="Silk Collection" loading="lazy"><div><h3>Silk Collection</h3><p>Luxe handfeel</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Cotton Collection"><img src="/static/storefront/assets/Chudidar/ThenralCottonCoord.png" alt="Cotton Collection" loading="lazy"><div><h3>Cotton Collection</h3><p>Breathable comfort</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Embroidered"><img src="/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.png" alt="Embroidered collection" loading="lazy"><div><h3>Embroidered</h3><p>Hand-finished details</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Block Print"><img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png" alt="Block Print collection" loading="lazy"><div><h3>Block Print</h3><p>Artisan crafted</p></div><span class="card-arrow">↗</span></div>
     </div>
-    <div id="filtered-products" style="display:none; margin-top:48px;">
+    <div id="filtered-products" style="display:none; margin:48px auto 64px; max-width:800px;">
       <div class="section-header" style="border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:48px;">
         <div>
           <p class="eyebrow">Filtered</p>
@@ -126,8 +99,18 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads" class="footer-logo">
-        <p>Thoughtfully tailored in South India.</p>
+        <p>Thoughtfully tailored by us to you.</p>
       </div>
+      <section class="newsletter reveal visible" id="contact">
+        <p class="eyebrow">A little note from us</p>
+        <h2>Good things are<br><em>on their way.</em></h2>
+        <p>New drops, intimate trunk shows and stories from our studio.</p>
+        <form>
+          <label class="sr-only" for="email">Email address</label>
+          <input id="email" type="email" autocomplete="email" placeholder="Your email address" required>
+          <button type="submit">Keep me posted <span>→</span></button>
+        </form>
+      </section>
       <div class="footer-links">
         <div class="footer-col">
           <h4>Shop</h4>
@@ -192,46 +175,111 @@
     <div class="popup product-popup" id="product-popup">
       <button class="popup-close" id="product-popup-close" aria-label="Close">×</button>
       <div class="product-popup-gallery">
-        <div class="product-popup-main-image" id="product-main-image"></div>
-        <div class="product-popup-thumbnails" id="product-thumbnails"></div>
+        <div class="product-popup-gallery-layout">
+          <div class="product-popup-thumbnails" id="product-thumbnails"></div>
+          <div class="product-popup-gallery-stage">
+            <div class="product-popup-main-image" id="product-main-image"></div>
+            <div class="product-popup-image-stack" id="product-image-stack" aria-label="Product images"></div>
+          </div>
+        </div>
       </div>
       <div class="product-popup-details">
         <h2 id="product-popup-name"></h2>
         <p class="product-popup-price" id="product-popup-price"></p>
         <p class="product-popup-desc" id="product-popup-desc"></p>
          <div class="product-popup-sizes" id="product-popup-sizes"></div>
+        <div class="product-popup-quantity">
+          <span>Quantity</span>
+          <button type="button" id="product-quantity-decrease" aria-label="Decrease quantity">−</button>
+          <output id="product-quantity" aria-live="polite">1</output>
+          <button type="button" id="product-quantity-increase" aria-label="Increase quantity">+</button>
+        </div>
          <div class="product-popup-actions">
            <button class="add-to-bag-btn" id="product-add-to-bag">Add to bag</button>
            <button class="wishlist-btn" id="product-wishlist-btn" aria-label="Add to wishlist">
              <span class="wishlist-icon">♡</span> <span class="wishlist-text">Add to wishlist</span>
            </button>
          </div>
+        <div class="product-popup-care">
+          <h3>Wash care</h3>
+          <p>Hand wash cold with like colours. Do not bleach. Dry in shade and iron on reverse.</p>
+        </div>
+        <section class="product-popup-size-details" aria-labelledby="product-size-guide-heading">
+          <h3 id="product-size-guide-heading">Size guide</h3>
+          <div class="product-popup-size-chart">
+            <p>All measurements are in inches.</p>
+            <div class="size-table-wrap">
+              <table class="size-table">
+                <thead><tr><th>Size</th><th>Bust</th><th>Waist</th><th>Hip</th><th>Length</th></tr></thead>
+                <tbody>
+                  <tr><td>S</td><td>34</td><td>28</td><td>36</td><td>40</td></tr>
+                  <tr><td>M</td><td>36</td><td>30</td><td>38</td><td>41</td></tr>
+                  <tr><td>L</td><td>38</td><td>32</td><td>40</td><td>42</td></tr>
+                  <tr><td>XL</td><td>40</td><td>34</td><td>42</td><td>43</td></tr>
+                  <tr><td>XXL</td><td>42</td><td>36</td><td>44</td><td>44</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <img class="product-popup-size-image" src="/static/storefront/assets/sizeguide.png" alt="Size guide measurements">
+          </div>
+        </section>
       </div>
     </div>
   </div>
 
   <div class="auth-overlay" id="auth-overlay">
-    <div class="auth-modal" id="auth-modal">
-      <button class="auth-close" id="auth-close" aria-label="Close">×</button>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-tab="login">Login</button>
-        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      <div class="auth-modal" id="auth-modal">
+        <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+        
+        <!-- Step 1: Enter mobile or email -->
+        <div id="auth-step-1">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Sign in or create account</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter mobile number or email</p>
+          <form id="auth-identifier-form">
+            <input type="text" id="auth-identifier" placeholder="Mobile number or email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Continue</button>
+          </form>
+          <p style="margin:16px 0 0;font-size:12px;color:#7a6e62;text-align:center;">By continuing, you agree to Thugile & Threads's Conditions</p>
+          <p style="margin:8px 0 0;font-size:12px;text-align:center;"><a href="#" id="forgot-password-link" style="color:var(--terracotta);text-decoration:none;">Forgot password?</a></p>
+        </div>
+
+        <!-- Step 2: Sign up form (shown if user doesn't exist) -->
+        <div id="auth-step-signup" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Create Account</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Complete your details</p>
+          <form class="auth-form" id="signup-form">
+            <input type="text" id="signup-name" placeholder="Full Name" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="email" id="signup-email" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="tel" id="signup-phone" placeholder="Mobile Number" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Create Account</button>
+            <p class="auth-error" id="signup-error"></p>
+          </form>
+        </div>
+
+        <!-- Step 3: Login form (shown if user exists) -->
+        <div id="auth-step-login" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Welcome back</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter your password</p>
+          <form class="auth-form" id="login-form">
+            <input type="password" id="login-password" placeholder="Password" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Login</button>
+            <p class="auth-error" id="login-error"></p>
+          </form>
+        </div>
+
+        <!-- Step 4: Forgot password -->
+        <div id="auth-step-forgot" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Reset Password</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter your email to receive a reset link</p>
+          <form id="forgot-password-form">
+            <input type="email" id="forgot-email" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Send Reset Link</button>
+            <p class="auth-error" id="forgot-error"></p>
+          </form>
+        </div>
       </div>
-      <form class="auth-form" id="login-form">
-        <input type="email" id="login-email" placeholder="Email" required>
-        <input type="password" id="login-password" placeholder="Password" required>
-        <button type="submit" class="auth-submit">Login</button>
-        <p class="auth-error" id="login-error"></p>
-      </form>
-      <form class="auth-form hidden" id="signup-form">
-        <input type="text" id="signup-name" placeholder="Full Name" required>
-        <input type="email" id="signup-email" placeholder="Email" required>
-        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required>
-        <button type="submit" class="auth-submit">Create Account</button>
-        <p class="auth-error" id="signup-error"></p>
-      </form>
     </div>
-  </div>
 
   <div class="toast" id="toast" role="status"></div>
 
@@ -271,7 +319,14 @@
     });
 
     function showFilteredProducts(category) {
-      const filtered = allProducts.filter(p => p.category === category);
+      const keywords = category.toLowerCase().replace(/ collection| edit| wear/gi).trim().split(/\s+/).filter(Boolean).map(kw => kw.replace(/s$/, ''));
+      let filtered = allProducts.filter(p =>
+        keywords.some(kw => (p.category && p.category.toLowerCase().includes(kw)) ||
+                            (p.name && p.name.toLowerCase().includes(kw)))
+      );
+      if (!filtered.length && allProducts.length) {
+        filtered = allProducts;
+      }
       const grid = document.getElementById('filtered-products-grid');
       if (!grid) return;
       if (!filtered.length) {
@@ -281,11 +336,13 @@
         filteredTitle.textContent = category;
         grid.innerHTML = filtered.map((product, index) => {
           const details = [product.color, product.category, product.size].filter(Boolean).join(' · ') || 'Made with care';
-          const action = product.in_stock ? `<button data-item="${product.name}" data-price="${product.price || ''}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
-          const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
-          return `<article class="product reveal"><div class="product-image reveal"><img src="${imageFor(product.image_url, index)}" alt="${product.name}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${product.name}</h3><p>${details}</p></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${product.name}">Size Guide</button></div></div></article>`;
+          const action = `<button data-item="${product.name}" data-price="${product.discounted_price || product.price || ''}">Add to bag</button>`;
+          const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+          const sizeOptions = sizes.map(size => `<button class="size-option${(product.available_sizes || []).includes(size) ? '' : ' unavailable'}" data-size="${size}" ${(product.available_sizes || []).includes(size) ? '' : 'disabled'}>${size}</button>`).join('');
+          return `<article class="product reveal"><div class="product-image reveal"><img src="${imageFor(product.image_url, index, product.name)}" alt="${product.name}" loading="lazy"></div><div class="product-info"><div><h3>${product.name}</h3><p>${details}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${product.discounted_price < product.price ? `<del>${rupees(product.price)}</del>` : ''}<strong>${rupees(product.discounted_price || product.price)}</strong></span>${action}<button class="size-guide-btn" data-item="${product.name}">Size Guide</button></div></div></article>`;
         }).join('');
         observeReveals();
+        if (window.setupImageHoverSlides) window.setupImageHoverSlides();
       }
       collectionsGrid.style.display = 'none';
       filteredProducts.style.display = '';

@@ -6,8 +6,9 @@
   <title>My Orders | Thugile & Threads</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter+Tight:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" type="image/png">
   <style>
     .orders-wrap{max-width:800px;margin:0 auto;padding:50px 5vw 80px}
     .orders-wrap h1{margin:0 0 8px;font-size:clamp(2.2rem,4.5vw,3.8rem);letter-spacing:-.035em}
@@ -22,7 +23,7 @@
     .order-items{font-size:14px;line-height:1.6;color:#3d3229;margin:0 0 12px}
     .order-total{font:600 14px var(--mono);letter-spacing:.04em;margin:0}
     .no-orders{text-align:center;padding:80px 20px;color:#7a6e62;font-size:16px}
-    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:2px}
+    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:0;padding-bottom:2px}
   </style>
 </head>
 <body class="inner-page">
@@ -42,12 +43,16 @@
       </nav>
       <div class="header-actions">
         <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <div id="search-overlay" class="search-overlay">
+          <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
+          <div id="search-results" class="search-results"></div>
+        </div>
         <button class="wishlist-btn-header" aria-label="Wishlist">
           ♥ <span id="wishlist-count">0</span>
         </button>
         <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-          <button class="auth-btn-header" id="auth-btn" aria-label="Account">👤</button>
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
           <div class="profile-dropdown" id="profile-dropdown"></div>
         </div>
       </div>
@@ -86,27 +91,58 @@
   </main>
 
   <div class="auth-overlay" id="auth-overlay">
-    <div class="auth-modal" id="auth-modal">
-      <button class="auth-close" id="auth-close" aria-label="Close">×</button>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-tab="login">Login</button>
-        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      <div class="auth-modal" id="auth-modal">
+        <button class="auth-close" id="auth-close" aria-label="Close">×</button>
+        
+        <!-- Step 1: Enter mobile or email -->
+        <div id="auth-step-1">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Sign in or create account</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter mobile number or email</p>
+          <form id="auth-identifier-form">
+            <input type="text" id="auth-identifier" placeholder="Mobile number or email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Continue</button>
+          </form>
+          <p style="margin:16px 0 0;font-size:12px;color:#7a6e62;text-align:center;">By continuing, you agree to Thugile & Threads's Conditions</p>
+          <p style="margin:8px 0 0;font-size:12px;text-align:center;"><a href="#" id="forgot-password-link" style="color:var(--terracotta);text-decoration:none;">Forgot password?</a></p>
+        </div>
+
+        <!-- Step 2: Sign up form (shown if user doesn't exist) -->
+        <div id="auth-step-signup" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Create Account</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Complete your details</p>
+          <form class="auth-form" id="signup-form">
+            <input type="text" id="signup-name" placeholder="Full Name" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="email" id="signup-email" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="tel" id="signup-phone" placeholder="Mobile Number" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Create Account</button>
+            <p class="auth-error" id="signup-error"></p>
+          </form>
+        </div>
+
+        <!-- Step 3: Login form (shown if user exists) -->
+        <div id="auth-step-login" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Welcome back</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter your password</p>
+          <form class="auth-form" id="login-form">
+            <input type="password" id="login-password" placeholder="Password" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Login</button>
+            <p class="auth-error" id="login-error"></p>
+          </form>
+        </div>
+
+        <!-- Step 4: Forgot password -->
+        <div id="auth-step-forgot" style="display:none;">
+          <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Reset Password</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#7a6e62;">Enter your email to receive a reset link</p>
+          <form id="forgot-password-form">
+            <input type="email" id="forgot-email" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
+            <button type="submit" class="auth-submit" style="width:100%;">Send Reset Link</button>
+            <p class="auth-error" id="forgot-error"></p>
+          </form>
+        </div>
       </div>
-      <form class="auth-form" id="login-form">
-        <input type="email" id="login-email" placeholder="Email" required>
-        <input type="password" id="login-password" placeholder="Password" required>
-        <button type="submit" class="auth-submit">Login</button>
-        <p class="auth-error" id="login-error"></p>
-      </form>
-      <form class="auth-form hidden" id="signup-form">
-        <input type="text" id="signup-name" placeholder="Full Name" required>
-        <input type="email" id="signup-email" placeholder="Email" required>
-        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required>
-        <button type="submit" class="auth-submit">Create Account</button>
-        <p class="auth-error" id="signup-error"></p>
-      </form>
     </div>
-  </div>
 
   <div class="toast" id="toast" role="status"></div>
 

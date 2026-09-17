@@ -2,6 +2,8 @@ const count = document.querySelector('#bag-count');
 const wishlistCount = document.querySelector('#wishlist-count');
 const toast = document.querySelector('#toast');
 const grid = document.querySelector('.products');
+const productSort = document.getElementById('product-sort');
+const newLaunchesTrack = document.getElementById('new-launches-track');
 const bagBtn = document.querySelector('#bag-btn');
 const cartSidebar = document.querySelector('#cart-sidebar');
 const cartOverlay = document.querySelector('#cart-overlay');
@@ -19,20 +21,24 @@ const productPopup = document.getElementById('product-popup');
 const productPopupClose = document.getElementById('product-popup-close');
 const productMainImage = document.getElementById('product-main-image');
 const productThumbnails = document.getElementById('product-thumbnails');
+const productImageStack = document.getElementById('product-image-stack');
 const productName = document.getElementById('product-popup-name');
 const productPrice = document.getElementById('product-popup-price');
 const productDesc = document.getElementById('product-popup-desc');
 const productSizes = document.getElementById('product-popup-sizes');
 const productAddToBag = document.getElementById('product-add-to-bag');
 const productWishlistBtn = document.getElementById('product-wishlist-btn');
-const productSizeGuide = document.getElementById('product-size-guide');
+const searchBtn = document.querySelector('.search-btn');
+const searchOverlay = document.getElementById('search-overlay');
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
 const fallbackImages = [
-  'https://images.pexels.com/photos/13155751/pexels-photo-13155751.jpeg?auto=format&fit=crop&w=1100&q=85',
-  'https://images.pexels.com/photos/9419023/pexels-photo-9419023.jpeg?auto=format&fit=crop&w=900&q=85',
-  'https://images.pexels.com/photos/37054322/pexels-photo-37054322.jpeg?auto=format&fit=crop&w=900&q=85',
-  'https://images.pexels.com/photos/28428053/pexels-photo-28428053.jpeg?auto=format&fit=crop&w=900&q=85'
+  '/static/storefront/assets/Chudidar/image-1.png',
+  '/static/storefront/assets/Chudidar/image-2.jpg',
+  '/static/storefront/assets/Chudidar/image-3.jpg',
+  '/static/storefront/assets/Chudidar/image-4.jpg'
 ];
-var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null;
+var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null, searchProducts = [];
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const imageFor = (url, index, name) => {
   const imageMap = {
@@ -48,45 +54,92 @@ const imageFor = (url, index, name) => {
     'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.png',
     'Kanakavalli Silk Co-ord': '/static/storefront/assets/Chudidar/KanakavalliSilkCoord.png',
     'Thaai Silk Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.png',
-    'Kodi Silk Coord': '/static/storefront/assets/Chudidar/KodiSilkCoord.png',
-    'Valli Rayon Kurta': '/static/storefront/assets/Chudidar/ValliRayonKurta.png',
-    'Poonkodi Linen Set': '/static/storefront/assets/Chudidar/PoonkodiLinenSet.png',
-    'Malli Cotton Kurta': '/static/storefront/assets/Chudidar/MalliCottonKurta.png',
-    'Nila Daily Wear Kurti': '/static/storefront/assets/Chudidar/NilaDailyWearKurti.png',
-    'Sindhu Business Co-ord': '/static/storefront/assets/Chudidar/SindhuBusinessCoord.png',
-    'Pavithra Workwear Set': '/static/storefront/assets/Chudidar/PavithraWorkwearSet.png',
-    'Mala Office Kurta': '/static/storefront/assets/Chudidar/MalaOfficeKurta.png',
-    'Kaveri Executive Set': '/static/storefront/assets/Chudidar/KaveriExecutiveSet.png',
-    'Mayil Set': '/static/storefront/assets/Chudidar/MayilSet.png',
-    'Thamarai Set': '/static/storefront/assets/Chudidar/ThamaraiSet.png',
-    'Vennila Set': '/static/storefront/assets/Chudidar/VennilaSet.png',
-    'Manjal Set': '/static/storefront/assets/Chudidar/ManjalSet.png',
-    'Maragatham Set': '/static/storefront/assets/Chudidar/MaragathamSet.png',
-    'Rosa Set': '/static/storefront/assets/Chudidar/RosaSet.png',
-    'Neelam Set': '/static/storefront/assets/Chudidar/NeelamSet.png',
-    'Gulmohar Set': '/static/storefront/assets/Chudidar/GulmoharSet.png'
+    'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.png',
+    'Mayil Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.png',
+    'Thamarai Set': '/static/storefront/assets/Chudidar/KalamkariPrintSet.png',
+    'Vennila Set': '/static/storefront/assets/Chudidar/PavaiHandloomSet.png',
+    'Manjal Set': '/static/storefront/assets/Chudidar/image-1.png',
+    'Maragatham Set': '/static/storefront/assets/Chudidar/image-2.jpg',
+    'Rosa Set': '/static/storefront/assets/Chudidar/Rosaset.png',
+    'Neelam Set': '/static/storefront/assets/Chudidar/image-3.jpg',
+    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png',
+    'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.png',
+    'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.png'
   };
-  return imageMap[name] || (url && /^https?:\/\//i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
+  return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
+};
+const productImageVariants = image => {
+  const match = String(image).match(/^(.*)\.([a-z0-9]+)$/i);
+  if (!match || !match[1].includes('/static/storefront/assets/Chudidar/')) return [image];
+  return [image, `${match[1]}-1.png`, `${match[1]}-2.png`, `${match[1]}-3.png`, `${match[1]}-4.png`];
+};
+const availableImageVariants = async image => {
+  const candidates = productImageVariants(image);
+  const results = await Promise.all(candidates.map(async candidate => {
+    try {
+      const response = await fetch(candidate, { method: 'HEAD' });
+      return response.ok ? candidate : null;
+    } catch {
+      return null;
+    }
+  }));
+  return results.filter(Boolean);
 };
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+const discountedPrice = (value, discounted) => Number(discounted || value || 0);
+const priceMarkup = (value, discounted) => {
+  const original = Number(value || 0);
+  const sale = discountedPrice(original, discounted);
+  return sale < original
+    ? `<del>${rupees(original)}</del><strong>${rupees(sale)}</strong>`
+    : `<strong>${rupees(original)}</strong>`;
+};
+const viewCounts = () => {
+  try { return JSON.parse(localStorage.getItem('tnt_product_views') || '{}'); } catch { return {}; }
+};
+const trackProductView = name => {
+  const counts = viewCounts();
+  counts[name] = (Number(counts[name]) || 0) + 1;
+  localStorage.setItem('tnt_product_views', JSON.stringify(counts));
+};
 
 function loadCart() {
   try {
     const saved = localStorage.getItem('tnt_cart');
-    bag = saved ? JSON.parse(saved) : [];
+    bag = mergeCartItems(saved ? JSON.parse(saved) : []);
   } catch {
     bag = [];
   }
   updateCartUI();
 }
 
+function mergeCartItems(items) {
+  return items.reduce((merged, item) => {
+    const size = item.size || 'M';
+    const existing = merged.find(cartItem => cartItem.name === item.name && (cartItem.size || 'M') === size);
+    if (existing) {
+      existing.qty += Number(item.qty) || 0;
+    } else {
+      merged.push({
+        ...item,
+        size,
+        price: Number(item.price) || 0,
+        qty: Number(item.qty) || 1,
+      });
+    }
+    return merged;
+  }, []);
+}
+
 function saveCart() {
+  bag = mergeCartItems(bag);
   localStorage.setItem('tnt_cart', JSON.stringify(bag));
   updateCartUI();
   syncCartToServer();
 }
 
 function updateCartUI() {
+  bag = mergeCartItems(bag);
   const totalItems = bag.reduce((sum, item) => sum + item.qty, 0);
   if (count) count.textContent = totalItems;
   renderCartItems();
@@ -117,17 +170,17 @@ function renderCartItems() {
   `).join('');
 }
 
-function addToBag(name, price, size, image_url) {
+function addToBag(name, price, size, image_url, quantity = 1) {
   if (!currentUser) {
-    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null };
+    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null, quantity };
     openAuthModal();
     return;
   }
-  const existing = bag.find(item => item.name === name && item.size === size);
+  const existing = bag.find(item => item.name === name && (item.size || 'M') === (size || 'M'));
   if (existing) {
-    existing.qty += 1;
+    existing.qty += quantity;
   } else {
-    bag.push({ name, price: Number(price), qty: 1, size: size || null, image_url: image_url || null });
+    bag.push({ name, price: Number(price), qty: quantity, size: size || null, image_url: image_url || null });
   }
   saveCart();
   toast.textContent = `${name} added to your bag`;
@@ -255,13 +308,18 @@ function toggleWishlist(product) {
 
 function openProductPopup(product) {
   currentProduct = product;
+  trackProductView(product.name);
   currentImageIndex = 0;
+  const quantityOutput = document.getElementById('product-quantity');
+  if (quantityOutput) quantityOutput.value = '1';
+  if (quantityOutput) quantityOutput.textContent = '1';
   productName.textContent = product.name;
-  productPrice.textContent = rupees(product.price);
+  productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
   
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  productSizes.innerHTML = sizes.map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
+  const availableSizes = product.available_sizes || [];
+  productSizes.innerHTML = sizes.map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
   productSizes.querySelectorAll('.size-option').forEach(btn => {
     btn.addEventListener('click', () => {
       productSizes.querySelectorAll('.size-option').forEach(b => b.classList.remove('selected'));
@@ -270,28 +328,25 @@ function openProductPopup(product) {
   });
   
   const productImage = imageFor(product.image_url, 0, product.name);
-  const images = [
-    productImage,
-    fallbackImages[1],
-    fallbackImages[2],
-    fallbackImages[3],
-    fallbackImages[0]
-  ];
+  const images = product.image_variants?.length ? product.image_variants : productImageVariants(productImage);
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
   productThumbnails.innerHTML = images.map((img, i) => `
     <button class="thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
       <img src="${img}" alt="View ${i + 1}" loading="lazy">
     </button>
   `).join('');
+  productImageStack.innerHTML = images.map((img, i) => `
+    <img class="product-stack-image" src="${img}" alt="${escapeHtml(product.name)} image ${i + 1}" loading="lazy">
+  `).join('');
   
-  productThumbnails.querySelectorAll('.thumb').forEach(thumb => {
-    thumb.addEventListener('click', () => {
-      currentImageIndex = Number(thumb.dataset.index);
+  const selectProductImage = (imageControl) => {
+      currentImageIndex = Number(imageControl.dataset.index);
       productMainImage.innerHTML = `<img src="${images[currentImageIndex]}" alt="${escapeHtml(product.name)}">`;
       productThumbnails.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
-      thumb.classList.add('active');
-    });
-  });
+      productThumbnails.querySelector(`.thumb[data-index="${currentImageIndex}"]`)?.classList.add('active');
+      imageControl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  };
+  productThumbnails.querySelectorAll('.thumb').forEach(thumb => thumb.addEventListener('click', () => selectProductImage(thumb)));
   
   productAddToBag.onclick = () => {
     const selectedSize = productSizes.querySelector('.size-option.selected');
@@ -302,7 +357,8 @@ function openProductPopup(product) {
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
       return;
     }
-    addToBag(product.name, product.price, selectedSize.dataset.size, product.image_url);
+    const quantity = Math.max(1, Number(document.getElementById('product-quantity')?.textContent || 1));
+    addToBag(product.name, discountedPrice(product.price, product.discounted_price), selectedSize.dataset.size, product.image_url, quantity);
     closeProductPopup();
   };
   
@@ -312,6 +368,17 @@ function openProductPopup(product) {
   productOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+const productQuantity = document.getElementById('product-quantity');
+const productQuantityDecrease = document.getElementById('product-quantity-decrease');
+const productQuantityIncrease = document.getElementById('product-quantity-increase');
+function updateProductQuantity(delta) {
+  if (!productQuantity) return;
+  const next = Math.max(1, Number(productQuantity.textContent || 1) + delta);
+  productQuantity.textContent = String(next);
+}
+if (productQuantityDecrease) productQuantityDecrease.addEventListener('click', () => updateProductQuantity(-1));
+if (productQuantityIncrease) productQuantityIncrease.addEventListener('click', () => updateProductQuantity(1));
 
 function closeProductPopup() {
   if (productOverlay) productOverlay.classList.remove('open');
@@ -328,12 +395,73 @@ function renderProducts(products) {
   }
   grid.innerHTML = products.map((product, index) => {
     const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
-    const action = product.in_stock ? `<button data-item="${escapeHtml(product.name)}" data-price="${product.price || ''}">Add to bag</button>` : '<span class="sold-out">Sold out</span>';
+    const action = `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`;
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
-    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option" data-size="${s}">${s}</button>`).join('');
-    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><strong>${rupees(product.price)}</strong>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
+    const availableSizes = product.available_sizes || [];
+    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
+    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
   }).join('');
   observeReveals();
+  setupImageHoverSlides();
+}
+
+function setupImageHoverSlides() {
+  document.querySelectorAll('.collection-card img, .product-image img').forEach(image => {
+    if (image.dataset.hoverSlidesReady === 'true') return;
+    availableImageVariants(image.currentSrc || image.src).then(variants => {
+      if (variants.length < 2) return;
+      image.dataset.hoverSlidesReady = 'true';
+      let index = 0;
+      let timer = null;
+      const stop = () => {
+        clearInterval(timer);
+        timer = null;
+        index = 0;
+        image.src = variants[0];
+      };
+      image.closest('.collection-card, .product-image')?.addEventListener('mouseenter', () => {
+        clearInterval(timer);
+        timer = setInterval(() => {
+          index = (index + 1) % variants.length;
+          image.src = variants[index];
+        }, 1000);
+      });
+      image.closest('.collection-card, .product-image')?.addEventListener('mouseleave', stop);
+    });
+  });
+}
+window.setupImageHoverSlides = setupImageHoverSlides;
+
+function sortProducts(products, sort) {
+  const sorted = [...products];
+  const views = viewCounts();
+  if (sort === 'price-low') return sorted.sort((a, b) => Number(a.price) - Number(b.price));
+  if (sort === 'price-high') return sorted.sort((a, b) => Number(b.price) - Number(a.price));
+  if (sort === 'views') return sorted.sort((a, b) => (Number(views[b.name]) || 0) - (Number(views[a.name]) || 0));
+  if (sort === 'discounts') return sorted.sort((a, b) => Number(b.price) - Number(a.price));
+  return sorted;
+}
+
+function renderNewLaunches(products) {
+  if (!newLaunchesTrack) return;
+  const launches = products.slice(0, 8);
+  const renderLaunchSet = (setIndex) => `
+    <div class="new-launch-set">
+      ${launches.map((product, index) => `
+        <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
+          <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
+          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price, product.discounted_price)}</small></span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
+  newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const product = launches[Number(card.dataset.productIndex)];
+      if (product) openProductPopup(product);
+    });
+  });
 }
 
 async function loadCatalog(retries = 3) {
@@ -342,7 +470,21 @@ async function loadCatalog(retries = 3) {
     const response = await fetch('/api/store/products');
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
-    renderProducts(products);
+    searchProducts = products;
+    renderProducts(sortProducts(products, productSort?.value || 'newest'));
+    renderNewLaunches(products);
+    const requestedProduct = new URLSearchParams(window.location.search).get('product');
+    if (requestedProduct) {
+      const product = products.find(item => item.name === requestedProduct);
+      if (product) openProductPopup(product);
+    }
+
+    if (productSort) {
+      productSort.addEventListener('change', async () => {
+        if (!searchProducts.length) return;
+        renderProducts(sortProducts(searchProducts, productSort.value));
+      });
+    }
   } catch (error) {
     if (retries > 0) {
       await new Promise(r => setTimeout(r, 1000));
@@ -352,8 +494,7 @@ async function loadCatalog(retries = 3) {
   }
 }
 
-if (grid) {
-  grid.addEventListener('click', event => {
+function handleProductCardClick(event) {
     const productImage = event.target.closest('.product-image');
     const productName = event.target.closest('.product-info h3');
     const sizeBtn = event.target.closest('.size-guide-btn');
@@ -401,17 +542,23 @@ if (grid) {
         const detailsEl = article.querySelector('.product-info p');
         const name = nameEl?.textContent?.trim() || '';
         const priceText = priceEl?.textContent?.trim() || '';
-        const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+        const displayedPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
         const image_url = imgEl?.src || '';
         const details = detailsEl?.textContent?.trim() || '';
-        product = { name, price, image_url, details };
+        product = searchProducts.find(item => item.name === name) || {
+          name, price: Math.round(displayedPrice / 0.9), image_url, details
+        };
       }
     }
     if (product) {
       openProductPopup(product);
     }
-  });
 }
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.product-image, .product-info h3')) return;
+  handleProductCardClick(event);
+});
 
 if (cartItems) {
   cartItems.addEventListener('click', event => {
@@ -425,7 +572,8 @@ if (checkoutBtn) {
   checkoutBtn.addEventListener('click', () => {
     if (bag.length) {
       closeCart();
-      setTimeout(() => { window.location.href = '/shop/checkout'; }, 350);
+      sessionStorage.removeItem('selected_address_id');
+      setTimeout(() => { window.location.href = '/shop/shipping'; }, 350);
     }
   });
 }
@@ -456,10 +604,29 @@ document.addEventListener('keydown', event => {
 
 const newsletterForm = document.querySelector('.newsletter form');
 if (newsletterForm) {
-  newsletterForm.addEventListener('submit', event => {
-    event.preventDefault(); event.currentTarget.reset();
-    toast.textContent = 'You\'re on the list — thank you.'; toast.classList.add('show');
+  newsletterForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const emailInput = newsletterForm.querySelector('input[type="email"]');
+    const email = emailInput.value.trim();
+    if (!email) return;
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.textContent = 'You\'re on the list — thank you.';
+      } else {
+        toast.textContent = data.error || 'Subscription failed';
+      }
+    } catch {
+      toast.textContent = 'Network error — please try again';
+    }
+    toast.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    newsletterForm.reset();
   });
 }
 
@@ -504,16 +671,19 @@ if (sizeGuideOverlay) {
   });
 }
 
-if (productSizeGuide) {
-  productSizeGuide.addEventListener('click', (e) => {
-    e.preventDefault();
-    openSizeGuide();
-  });
-}
-
 const parallax = document.querySelectorAll('.parallax');
 function moveParallax(){ parallax.forEach(el => { const rect = el.parentElement.getBoundingClientRect(); const speed = Number(el.dataset.speed); el.style.transform = `translateY(${(rect.top + rect.height / 2) * speed}px)`; }); }
 moveParallax(); window.addEventListener('scroll', moveParallax, {passive:true});
+
+document.querySelectorAll('[data-before-after]').forEach(compare => {
+  const range = compare.querySelector('.before-after-range');
+  if (!range) return;
+  const updateCompare = () => {
+    compare.style.setProperty('--before-after-position', `${range.value}%`);
+  };
+  range.addEventListener('input', updateCompare);
+  updateCompare();
+});
 
 function handleLogoScroll() {
   if (!floatingLogo) return;
@@ -577,14 +747,31 @@ const profileDropdown = document.getElementById('profile-dropdown');
 
 const authOverlay = document.getElementById('auth-overlay');
 const authClose = document.getElementById('auth-close');
-const authTabs = document.querySelectorAll('.auth-tab');
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const loginError = document.getElementById('login-error');
 const signupError = document.getElementById('signup-error');
+const authIdentifierForm = document.getElementById('auth-identifier-form');
+const authIdentifierInput = document.getElementById('auth-identifier');
+const authStep1 = document.getElementById('auth-step-1');
+const authStepSignup = document.getElementById('auth-step-signup');
+const authStepLogin = document.getElementById('auth-step-login');
+const authStepForgot = document.getElementById('auth-step-forgot');
+const forgotPasswordLink = document.getElementById('forgot-password-link');
+const forgotPasswordForm = document.getElementById('forgot-password-form');
+const forgotError = document.getElementById('forgot-error');
+let pendingIdentifier = '';
+
+function showAuthStep(step) {
+  [authStep1, authStepSignup, authStepLogin, authStepForgot].forEach(el => { if (el) el.style.display = 'none'; });
+  if (step === 'identifier' && authStep1) authStep1.style.display = 'block';
+  if (step === 'signup' && authStepSignup) authStepSignup.style.display = 'block';
+  if (step === 'login' && authStepLogin) authStepLogin.style.display = 'block';
+  if (step === 'forgot' && authStepForgot) authStepForgot.style.display = 'block';
+}
 
 
-function updateAuthUI() {
+async function updateAuthUI() {
   if (!authBtn) return;
   if (currentUser) {
     authBtn.textContent = currentUser.name.charAt(0).toUpperCase();
@@ -596,6 +783,7 @@ function updateAuthUI() {
           <span class="profile-email">${escapeHtml(currentUser.email)}</span>
         </div>
         <div class="profile-links">
+          <a href="/shop/shipping" class="profile-link">Shipping Address</a>
           <a href="/shop/orders" class="profile-link">My Orders</a>
           <button class="profile-link" id="logout-btn">Logout</button>
         </div>
@@ -604,8 +792,9 @@ function updateAuthUI() {
       if (logoutBtn) logoutBtn.addEventListener('click', logout);
     }
   } else {
-    authBtn.textContent = '\u{1F464}';
+    authBtn.innerHTML = '<img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true">';
     authBtn.title = 'Account';
+    authBtn.classList.remove('logged-in');
     if (profileDropdown) profileDropdown.classList.remove('open');
   }
 }
@@ -693,15 +882,16 @@ async function loadCartFromServer() {
   try {
     const res = await fetch('/api/user/cart');
     const data = await res.json();
-    bag = (data.cart || []).map(item => ({
+    bag = mergeCartItems((data.cart || []).map(item => ({
       name: item.product_name,
       price: item.price,
       qty: item.qty,
       size: item.size || null,
       image_url: item.image_url || null
-    }));
+    })));
     updateCartUI();
     localStorage.setItem('tnt_cart', JSON.stringify(bag));
+    syncCartToServer();
     if (typeof renderCheckout === 'function') renderCheckout();
   } catch {}
 }
@@ -792,94 +982,171 @@ async function loadOrders() {
 
 
 
-authTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    authTabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    const target = tab.dataset.tab;
-    loginForm.classList.toggle('hidden', target !== 'login');
-    signupForm.classList.toggle('hidden', target !== 'signup');
-    loginError.textContent = '';
-    signupError.textContent = '';
+if (authIdentifierForm) {
+  authIdentifierForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const identifier = authIdentifierInput.value.trim();
+    if (!identifier) return;
+    try {
+      const res = await fetch('/api/auth/check-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const data = await res.json();
+      if (data.exists) {
+        pendingIdentifier = identifier;
+        showAuthStep('login');
+        const loginPwd = document.getElementById('login-password');
+        if (loginPwd) loginPwd.value = '';
+        const loginErr = document.getElementById('login-error');
+        if (loginErr) loginErr.textContent = '';
+      } else {
+        pendingIdentifier = identifier;
+        const signupEmail = document.getElementById('signup-email');
+        const signupPhone = document.getElementById('signup-phone');
+        if (signupEmail) signupEmail.value = identifier.includes('@') ? identifier : '';
+        if (signupPhone) signupPhone.value = identifier.includes('@') ? '' : identifier;
+        showAuthStep('signup');
+        const signupErr = document.getElementById('signup-error');
+        if (signupErr) signupErr.textContent = '';
+      }
+    } catch {
+      const errEl = document.getElementById('login-error');
+      if (errEl) errEl.textContent = 'Network error. Try again.';
+    }
   });
-});
+}
 
-loginForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  loginError.textContent = '';
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      loginError.textContent = data.error || 'Login failed';
+if (loginForm) {
+  loginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const password = document.getElementById('login-password').value;
+    if (!pendingIdentifier || !password) return;
+    try {
+      const body = { password };
+      if (pendingIdentifier.includes('@')) body.email = pendingIdentifier;
+      else body.phone = pendingIdentifier;
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        loginError.textContent = data.error || 'Login failed';
+        return;
+      }
+      currentUser = data.user;
+      updateAuthUI();
+      await loadCartFromServer();
+      await loadWishlistFromServer();
+      closeAuthModal();
+      loginForm.reset();
+      if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
+        window.location.reload();
+        return;
+      }
+      if (pendingCartItem) {
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity);
+        pendingCartItem = null;
+      } else if (pendingWishlistItem) {
+        toggleWishlist(pendingWishlistItem);
+        pendingWishlistItem = null;
+      }
+      toast.textContent = `Welcome back, ${currentUser.name}!`;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    } catch {
+      loginError.textContent = 'Network error. Try again.';
+    }
+  });
+}
+
+if (signupForm) {
+  signupForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    signupError.textContent = '';
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const phone = document.getElementById('signup-phone').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!name || !email || !phone || !password) {
+      signupError.textContent = 'All fields are required.';
       return;
     }
-    currentUser = data.user;
-    updateAuthUI();
-    await loadCartFromServer();
-    await loadWishlistFromServer();
-    closeAuthModal();
-    loginForm.reset();
-    if (pendingCartItem) {
-      addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
-      pendingCartItem = null;
-    } else if (pendingWishlistItem) {
-      toggleWishlist(pendingWishlistItem);
-      pendingWishlistItem = null;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        signupError.textContent = data.error || 'Signup failed';
+        return;
+      }
+      currentUser = data.user;
+      updateAuthUI();
+      closeAuthModal();
+      signupForm.reset();
+      if (!pendingCartItem && !pendingWishlistItem && window.location.pathname.startsWith('/admin')) {
+        window.location.reload();
+        return;
+      }
+      if (pendingCartItem) {
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity);
+        pendingCartItem = null;
+      } else if (pendingWishlistItem) {
+        toggleWishlist(pendingWishlistItem);
+        pendingWishlistItem = null;
+      }
+      syncCartToServer();
+      syncWishlistToServer();
+      toast.textContent = `Welcome, ${currentUser.name}!`;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    } catch {
+      signupError.textContent = 'Network error. Try again.';
     }
-    toast.textContent = `Welcome back, ${currentUser.name}!`;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
-  } catch {
-    loginError.textContent = 'Network error. Try again.';
-  }
-});
+  });
+}
 
-signupForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  signupError.textContent = '';
-  const name = document.getElementById('signup-name').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  try {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      signupError.textContent = data.error || 'Signup failed';
-      return;
+if (forgotPasswordLink) {
+  forgotPasswordLink.addEventListener('click', e => {
+    e.preventDefault();
+    showAuthStep('forgot');
+  });
+}
+
+if (forgotPasswordForm) {
+  forgotPasswordForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    forgotError.textContent = '';
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) return;
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        forgotError.textContent = data.error || 'Failed to send reset link';
+        return;
+      }
+      forgotError.style.color = 'green';
+      forgotError.textContent = 'Reset link sent! Check your email.';
+      setTimeout(() => { showAuthStep('identifier'); forgotError.style.color = ''; }, 2000);
+    } catch {
+      forgotError.textContent = 'Network error. Try again.';
     }
-    currentUser = data.user;
-    updateAuthUI();
-    closeAuthModal();
-    signupForm.reset();
-    if (pendingCartItem) {
-      addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url);
-      pendingCartItem = null;
-    } else if (pendingWishlistItem) {
-      toggleWishlist(pendingWishlistItem);
-      pendingWishlistItem = null;
-    }
-    syncCartToServer();
-    syncWishlistToServer();
-    toast.textContent = `Welcome, ${currentUser.name}!`;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
-  } catch {
-    signupError.textContent = 'Network error. Try again.';
-  }
-});
+  });
+}
 
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' });
@@ -901,7 +1168,7 @@ async function logout() {
     if (placeOrderBtn) placeOrderBtn.disabled = true;
   }
   if (authBtn) {
-    authBtn.textContent = '👤';
+    authBtn.innerHTML = '<img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true">';
     authBtn.title = 'Account';
     authBtn.classList.remove('logged-in');
   }
@@ -937,6 +1204,10 @@ async function syncWishlistToServer() {
 
 async function init() {
   console.log('init() called');
+  document.querySelectorAll('img:not([loading])').forEach(image => {
+    if (!image.closest('.site-header, .floating-logo')) image.loading = 'lazy';
+    image.decoding = 'async';
+  });
   await checkAuth();
   handleLogoScroll();
   updateWishlistUI();
@@ -952,6 +1223,100 @@ async function init() {
   if (document.body.dataset.showLogin === 'true' && !currentUser) {
     openAuthModal();
   }
+  setupSearch();
+  setupImageHoverSlides();
+}
+
+function setupSearch() {
+  if (!searchBtn || !searchOverlay || !searchInput || !searchResults) return;
+  
+  const closeSearch = () => {
+    searchOverlay.classList.remove('open');
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+  };
+
+  searchBtn.addEventListener('click', () => {
+    searchOverlay.classList.add('open');
+    searchInput.focus();
+  });
+  
+  searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    if (!query) {
+      searchResults.innerHTML = '';
+      return;
+    }
+    
+    try {
+      if (!searchProducts.length) {
+        const res = await fetch('/api/store/products');
+        if (!res.ok) throw new Error('Catalog unavailable');
+        const data = await res.json();
+        searchProducts = data.products || [];
+      }
+      const products = searchProducts;
+      
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        (p.category && p.category.toLowerCase().includes(query))
+      );
+      
+      if (filtered.length === 0) {
+        searchResults.innerHTML = '<p class="search-state">No products found</p>';
+        return;
+      }
+      
+      searchResults.innerHTML = filtered.slice(0, 8).map((p, index) => `
+        <button class="search-result" type="button" data-product-index="${products.indexOf(p)}">
+          <span class="search-result-image"><img src="${escapeHtml(imageFor(p.image_url, index, p.name))}" alt=""></span>
+          <span class="search-result-copy">
+            <strong>${escapeHtml(p.name)}</strong>
+            <small>${escapeHtml([p.category, p.color].filter(Boolean).join(' · ') || 'Thugile & Threads')}</small>
+          </span>
+          <span class="search-result-arrow">↗</span>
+        </button>
+      `).join('');
+    } catch {
+      searchResults.innerHTML = '<p class="search-state">Search is unavailable right now.</p>';
+    }
+  });
+
+  searchResults.addEventListener('click', event => {
+    const result = event.target.closest('.search-result');
+    if (!result) return;
+    const product = searchProducts[Number(result.dataset.productIndex)];
+    if (!product) return;
+    closeSearch();
+    if (productOverlay && productPopup) {
+      openProductPopup(product);
+    } else {
+      window.location.href = `/shop/collections?product=${encodeURIComponent(product.name)}`;
+    }
+  });
+
+  document.addEventListener('click', event => {
+    const target = event.target;
+    if (!searchOverlay.classList.contains('open') || !(target instanceof Element)) return;
+    if (target.closest('.search-input, .search-results, .search-btn')) return;
+    closeSearch();
+  });
+  
+  // Close search when clicking outside
+  searchOverlay.addEventListener('click', (e) => {
+    if (e.target === searchOverlay) {
+      searchOverlay.classList.remove('open');
+      closeSearch();
+    }
+  });
+  
+  // Close on escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchOverlay.classList.contains('open')) {
+      searchOverlay.classList.remove('open');
+      closeSearch();
+    }
+  });
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);

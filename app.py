@@ -1,6 +1,8 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 import os
+import re
+from urllib.parse import unquote
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -27,6 +29,49 @@ def parse_date(iso_str):
     return datetime.fromisoformat(iso_str)
 
 
+def parse_product_prices(form):
+    selling_price = float(form["selling_price"])
+    discounted_price = float(form.get("discounted_price") or selling_price)
+    if discounted_price < 0 or discounted_price > selling_price:
+        raise ValueError("Discounted price must be between ₹0 and the selling price.")
+    return selling_price, discounted_price
+
+
+def product_image_variants(name, image_url):
+    assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
+    image_path = unquote((image_url or "").split("?", 1)[0])
+    raw_image_stem = os.path.splitext(os.path.basename(image_path))[0].lower()
+    if "_" in raw_image_stem:
+        raw_image_stem = raw_image_stem.split("_", 1)[-1]
+    image_stem = re.sub(r"[^a-z0-9]", "", raw_image_stem)
+    normalized_name = re.sub(r"[^a-z0-9]", "", (name or "").lower())
+    variants = []
+    for filename in os.listdir(assets_dir):
+        stem, extension = os.path.splitext(filename)
+        if ":" in filename or extension.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+            continue
+        normalized_stem = re.sub(r"[^a-z0-9]", "", stem.lower())
+        matches_image = image_stem and (
+            normalized_stem == image_stem
+            or re.fullmatch(rf"{re.escape(image_stem)}\d+", normalized_stem)
+        )
+        matches_name = not image_stem and (
+            normalized_stem == normalized_name
+            or normalized_stem.startswith(normalized_name)
+        )
+        if matches_image or matches_name:
+            variants.append("/static/storefront/assets/Chudidar/" + filename)
+    if not variants and image_url:
+        variants.append(image_url)
+    return sorted(
+        variants,
+        key=lambda path: (
+            1 if re.search(r"-\d+\.[a-z0-9]+$", path, re.I) else 0,
+            path.lower(),
+        ),
+    )
+
+
 # ---------------------------------------------------------------
 # STOREFRONT
 # ---------------------------------------------------------------
@@ -42,28 +87,43 @@ def storefront_products():
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT id, name, sku, category, size, color, selling_price, quantity, image_url
+        SELECT id, name, sku, category, size, color, selling_price, discounted_price,
+               quantity, image_url, created_at
         FROM products
+        WHERE quantity > 0
         ORDER BY created_at DESC, id DESC
         """
     ).fetchall()
     conn.close()
+    grouped = {}
+    for product in rows:
+        key = (product["name"], product["color"] or "")
+        item = grouped.setdefault(key, {
+            "id": product["id"], "name": product["name"], "sku": product["sku"],
+            "category": product["category"] or "Chudidar", "color": product["color"] or "",
+            "price": product["selling_price"], "discounted_price": product["discounted_price"] or product["selling_price"],
+            "image_url": product["image_url"] or "", "created_at": product["created_at"],
+            "available_sizes": [], "size_quantities": {}, "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
+        })
+        size = product["size"] or "M"
+        item["size_quantities"][size] = item["size_quantities"].get(size, 0) + product["quantity"]
+        if product["quantity"] > 0 and size not in item["available_sizes"]:
+            item["available_sizes"].append(size)
     return jsonify({
         "products": [
-            {
-                "id": product["id"],
-                "name": product["name"],
-                "sku": product["sku"],
-                "category": product["category"] or "Chudidar",
-                "size": product["size"] or "",
-                "color": product["color"] or "",
-                "price": product["selling_price"],
-                "image_url": product["image_url"] or "",
-                "in_stock": product["quantity"] > 0,
-            }
-            for product in rows
+            {**product, "size": ", ".join(product["available_sizes"]), "in_stock": True}
+            for product in grouped.values()
+            if product["available_sizes"]
         ]
     })
+
+
+# ---------------------------------------------------------------
+# PASSWORD RESET PAGE
+# ---------------------------------------------------------------
+@app.route("/shop/reset-password")
+def reset_password_page():
+    return send_from_directory(os.path.join(app.static_folder, "storefront"), "reset-password.html")
 
 
 # ---------------------------------------------------------------
@@ -74,6 +134,7 @@ def auth_register():
     data = request.get_json() or {}
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    phone = (data.get("phone") or "").strip()
     password = data.get("password") or ""
     if not name or not email or not password:
         return jsonify({"error": "Name, email and password are required."}), 400
@@ -82,17 +143,21 @@ def auth_register():
     conn = get_connection()
     try:
         conn.execute(
-            "INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-            (name, email, generate_password_hash(password), now_iso()),
+            "INSERT INTO users (name, email, phone, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+            (name, email, phone, generate_password_hash(password), now_iso()),
         )
         conn.commit()
-        user = conn.execute("SELECT id, name, email FROM users WHERE email = ?", (email,)).fetchone()
+        user = conn.execute("SELECT id, name, email, phone, address, city, pincode FROM users WHERE email = ?", (email,)).fetchone()
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
         session["user_email"] = user["email"]
-        return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+        session["user_phone"] = user["phone"]
+        session["user_address"] = user["address"] if user["address"] else None
+        session["user_city"] = user["city"] if user["city"] else None
+        session["user_pincode"] = user["pincode"] if user["pincode"] else None
+        return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"], "address": user["address"] if user["address"] else None, "city": user["city"] if user["city"] else None, "pincode": user["pincode"] if user["pincode"] else None}})
     except sqlite3.IntegrityError:
-        return jsonify({"error": "An account with this email already exists."}), 409
+        return jsonify({"error": "An account with this email or phone already exists."}), 409
     finally:
         conn.close()
 
@@ -100,19 +165,43 @@ def auth_register():
 @app.route("/api/auth/login", methods=["POST"])
 def auth_login():
     data = request.get_json() or {}
-    email = (data.get("email") or "").strip().lower()
+    identifier = (data.get("email") or data.get("phone") or "").strip()
     password = data.get("password") or ""
-    if not email or not password:
-        return jsonify({"error": "Email and password are required."}), 400
+    if not identifier or not password:
+        return jsonify({"error": "Email/phone and password are required."}), 400
     conn = get_connection()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    user = conn.execute(
+        "SELECT * FROM users WHERE email = ? OR phone = ?",
+        (identifier.lower(), identifier)
+    ).fetchone()
     conn.close()
     if not user or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid email or password."}), 401
+        return jsonify({"error": "Invalid credentials."}), 401
     session["user_id"] = user["id"]
     session["user_name"] = user["name"]
     session["user_email"] = user["email"]
-    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+    session["user_phone"] = user["phone"]
+    session["user_address"] = user["address"] if user["address"] else None
+    session["user_city"] = user["city"] if user["city"] else None
+    session["user_pincode"] = user["pincode"] if user["pincode"] else None
+    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"], "address": user["address"] if user["address"] else None, "city": user["city"] if user["city"] else None, "pincode": user["pincode"] if user["pincode"] else None}})
+
+
+@app.route("/api/auth/check-user", methods=["POST"])
+def auth_check_user():
+    data = request.get_json() or {}
+    identifier = (data.get("identifier") or "").strip()
+    if not identifier:
+        return jsonify({"error": "Email or phone required"}), 400
+    conn = get_connection()
+    user = conn.execute(
+        "SELECT id, name, email, phone FROM users WHERE email = ? OR phone = ?",
+        (identifier.lower(), identifier)
+    ).fetchone()
+    conn.close()
+    if user:
+        return jsonify({"exists": True, "user": dict(user)})
+    return jsonify({"exists": False})
 
 
 @app.route("/api/auth/logout", methods=["POST"])
@@ -122,11 +211,131 @@ def auth_logout():
     return jsonify({"ok": True})
 
 
+@app.route("/api/auth/update-profile", methods=["POST"])
+def auth_update_profile():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    phone = (data.get("phone") or "").strip()
+    address = (data.get("address") or "").strip()
+    city = (data.get("city") or "").strip()
+    pincode = (data.get("pincode") or "").strip()
+    if not name or not phone or not address or not city or not pincode:
+        return jsonify({"error": "Name, phone, address, city and pincode are required."}), 400
+    conn = get_connection()
+    try:
+        conn.execute(
+            "UPDATE users SET name = ?, phone = ?, address = ?, city = ?, pincode = ? WHERE id = ?",
+            (name, phone, address, city, pincode, session["user_id"]),
+        )
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses", methods=["GET"])
+def user_addresses_get():
+    if "user_id" not in session:
+        return jsonify({"addresses": []})
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC",
+        (session["user_id"],),
+    ).fetchall()
+    conn.close()
+    return jsonify({"addresses": [dict(row) for row in rows]})
+
+
+@app.route("/api/user/addresses", methods=["POST"])
+def user_addresses_add():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
+    phone = (data.get("phone") or "").strip()
+    address = (data.get("address") or "").strip()
+    address_line_2 = (data.get("address_line_2") or "").strip()
+    city = (data.get("city") or "").strip()
+    pincode = (data.get("pincode") or "").strip()
+    if not name or not email or not phone or not address or not city or not pincode:
+        return jsonify({"error": "All required address fields are required."}), 400
+    conn = get_connection()
+    try:
+        if data.get("is_default"):
+            conn.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?", (session["user_id"],))
+        conn.execute(
+            "INSERT INTO user_addresses (user_id, name, email, phone, address, address_line_2, city, pincode, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (session["user_id"], name, email, phone, address, address_line_2, city, pincode, 1 if data.get("is_default") else 0, now_iso()),
+        )
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses/<int:address_id>", methods=["GET"])
+def user_addresses_get_single(address_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    try:
+        addr = conn.execute("SELECT * FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, session["user_id"])).fetchone()
+        if not addr:
+            return jsonify({"error": "Address not found"}), 404
+        return jsonify({"address": dict(addr)})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses/<int:address_id>", methods=["DELETE"])
+def user_addresses_delete(address_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    try:
+        # Check if address belongs to user
+        addr = conn.execute("SELECT id, is_default FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, session["user_id"])).fetchone()
+        if not addr:
+            return jsonify({"error": "Address not found"}), 404
+        # If deleting the default address, we need to set another as default or leave none
+        if addr["is_default"]:
+            # Try to set another address as default
+            other = conn.execute("SELECT id FROM user_addresses WHERE user_id = ? AND id != ? LIMIT 1", (session["user_id"], address_id)).fetchone()
+            if other:
+                conn.execute("UPDATE user_addresses SET is_default = 1 WHERE id = ?", (other["id"],))
+        conn.execute("DELETE FROM user_addresses WHERE id = ?", (address_id,))
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
+@app.route("/api/user/addresses/<int:address_id>/set-default", methods=["POST"])
+def user_addresses_set_default(address_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    try:
+        # Check if address exists and belongs to user
+        addr = conn.execute("SELECT id FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, session["user_id"])).fetchone()
+        if not addr:
+            return jsonify({"error": "Address not found"}), 404
+        conn.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?", (session["user_id"],))
+        conn.execute("UPDATE user_addresses SET is_default = 1 WHERE id = ?", (address_id,))
+        conn.commit()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+
 @app.route("/api/auth/me")
 def auth_me():
     if "user_id" not in session:
         return jsonify({"user": None})
-    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email")}})
+    return jsonify({"user": {"id": session["user_id"], "name": session.get("user_name"), "email": session.get("user_email"), "phone": session.get("user_phone"), "address": session.get("user_address"), "city": session.get("user_city"), "pincode": session.get("user_pincode")}})
 
 
 # ---------------------------------------------------------------
@@ -138,7 +347,12 @@ def user_cart_get():
         return jsonify({"cart": []})
     conn = get_connection()
     rows = conn.execute(
-        "SELECT product_name, price, qty FROM user_carts WHERE user_id = ?",
+        """
+        SELECT product_name, size, MAX(price) AS price, SUM(qty) AS qty
+        FROM user_carts
+        WHERE user_id = ?
+        GROUP BY product_name, size
+        """,
         (session["user_id"],),
     ).fetchall()
     conn.close()
@@ -153,10 +367,21 @@ def user_cart_save():
     cart = data.get("cart", [])
     conn = get_connection()
     conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
+    merged_cart = {}
     for item in cart:
+        name = item.get("name", "")
+        size = item.get("size") or "M"
+        key = (name, size)
+        if key not in merged_cart:
+            merged_cart[key] = {
+                "price": float(item.get("price", 0)),
+                "qty": 0,
+            }
+        merged_cart[key]["qty"] += int(item.get("qty", 1))
+    for (name, size), item in merged_cart.items():
         conn.execute(
-            "INSERT INTO user_carts (user_id, product_name, price, qty) VALUES (?, ?, ?, ?)",
-            (session["user_id"], item.get("name", ""), float(item.get("price", 0)), int(item.get("qty", 1))),
+            "INSERT INTO user_carts (user_id, product_name, size, price, qty) VALUES (?, ?, ?, ?, ?)",
+            (session["user_id"], name, size, item["price"], item["qty"]),
         )
     conn.commit()
     conn.close()
@@ -192,6 +417,88 @@ def user_wishlist_save():
     conn.commit()
     conn.close()
     return jsonify({"ok": True})
+
+
+@app.route("/api/newsletter/subscribe", methods=["POST"])
+def subscribe_newsletter():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email required"}), 400
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO subscribers (email, subscribed_at) VALUES (?, ?)",
+            (email, now_iso()),
+        )
+        conn.commit()
+        return jsonify({"ok": True, "message": "Subscribed successfully"})
+    finally:
+        conn.close()
+
+
+@app.route("/api/newsletter/subscribers")
+def list_subscribers():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    conn = get_connection()
+    rows = conn.execute("SELECT email, subscribed_at FROM subscribers ORDER BY subscribed_at DESC").fetchall()
+    conn.close()
+    return jsonify({"subscribers": [dict(r) for r in rows]})
+
+
+# ---------------------------------------------------------------
+# PASSWORD RESET
+# ---------------------------------------------------------------
+@app.route("/api/auth/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+    conn = get_connection()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+    import secrets
+    token = secrets.token_hex(32)
+    expires = (datetime.utcnow()).isoformat()
+    conn.execute(
+        "INSERT INTO password_resets (user_id, token, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)",
+        (user["id"], token, expires, now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    reset_link = f"/shop/reset-password?token={token}"
+    return jsonify({"ok": True, "reset_link": reset_link})
+
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def reset_password():
+    data = request.get_json() or {}
+    token = (data.get("token") or "").strip()
+    new_password = (data.get("password") or "").strip()
+    if not token or not new_password:
+        return jsonify({"error": "Token and password required"}), 400
+    if len(new_password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > ?",
+        (token, now_iso()),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Invalid or expired token"}), 400
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (generate_password_hash(new_password), row["user_id"]),
+    )
+    conn.execute("UPDATE password_resets SET used = 1 WHERE id = ?", (row["id"],))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "message": "Password reset successfully"})
 
 
 # ---------------------------------------------------------------
@@ -295,7 +602,11 @@ def products():
     conn = get_connection()
     all_products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
     conn.close()
-    return render_template("products.html", products=all_products)
+    groups = {}
+    for product in all_products:
+        key = (product["name"], product["color"] or "")
+        groups.setdefault(key, []).append(product)
+    return render_template("products.html", products=all_products, product_groups=list(groups.values()))
 
 
 @app.route("/admin/products/add", methods=["GET", "POST"])
@@ -316,26 +627,29 @@ def add_product():
                     file.save(os.path.join(app.config["UPLOAD_FOLDER"], unique_name))
                     image_url = f"/uploads/{unique_name}"
 
-            conn.execute(
-                """
-                INSERT INTO products
-                    (name, sku, category, size, color, image_url, cost_price, selling_price, quantity, reorder_level, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    request.form["name"].strip(),
-                    request.form["sku"].strip(),
-                    request.form.get("category", "").strip(),
-                    request.form.get("size", "").strip(),
-                    request.form.get("color", "").strip(),
-                    image_url,
-                    float(request.form["cost_price"]),
-                    float(request.form["selling_price"]),
-                    int(request.form.get("quantity", 0)),
-                    int(request.form.get("reorder_level", 5)),
-                    now_iso(),
-                ),
-            )
+            selling_price, discounted_price = parse_product_prices(request.form)
+
+            sizes = request.form.getlist("size") or ["M"]
+            for size in sizes:
+                sku = request.form["sku"].strip()
+                if len(sizes) > 1:
+                    sku = f"{sku}-{size.lower().replace(' ', '-')}"
+                conn.execute(
+                    """
+                    INSERT INTO products
+                        (name, sku, category, size, color, image_url, cost_price, selling_price,
+                         discounted_price, quantity, reorder_level, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        request.form["name"].strip(), sku,
+                        request.form.get("category", "").strip(), size,
+                        request.form.get("color", "").strip(), image_url,
+                        float(request.form["cost_price"]), selling_price,
+                        discounted_price, int(request.form.get("quantity", 0)),
+                        int(request.form.get("reorder_level", 5)), now_iso(),
+                    ),
+                )
             conn.commit()
             flash(f'Product "{request.form["name"]}" added.', "success")
             conn.close()
@@ -365,6 +679,10 @@ def edit_product(product_id):
         conn.close()
         flash("Product not found.", "error")
         return redirect(url_for("products"))
+    variants = conn.execute(
+        "SELECT * FROM products WHERE name = ? AND COALESCE(color, '') = COALESCE(?, '') ORDER BY id",
+        (product["name"], product["color"]),
+    ).fetchall()
 
     if request.method == "POST":
         try:
@@ -377,27 +695,29 @@ def edit_product(product_id):
                     file.save(os.path.join(app.config["UPLOAD_FOLDER"], unique_name))
                     image_url = f"/uploads/{unique_name}"
 
-            conn.execute(
-                """
-                UPDATE products
-                SET name = ?, sku = ?, category = ?, size = ?, color = ?, image_url = ?,
-                    cost_price = ?, selling_price = ?, quantity = ?, reorder_level = ?
-                WHERE id = ?
-                """,
-                (
-                    request.form["name"].strip(),
-                    request.form["sku"].strip(),
-                    request.form.get("category", "").strip(),
-                    request.form.get("size", "").strip(),
-                    request.form.get("color", "").strip(),
-                    image_url,
-                    float(request.form["cost_price"]),
-                    float(request.form["selling_price"]),
-                    int(request.form.get("quantity", 0)),
-                    int(request.form.get("reorder_level", 5)),
-                    product_id,
-                ),
-            )
+            selling_price, discounted_price = parse_product_prices(request.form)
+            for variant in variants:
+                quantity = int(request.form.get(f"quantity_{variant['id']}", variant["quantity"]))
+                conn.execute(
+                    """
+                    UPDATE products
+                    SET name = ?, category = ?, color = ?, image_url = ?, cost_price = ?,
+                        selling_price = ?, discounted_price = ?, quantity = ?, reorder_level = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        request.form["name"].strip(),
+                        request.form.get("category", "").strip(),
+                        request.form.get("color", "").strip(),
+                        image_url,
+                        float(request.form["cost_price"]),
+                        selling_price,
+                        discounted_price,
+                        quantity,
+                        int(request.form.get("reorder_level", 5)),
+                        variant["id"],
+                    ),
+                )
             conn.commit()
             flash(f'Product "{request.form["name"]}" updated.', "success")
             conn.close()
@@ -405,11 +725,11 @@ def edit_product(product_id):
         except (sqlite3.IntegrityError, ValueError, KeyError) as e:
             flash(f"Error updating product: {e}", "error")
             conn.close()
-            return render_template("edit_product.html", product=product)
+            return render_template("edit_product.html", product=product, product_variants=variants)
     else:
         conn.close()
 
-    return render_template("edit_product.html", product=product)
+    return render_template("edit_product.html", product=product, product_variants=variants)
 
 
 @app.route("/admin/products/<int:product_id>/delete", methods=["POST"])
@@ -532,6 +852,31 @@ def sales():
     return render_template("sales.html", sales=all_sales)
 
 
+@app.route("/admin/subscribers")
+def subscribers():
+    if "user_id" not in session:
+        return render_template("subscribers.html", subscribers=[], show_login=True)
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT email, subscribed_at FROM subscribers ORDER BY subscribed_at DESC"
+    ).fetchall()
+    conn.close()
+    return render_template("subscribers.html", subscribers=rows)
+
+
+@app.route("/admin/subscribers/delete", methods=["POST"])
+def delete_subscriber():
+    if "user_id" not in session:
+        return redirect(url_for("subscribers"))
+    email = (request.form.get("email") or "").strip().lower()
+    conn = get_connection()
+    conn.execute("DELETE FROM subscribers WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+    flash("Subscriber removed.", "success")
+    return redirect(url_for("subscribers"))
+
+
 @app.route("/admin/sales/add", methods=["GET", "POST"])
 def add_sale():
     if "user_id" not in session:
@@ -578,6 +923,11 @@ def add_sale():
 
     conn.close()
     return render_template("add_sale.html", products=all_products)
+
+
+@app.route("/shop/shipping")
+def shipping():
+    return send_from_directory(os.path.join(app.static_folder, "storefront"), "shipping.html")
 
 
 @app.route("/shop/checkout")

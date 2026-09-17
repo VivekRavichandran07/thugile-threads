@@ -9,29 +9,31 @@
     {% if products %}
         <table>
             <tr>
-                <th>Image</th><th>Name</th><th>SKU</th><th>Category</th><th>Size</th><th>Color</th>
-                <th>Cost</th><th>Price</th><th>Qty</th><th>Status</th><th></th>
+                <th>Image</th><th>Name</th><th>SKU</th><th>Category</th><th>Sizes</th><th>Color</th>
+                <th>Cost</th><th>Price</th><th>Discounted</th><th>Qty</th><th>Status</th><th></th>
             </tr>
-            {% for p in products %}
-            <tr class="{{ 'low-stock' if p.quantity <= p.reorder_level else '' }}">
+            {% for group in product_groups %}
+            {% set p = group[0] %}
+            <tr class="{{ 'low-stock' if group|sum(attribute='quantity') <= p.reorder_level else '' }}">
                 <td>{% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" style="height:48px;width:auto;object-fit:cover;border-radius:4px;">{% endif %}</td>
                 <td>{{ p.name }}</td>
-                <td>{{ p.sku }}</td>
+                <td>{{ p.sku }}{% if group|length > 1 %} + {{ group|length - 1 }} sizes{% endif %}</td>
                 <td>{{ p.category or '—' }}</td>
-                <td>{{ p.size or '—' }}</td>
+                <td><select aria-label="Sizes for {{ p.name }}">{% for size_product in group %}<option>{{ size_product.size or 'Free Size' }} ({{ size_product.quantity }})</option>{% endfor %}</select></td>
                 <td>{{ p.color or '—' }}</td>
                 <td>₹{{ p.cost_price }}</td>
                 <td>₹{{ p.selling_price }}</td>
-                <td>{{ p.quantity }}</td>
+                <td>₹{{ p.discounted_price or p.selling_price }}</td>
+                <td>{{ group|sum(attribute='quantity') }}</td>
                 <td>
-                    {% if p.quantity <= p.reorder_level %}
+                    {% if group|sum(attribute='quantity') <= p.reorder_level %}
                         <span class="badge badge-low">Low Stock</span>
                     {% else %}
                         <span class="badge badge-ok">OK</span>
                     {% endif %}
                 </td>
                 <td class="actions">
-                    <a href="{{ url_for('edit_product', product_id=p.id) }}">Edit</a>
+                    {% for size_product in group %}<a href="{{ url_for('edit_product', product_id=size_product.id) }}">Edit {{ size_product.size }}</a>{% endfor %}
                     <form method="POST" action="{{ url_for('delete_product', product_id=p.id) }}" style="display:inline;" onsubmit="return confirm('Delete {{ p.name }}?');">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
