@@ -444,29 +444,9 @@ function sortProducts(products, sort) {
 
 function renderNewLaunches(products) {
   if (!newLaunchesTrack) return;
-  const launches = products.slice(0, 8);
-  const renderLaunchSet = (setIndex) => `
-    <div class="new-launch-set">
-      ${launches.map((product, index) => `
-        <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
-          <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
-          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price, product.discounted_price)}</small></span>
-        </button>
-      `).join('')}
-    </div>
-  `;
-  newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
-  newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const product = launches[Number(card.dataset.productIndex)];
-      if (product) openProductPopup(product);
-    });
-  });
-}
-
-function renderNewLaunches(products) {
-  if (!newLaunchesTrack) return;
-  const launches = products; // all products — no slice
+  
+  const launches = products;
+  
   const renderLaunchSet = (setIndex) => `
     <div class="new-launch-set">
       ${launches.map((product, index) => `
@@ -477,7 +457,24 @@ function renderNewLaunches(products) {
       `).join('')}
     </div>
   `;
+  
   newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
+  
+  // ← Add this: sync both sets to have identical width
+  setTimeout(() => {
+    const sets = newLaunchesTrack.querySelectorAll('.new-launch-set');
+    if (sets.length >= 2) {
+      const set1Width = sets[0].offsetWidth;
+      const set2Width = sets[1].offsetWidth;
+      const maxWidth = Math.max(set1Width, set2Width);
+      
+      sets.forEach(set => {
+        set.style.minWidth = maxWidth + 'px';
+        set.style.width = maxWidth + 'px';
+      });
+    }
+  }, 100);
+  
   newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
     card.addEventListener('click', () => {
       const product = launches[Number(card.dataset.productIndex)];
