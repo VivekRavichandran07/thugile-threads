@@ -492,6 +492,7 @@ async function loadCatalog(retries = 3) {
     const response = await fetch('/api/store/products');
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
+    searchProducts = products || [];
     renderProducts(products);
     renderNewLaunches(products);
   } catch (error) {
@@ -549,13 +550,19 @@ function handleProductCardClick(event) {
         const priceEl = article.querySelector('.buy strong');
         const imgEl = article.querySelector('.product-image img');
         const detailsEl = article.querySelector('.product-info p');
+        const sizeButtons = article.querySelectorAll('.product-card-sizes .size-option:not(.unavailable)');
         const name = nameEl?.textContent?.trim() || '';
         const priceText = priceEl?.textContent?.trim() || '';
         const displayedPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
         const image_url = imgEl?.src || '';
         const details = detailsEl?.textContent?.trim() || '';
+        const availableSizes = Array.from(sizeButtons).map(btn => btn.dataset.size).filter(Boolean);
         product = searchProducts.find(item => item.name === name) || {
-          name, price: Math.round(displayedPrice / 0.9), image_url, details
+          name,
+          price: Math.round(displayedPrice / 0.9),
+          image_url,
+          details,
+          available_sizes: availableSizes
         };
       }
     }
