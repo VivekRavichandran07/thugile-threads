@@ -569,7 +569,7 @@ function handleProductCardClick(event) {
 }
 
 document.addEventListener('click', event => {
-  if (!event.target.closest('.product-image, .product-info h3')) return;
+  if (!event.target.closest('.product')) return;
   handleProductCardClick(event);
 });
 
