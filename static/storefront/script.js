@@ -751,6 +751,74 @@ function observeReveals() {
 observeReveals();
 loadCart();
 
+// Google Identity Services (GIS) Sign in with Google
+// See: https://codelabs.developers.google.com/codelabs/sign-in-with-google-button
+function handleGoogleCredentialResponse(response) {
+  const credential = response.credential;
+  fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.user) {
+        currentUser = data.user;
+        updateAuthUI();
+        closeAuthModal();
+        toast.textContent = `Welcome, ${data.user.name}!`;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      } else if (data.error) {
+        toast.textContent = data.error || 'Google sign-in failed';
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      }
+    })
+    .catch(() => {
+      toast.textContent = 'Network error during Google sign-in';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    });
+}
+
+function initGoogleSignIn() {
+  const gIdOnload = document.getElementById('g_id_onload');
+  const gIdSignin = document.getElementById('google-button-container');
+  if (!gIdOnload || !gIdSignin || !google) return;
+
+  google.accounts.id.initialize({
+    client_id: gIdOnload.getAttribute('data-client_id'),
+    callback: handleGoogleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: false,
+  });
+
+  google.accounts.id.renderButton(
+    gIdSignin,
+    { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' },
+    { type: 'standard' }
+  );
+}
+
+// Initialize Google sign-in when the GIS library loads
+if (typeof google !== 'undefined') {
+  initGoogleSignIn();
+} else {
+  window.addEventListener('load', () => {
+    const checkGoogle = setInterval(() => {
+      if (typeof google !== 'undefined') {
+        clearInterval(checkGoogle);
+        initGoogleSignIn();
+      }
+    }, 100);
+  });
+}
+
+
 // ---------------------------------------------------------------
 // AUTHENTICATION
 // ---------------------------------------------------------------

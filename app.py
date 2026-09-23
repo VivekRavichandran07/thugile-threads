@@ -78,7 +78,12 @@ def product_image_variants(name, image_url):
 @app.route("/shop/")
 def shop():
     """Serve the public boutique from the same app as the inventory system."""
-    return send_from_directory(os.path.join(app.static_folder, "storefront"), "index.html")
+    html_path = os.path.join(app.static_folder, "storefront", "index.html")
+    with open(html_path, "r") as f:
+        html = f.read()
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    html = html.replace('data-client_id=""', f'data-client_id="{google_client_id}"')
+    return html
 
 
 @app.route("/api/store/products")
@@ -209,6 +214,66 @@ def auth_logout():
     session.pop("user_id", None)
     session.pop("user_name", None)
     return jsonify({"ok": True})
+
+
+@app.route("/api/auth/google", methods=["POST"])
+def auth_google():
+    """Handle Sign in with Google using Google Identity Services (GIS).
+
+    The client-side GIS button produces a JWT ID token (credential).
+    We verify it with Google on the server and create/update the local user session.
+    See: https://codelabs.developers.google.com/codelabs/sign-in-with-google-button
+    """
+    import os
+    import requests
+    data = request.get_json() or {}
+    credential = data.get("credential", "")
+    if not credential:
+        return jsonify({"error": "Missing Google credential"}), 400
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    if not client_id:
+        return jsonify({"error": "Google client ID not configured on server"}), 500
+    token_info_url = "https://oauth2.googleapis.com/tokeninfo"
+    token_response = requests.get(token_info_url, params={"id_token": credential})
+    if token_response.status_code != 200:
+        return jsonify({"error": "Invalid Google token"}), 401
+    token_data = token_response.json()
+    google_id = token_data.get("sub", "")
+    email = token_data.get("email", "").lower()
+    name = token_data.get("name", "")
+    if token_data.get("aud") != client_id:
+        return jsonify({"error": "Token audience mismatch"}), 401
+    if not google_id or not email:
+        return jsonify({"error": "Invalid Google user info"}), 401
+    conn = get_connection()
+    try:
+        existing = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if existing:
+            user = existing
+        else:
+            existing_email = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            if existing_email:
+                conn.execute("UPDATE users SET google_id = ? WHERE email = ?", (google_id, email))
+                conn.commit()
+                user = existing_email
+            else:
+                conn.execute(
+                    "INSERT INTO users (name, email, password_hash, google_id, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (name, email, "", google_id, now_iso()),
+                )
+                conn.commit()
+                user = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        session["user_id"] = user["id"]
+        session["user_name"] = user["name"]
+        session["user_email"] = user["email"]
+        session["user_phone"] = user["phone"] if user["phone"] else None
+        session["user_address"] = user["address"] if user["address"] else None
+        session["user_city"] = user["city"] if user["city"] else None
+        session["pincode"] = user["pincode"] if user["pincode"] else None
+    finally:
+        conn.close()
+    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+
 
 
 @app.route("/api/auth/update-profile", methods=["POST"])

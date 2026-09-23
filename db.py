@@ -206,6 +206,9 @@ def init_db():
         conn.execute("ALTER TABLE users ADD COLUMN city TEXT")
     if "pincode" not in user_columns:
         conn.execute("ALTER TABLE users ADD COLUMN pincode TEXT")
+    if "google_id" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN google_id TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)")
     
     # Add user_addresses table if not exists
     address_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_addresses)")}
