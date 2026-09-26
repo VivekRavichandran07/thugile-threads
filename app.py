@@ -1,5 +1,6 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
+from html import escape
 import os
 import re
 from urllib.parse import unquote
@@ -12,8 +13,13 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "change-this-secret-key-please-use-a-random-secret"
 app.config["UPLOAD_FOLDER"] = os.path.join(app.static_folder, "uploads")
 app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "webp"}
+DEFAULT_GOOGLE_CLIENT_ID = "296701170942-b4p3gv5us65uape6unq1jtqhsbljdutf.apps.googleusercontent.com"
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 init_db()
+
+
+def get_google_client_id():
+    return os.environ.get("GOOGLE_CLIENT_ID", "").strip() or DEFAULT_GOOGLE_CLIENT_ID
 
 
 def allowed_file(filename):
@@ -80,10 +86,16 @@ def shop():
     """Serve the public boutique from the same app as the inventory system."""
     html_path = os.path.join(app.static_folder, "storefront", "index.html")
     with open(html_path, "r") as f:
-        html = f.read()
-    google_client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
-    html = html.replace('data-client_id=""', f'data-client_id="{google_client_id}"')
-    return html
+        page = f.read()
+    client_id = escape(get_google_client_id(), quote=True)
+    page = re.sub(
+        r'(data-client_id\s*=\s*)(["\'])(.*?)\2',
+        lambda match: f'{match.group(1)}"{client_id}"',
+        page,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    return page
 
 
 @app.route("/api/store/products")
@@ -216,6 +228,11 @@ def auth_logout():
     return jsonify({"ok": True})
 
 
+@app.route("/api/auth/google/config")
+def auth_google_config():
+    return jsonify({"client_id": get_google_client_id()})
+
+
 @app.route("/api/auth/google", methods=["POST"])
 def auth_google():
     """Handle Sign in with Google using Google Identity Services (GIS).
@@ -224,15 +241,12 @@ def auth_google():
     We verify it with Google on the server and create/update the local user session.
     See: https://codelabs.developers.google.com/codelabs/sign-in-with-google-button
     """
-    import os
     import requests
     data = request.get_json() or {}
     credential = data.get("credential", "")
     if not credential:
         return jsonify({"error": "Missing Google credential"}), 400
-    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
-    if not client_id:
-        return jsonify({"error": "Google client ID not configured on server"}), 500
+    client_id = get_google_client_id()
     token_info_url = "https://oauth2.googleapis.com/tokeninfo"
     token_response = requests.get(token_info_url, params={"id_token": credential})
     if token_response.status_code != 200:
