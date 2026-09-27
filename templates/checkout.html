@@ -155,11 +155,11 @@
           <span class="payment-icon" aria-hidden="true">🔒</span>
           <div class="payment-info">
             <h3>Secure online payment</h3>
-            <p>Complete payment with UPI, cards, or net banking on PhonePe.</p>
+            <p>Complete payment securely with UPI, cards, or net banking through Cashfree.</p>
           </div>
         </div>
         <p id="payment-message" role="status" aria-live="polite"></p>
-        <button class="place-order-btn" id="place-order-btn" disabled onclick="placeOrder()">Continue to PhonePe</button>
+        <button class="place-order-btn" id="place-order-btn" disabled onclick="placeOrder()">Continue to Cashfree</button>
         <a class="back-link" href="/shop/">← Back to shop</a>
       </div>
     </div>
@@ -265,7 +265,7 @@
 
   <div class="toast" id="toast" role="status"></div>
 
-  <script src="https://mercury.phonepe.com/web/bundle/checkout.js"></script>
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
   <script>
     async function renderSelectedAddress() {
@@ -346,47 +346,6 @@
 
     let paymentInProgress = false;
 
-    async function checkPhonePePayment(merchantOrderId) {
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const response = await fetch(`/api/payments/phonepe/${encodeURIComponent(merchantOrderId)}/status`, {
-          credentials: 'same-origin'
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Unable to verify payment.');
-        if (data.state === 'COMPLETED' || data.state === 'FAILED') return data.state;
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      return 'PENDING';
-    }
-
-    async function handlePhonePeCheckoutResult(result, merchantOrderId) {
-      const message = document.getElementById('payment-message');
-      const placeBtn = document.getElementById('place-order-btn');
-      message.textContent = 'Verifying your payment...';
-      try {
-        const state = await checkPhonePePayment(merchantOrderId);
-        if (state === 'COMPLETED') {
-          localStorage.removeItem('tnt_cart');
-          sessionStorage.removeItem('selected_address_id');
-          bag = [];
-          updateCartUI();
-          syncCartToServer();
-          message.textContent = 'Payment confirmed. Your order is placed.';
-          window.location.href = `/shop/payment/phonepe/return?merchantOrderId=${encodeURIComponent(merchantOrderId)}`;
-          return;
-        }
-        message.textContent = state === 'FAILED'
-          ? 'PhonePe could not complete the payment. Please try again.'
-          : result === 'USER_CANCEL'
-            ? 'The checkout was closed before payment could be confirmed. Please check My Orders in a moment.'
-            : 'Payment is still being confirmed. Please check My Orders in a moment.';
-      } catch (error) {
-        message.textContent = error.message || 'We could not verify your payment yet.';
-      }
-      placeBtn.disabled = false;
-      paymentInProgress = false;
-    }
-
     async function placeOrder() {
       if (paymentInProgress || !bag.length) return;
       const addressId = sessionStorage.getItem('selected_address_id');
@@ -399,10 +358,10 @@
       const message = document.getElementById('payment-message');
       paymentInProgress = true;
       placeBtn.disabled = true;
-      message.textContent = 'Starting secure PhonePe checkout...';
+      message.textContent = 'Starting secure Cashfree checkout...';
 
       try {
-        const response = await fetch('/api/payments/phonepe', {
+        const response = await fetch('/api/payments/cashfree', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
@@ -418,17 +377,16 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Unable to start payment.');
 
-        if (window.PhonePeCheckout && window.PhonePeCheckout.transact) {
-          window.PhonePeCheckout.transact({
-            tokenUrl: data.redirect_url,
-            type: 'IFRAME',
-            callback: result => handlePhonePeCheckoutResult(result, data.merchant_order_id)
-          });
-        } else {
-          window.location.assign(data.redirect_url);
+        if (typeof window.Cashfree !== 'function') {
+          throw new Error('Cashfree checkout could not be loaded. Please try again.');
         }
+        const cashfree = window.Cashfree({ mode: data.cashfree_mode });
+        await cashfree.checkout({
+          paymentSessionId: data.payment_session_id,
+          redirectTarget: '_self'
+        });
       } catch (error) {
-        message.textContent = error.message || 'Unable to start PhonePe checkout. Please try again.';
+        message.textContent = error.message || 'Unable to start Cashfree checkout. Please try again.';
         placeBtn.disabled = false;
         paymentInProgress = false;
       }
