@@ -2,10 +2,14 @@ import sqlite3
 import os
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "inventory.db")
+DB_PATH = os.environ.get(
+    "DATABASE_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "inventory.db"),
+)
 
 
 def get_connection():
+    os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -87,6 +91,9 @@ def init_db():
             order_number TEXT NOT NULL UNIQUE,
             total_amount REAL NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'pending',
+            payment_state TEXT NOT NULL DEFAULT 'PENDING',
+            phonepe_order_id TEXT,
+            shipping_address_json TEXT,
             items TEXT NOT NULL,
             created_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -124,6 +131,14 @@ def init_db():
         );
         """
     )
+    order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
+    for column, definition in (
+        ("payment_state", "TEXT NOT NULL DEFAULT 'PENDING'"),
+        ("phonepe_order_id", "TEXT"),
+        ("shipping_address_json", "TEXT"),
+    ):
+        if column not in order_columns:
+            conn.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")
     cart_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
     if "size" not in cart_columns:
         conn.execute("ALTER TABLE user_carts RENAME TO user_carts_legacy")
@@ -206,6 +221,9 @@ def init_db():
         conn.execute("ALTER TABLE users ADD COLUMN city TEXT")
     if "pincode" not in user_columns:
         conn.execute("ALTER TABLE users ADD COLUMN pincode TEXT")
+    if "google_id" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN google_id TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)")
     
     # Add user_addresses table if not exists
     address_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_addresses)")}
