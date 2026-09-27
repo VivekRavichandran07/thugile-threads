@@ -13,7 +13,7 @@
   <main class="payment-result">
     <p class="eyebrow">Thugile & Threads</p>
     <h1>Payment status</h1>
-    <p id="payment-result-message" role="status" aria-live="polite">Verifying your payment with PhonePe...</p>
+    <p id="payment-result-message" role="status" aria-live="polite">Verifying your payment with Cashfree...</p>
     <p id="payment-result-order"></p>
     <a href="/shop/orders">View my orders</a>
     <a href="/shop/">Continue shopping</a>
@@ -21,7 +21,7 @@
   <script>
     (async function verifyPayment() {
       const params = new URLSearchParams(window.location.search);
-      const orderId = params.get('merchantOrderId');
+      const orderId = params.get('order_id');
       const message = document.getElementById('payment-result-message');
       const orderDisplay = document.getElementById('payment-result-order');
       if (!orderId) {
@@ -31,7 +31,7 @@
       orderDisplay.textContent = `Order: ${orderId}`;
       try {
         for (let attempt = 0; attempt < 10; attempt += 1) {
-          const response = await fetch(`/api/payments/phonepe/${encodeURIComponent(orderId)}/status`, {
+          const response = await fetch(`/api/payments/cashfree/${encodeURIComponent(orderId)}/status`, {
             credentials: 'same-origin'
           });
           const data = await response.json();
@@ -43,7 +43,7 @@
             return;
           }
           if (data.state === 'FAILED') {
-            message.textContent = 'PhonePe could not complete the payment. Your order was not confirmed.';
+            message.textContent = 'Cashfree could not complete the payment. Your order was not confirmed.';
             return;
           }
           message.textContent = 'Payment is pending confirmation. This page will check again shortly.';

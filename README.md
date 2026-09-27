@@ -1,18 +1,17 @@
 # Thugile Website
 
-## PhonePe Standard Checkout
+## Cashfree hosted checkout
 
-PhonePe settings are loaded from the project-root `.env` file when the Flask app starts. The integration defaults to sandbox; use `PHONEPE_ENV=production` only with production credentials. Keep the client secret server-side; `.env` is ignored by Git.
+Cashfree settings are loaded from the project-root `.env` file when the Flask app starts. The integration defaults to sandbox; use `CASHFREE_ENV=production` only with production credentials. Keep the secret key server-side; `.env` is ignored by Git.
 
 ```text
-PHONEPE_CLIENT_ID=...
-PHONEPE_CLIENT_SECRET=...
-PHONEPE_CLIENT_VERSION=...
-PHONEPE_ENV=sandbox
-PHONEPE_REDIRECT_BASE_URL=https://your-public-site.example
+CASHFREE_APP_ID=...
+CASHFREE_SECRET_KEY=...
+CASHFREE_ENV=sandbox
+CASHFREE_REDIRECT_BASE_URL=https://your-public-site.example
 ```
 
-`PHONEPE_REDIRECT_BASE_URL` should be the public HTTPS URL so PhonePe can return customers to `/shop/payment/phonepe/return`; a URL path prefix is supported, and sandbox may use an HTTP localhost URL. If omitted, the app builds the return URL from the current request host. The app verifies order status through PhonePe before marking an order confirmed; sandbox credentials are required to complete a real test payment.
+`CASHFREE_REDIRECT_BASE_URL` should be the public HTTPS URL so Cashfree can return customers to `/shop/payment/cashfree/return`; a URL path prefix is supported, and sandbox may use an HTTP localhost URL. If omitted, the app builds the return URL from the current request host. Whitelist the checkout domain in Cashfree before accepting live payments. The app verifies order status with Cashfree before confirming an order.
 
 ## Deploy to Railway
 
@@ -24,14 +23,13 @@ Before deploying, attach a Railway volume to the service at `/data`. Set these s
 DATABASE_PATH=/data/inventory.db
 UPLOAD_FOLDER=/data/uploads
 SECRET_KEY=<a-long-random-secret>
-PHONEPE_ENV=sandbox
-PHONEPE_CLIENT_ID=<sandbox-client-id>
-PHONEPE_CLIENT_SECRET=<sandbox-client-secret>
-PHONEPE_CLIENT_VERSION=<sandbox-client-version>
-PHONEPE_REDIRECT_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+CASHFREE_ENV=sandbox
+CASHFREE_APP_ID=<sandbox-app-id>
+CASHFREE_SECRET_KEY=<sandbox-secret-key>
+CASHFREE_REDIRECT_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 ```
 
-Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. Generate a Railway public domain before setting `PHONEPE_REDIRECT_BASE_URL`; add that same domain as an authorized JavaScript origin in Google Cloud Console.
+Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. Generate a Railway public domain before setting `CASHFREE_REDIRECT_BASE_URL`, then whitelist that domain in the Cashfree dashboard.
 
 The service stores its SQLite database and uploaded images under `/data`; without the volume these files are ephemeral. If you want to retain the current local catalog, stock, orders, and uploaded product images, upload `inventory.db` to the volume as `/inventory.db` and `static/uploads/` as `/uploads/` before accepting orders. Stop the service while replacing its SQLite database, then start/redeploy it. Existing `inventory.db` and uploads are not automatically transferred by deploying the source.
 

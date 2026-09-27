@@ -92,7 +92,7 @@ def init_db():
             total_amount REAL NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'pending',
             payment_state TEXT NOT NULL DEFAULT 'PENDING',
-            phonepe_order_id TEXT,
+            cashfree_order_id TEXT,
             shipping_address_json TEXT,
             items TEXT NOT NULL,
             created_at TEXT NOT NULL,
@@ -134,7 +134,7 @@ def init_db():
     order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
     for column, definition in (
         ("payment_state", "TEXT NOT NULL DEFAULT 'PENDING'"),
-        ("phonepe_order_id", "TEXT"),
+        ("cashfree_order_id", "TEXT"),
         ("shipping_address_json", "TEXT"),
     ):
         if column not in order_columns:
