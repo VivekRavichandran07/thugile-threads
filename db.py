@@ -203,12 +203,18 @@ def init_db():
             INSERT OR IGNORE INTO products
                 (name, sku, category, size, color, image_url, cost_price, selling_price,
                  discounted_price, quantity, reorder_level, created_at)
-            SELECT ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, 5, ?
+            SELECT ?, ?, ?, ?, ?, ?, 0, ?, ?, 10, 5, ?
             WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)
             """,
             (name, sku, category, size, color, image_url, selling_price,
              round(selling_price * 0.9, 2), now_iso(), name),
         )
+    
+    # IMPORTANT: Set all storefront products to quantity=10 if they're currently 0
+    # This ensures products show on the storefront after init_db runs
+    conn.execute(
+        "UPDATE products SET quantity = 10 WHERE sku LIKE 'store-%' AND quantity = 0"
+    )
     
     # Add phone column to users if missing
     user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
@@ -238,3 +244,4 @@ def init_db():
 
 def now_iso():
     return datetime.utcnow().isoformat()
+
