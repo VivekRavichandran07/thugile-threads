@@ -1,5 +1,42 @@
 # Thugile Website
 
+## PhonePe Standard Checkout
+
+PhonePe settings are loaded from the project-root `.env` file when the Flask app starts. The integration defaults to sandbox; use `PHONEPE_ENV=production` only with production credentials. Keep the client secret server-side; `.env` is ignored by Git.
+
+```text
+PHONEPE_CLIENT_ID=...
+PHONEPE_CLIENT_SECRET=...
+PHONEPE_CLIENT_VERSION=...
+PHONEPE_ENV=sandbox
+PHONEPE_REDIRECT_BASE_URL=https://your-public-site.example
+```
+
+`PHONEPE_REDIRECT_BASE_URL` should be the public HTTPS URL so PhonePe can return customers to `/shop/payment/phonepe/return`; a URL path prefix is supported, and sandbox may use an HTTP localhost URL. If omitted, the app builds the return URL from the current request host. The app verifies order status through PhonePe before marking an order confirmed; sandbox credentials are required to complete a real test payment.
+
+## Deploy to Railway
+
+Railway detects this Python/Flask app and uses `railway.json` to run it with Gunicorn and check `/health`. To deploy from a local checkout, install and log in to the [Railway CLI](https://docs.railway.com/guides/cli), run `railway init` from the project root, then `railway up`. Alternatively, create a service from a connected GitHub repository.
+
+Before deploying, attach a Railway volume to the service at `/data`. Set these service variables in Railway (do not upload `.env` or commit credentials):
+
+```text
+DATABASE_PATH=/data/inventory.db
+UPLOAD_FOLDER=/data/uploads
+SECRET_KEY=<a-long-random-secret>
+PHONEPE_ENV=sandbox
+PHONEPE_CLIENT_ID=<sandbox-client-id>
+PHONEPE_CLIENT_SECRET=<sandbox-client-secret>
+PHONEPE_CLIENT_VERSION=<sandbox-client-version>
+PHONEPE_REDIRECT_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+```
+
+Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. Generate a Railway public domain before setting `PHONEPE_REDIRECT_BASE_URL`; add that same domain as an authorized JavaScript origin in Google Cloud Console.
+
+The service stores its SQLite database and uploaded images under `/data`; without the volume these files are ephemeral. If you want to retain the current local catalog, stock, orders, and uploaded product images, upload `inventory.db` to the volume as `/inventory.db` and `static/uploads/` as `/uploads/` before accepting orders. Stop the service while replacing its SQLite database, then start/redeploy it. Existing `inventory.db` and uploads are not automatically transferred by deploying the source.
+
+Keep the service to one replica while it uses SQLite. Before making the site public, protect `/admin/` and its mutation endpoints with an administrator-only role: the current app checks for a signed-in user, but does not distinguish administrators from customer accounts.
+
 
 
 ## Getting started

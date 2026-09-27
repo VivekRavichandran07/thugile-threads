@@ -316,7 +316,7 @@ function openProductPopup(product) {
   productName.textContent = product.name;
   productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
-  
+
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const availableSizes = product.available_sizes || [];
   productSizes.innerHTML = sizes.map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
@@ -326,7 +326,7 @@ function openProductPopup(product) {
       btn.classList.add('selected');
     });
   });
-  
+
   const productImage = imageFor(product.image_url, 0, product.name);
   const images = product.image_variants?.length ? product.image_variants : productImageVariants(productImage);
   productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
@@ -338,7 +338,7 @@ function openProductPopup(product) {
   productImageStack.innerHTML = images.map((img, i) => `
     <img class="product-stack-image" src="${img}" alt="${escapeHtml(product.name)} image ${i + 1}" loading="lazy">
   `).join('');
-  
+
   const selectProductImage = (imageControl) => {
       currentImageIndex = Number(imageControl.dataset.index);
       productMainImage.innerHTML = `<img src="${images[currentImageIndex]}" alt="${escapeHtml(product.name)}">`;
@@ -347,7 +347,7 @@ function openProductPopup(product) {
       imageControl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   };
   productThumbnails.querySelectorAll('.thumb').forEach(thumb => thumb.addEventListener('click', () => selectProductImage(thumb)));
-  
+
   productAddToBag.onclick = () => {
     const selectedSize = productSizes.querySelector('.size-option.selected');
     if (!selectedSize) {
@@ -361,10 +361,10 @@ function openProductPopup(product) {
     addToBag(product.name, discountedPrice(product.price, product.discounted_price), selectedSize.dataset.size, product.image_url, quantity);
     closeProductPopup();
   };
-  
+
   productWishlistBtn.onclick = () => toggleWishlist(product);
   updateWishlistUI();
-  
+
   productOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -444,29 +444,9 @@ function sortProducts(products, sort) {
 
 function renderNewLaunches(products) {
   if (!newLaunchesTrack) return;
-  const launches = products.slice(0, 8);
-  const renderLaunchSet = (setIndex) => `
-    <div class="new-launch-set">
-      ${launches.map((product, index) => `
-        <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
-          <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
-          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${priceMarkup(product.price, product.discounted_price)}</small></span>
-        </button>
-      `).join('')}
-    </div>
-  `;
-  newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
-  newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const product = launches[Number(card.dataset.productIndex)];
-      if (product) openProductPopup(product);
-    });
-  });
-}
 
-function renderNewLaunches(products) {
-  if (!newLaunchesTrack) return;
-  const launches = products; // all products — no slice
+  const launches = products;
+
   const renderLaunchSet = (setIndex) => `
     <div class="new-launch-set">
       ${launches.map((product, index) => `
@@ -477,7 +457,24 @@ function renderNewLaunches(products) {
       `).join('')}
     </div>
   `;
+
   newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
+
+  // ← Add this: sync both sets to have identical width
+  setTimeout(() => {
+    const sets = newLaunchesTrack.querySelectorAll('.new-launch-set');
+    if (sets.length >= 2) {
+      const set1Width = sets[0].offsetWidth;
+      const set2Width = sets[1].offsetWidth;
+      const maxWidth = Math.max(set1Width, set2Width);
+
+      sets.forEach(set => {
+        set.style.minWidth = maxWidth + 'px';
+        set.style.width = maxWidth + 'px';
+      });
+    }
+  }, 100);
+
   newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
     card.addEventListener('click', () => {
       const product = launches[Number(card.dataset.productIndex)];
@@ -492,6 +489,7 @@ async function loadCatalog(retries = 3) {
     const response = await fetch('/api/store/products');
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
+    searchProducts = products || [];
     renderProducts(products);
     renderNewLaunches(products);
   } catch (error) {
@@ -549,13 +547,19 @@ function handleProductCardClick(event) {
         const priceEl = article.querySelector('.buy strong');
         const imgEl = article.querySelector('.product-image img');
         const detailsEl = article.querySelector('.product-info p');
+        const sizeButtons = article.querySelectorAll('.product-card-sizes .size-option:not(.unavailable)');
         const name = nameEl?.textContent?.trim() || '';
         const priceText = priceEl?.textContent?.trim() || '';
         const displayedPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
         const image_url = imgEl?.src || '';
         const details = detailsEl?.textContent?.trim() || '';
+        const availableSizes = Array.from(sizeButtons).map(btn => btn.dataset.size).filter(Boolean);
         product = searchProducts.find(item => item.name === name) || {
-          name, price: Math.round(displayedPrice / 0.9), image_url, details
+          name,
+          price: Math.round(displayedPrice / 0.9),
+          image_url,
+          details,
+          available_sizes: availableSizes
         };
       }
     }
@@ -565,7 +569,7 @@ function handleProductCardClick(event) {
 }
 
 document.addEventListener('click', event => {
-  if (!event.target.closest('.product-image, .product-info h3')) return;
+  if (!event.target.closest('.product')) return;
   handleProductCardClick(event);
 });
 
@@ -747,6 +751,74 @@ function observeReveals() {
 observeReveals();
 loadCart();
 
+// Google Identity Services (GIS) Sign in with Google
+// See: https://codelabs.developers.google.com/codelabs/sign-in-with-google-button
+function handleGoogleCredentialResponse(response) {
+  const credential = response.credential;
+  fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.user) {
+        currentUser = data.user;
+        updateAuthUI();
+        closeAuthModal();
+        toast.textContent = `Welcome, ${data.user.name}!`;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      } else if (data.error) {
+        toast.textContent = data.error || 'Google sign-in failed';
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      }
+    })
+    .catch(() => {
+      toast.textContent = 'Network error during Google sign-in';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    });
+}
+
+function initGoogleSignIn() {
+  const gIdOnload = document.getElementById('g_id_onload');
+  const gIdSignin = document.getElementById('google-button-container');
+  if (!gIdOnload || !gIdSignin || !google) return;
+
+  google.accounts.id.initialize({
+    client_id: gIdOnload.getAttribute('data-client_id'),
+    callback: handleGoogleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: false,
+  });
+
+  google.accounts.id.renderButton(
+    gIdSignin,
+    { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' },
+    { type: 'standard' }
+  );
+}
+
+// Initialize Google sign-in when the GIS library loads
+if (typeof google !== 'undefined') {
+  initGoogleSignIn();
+} else {
+  window.addEventListener('load', () => {
+    const checkGoogle = setInterval(() => {
+      if (typeof google !== 'undefined') {
+        clearInterval(checkGoogle);
+        initGoogleSignIn();
+      }
+    }, 100);
+  });
+}
+
+
 // ---------------------------------------------------------------
 // AUTHENTICATION
 // ---------------------------------------------------------------
@@ -851,11 +923,11 @@ function renderCheckout() {
   const itemsEl = document.getElementById('checkout-items');
   const totalEl = document.getElementById('checkout-total');
   const placeBtn = document.getElementById('place-order-btn');
-  
+
   if (!itemsEl || !totalEl || !placeBtn) {
     return; // Not on checkout page, exit early
   }
-  
+
   loadCart();
   const countEl = document.getElementById('bag-count');
 
@@ -868,11 +940,11 @@ function renderCheckout() {
     placeBtn.disabled = true;
     return;
   }
-  
+
   placeBtn.disabled = false;
   const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
   totalEl.textContent = rupees(total);
-  
+
   itemsEl.innerHTML = bag.map((item, idx) => `
     <div class="cart-item">
       <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
@@ -1238,7 +1310,7 @@ async function init() {
 
 function setupSearch() {
   if (!searchBtn || !searchOverlay || !searchInput || !searchResults) return;
-  
+
   const closeSearch = () => {
     searchOverlay.classList.remove('open');
     searchInput.value = '';
@@ -1249,14 +1321,14 @@ function setupSearch() {
     searchOverlay.classList.add('open');
     searchInput.focus();
   });
-  
+
   searchInput.addEventListener('input', async (e) => {
     const query = e.target.value.trim().toLowerCase();
     if (!query) {
       searchResults.innerHTML = '';
       return;
     }
-    
+
     try {
       if (!searchProducts.length) {
         const res = await fetch('/api/store/products');
@@ -1265,17 +1337,17 @@ function setupSearch() {
         searchProducts = data.products || [];
       }
       const products = searchProducts;
-      
-      const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(query) || 
+
+      const filtered = products.filter(p =>
+        p.name.toLowerCase().includes(query) ||
         (p.category && p.category.toLowerCase().includes(query))
       );
-      
+
       if (filtered.length === 0) {
         searchResults.innerHTML = '<p class="search-state">No products found</p>';
         return;
       }
-      
+
       searchResults.innerHTML = filtered.slice(0, 8).map((p, index) => `
         <button class="search-result" type="button" data-product-index="${products.indexOf(p)}">
           <span class="search-result-image"><img src="${escapeHtml(imageFor(p.image_url, index, p.name))}" alt=""></span>
@@ -1310,7 +1382,7 @@ function setupSearch() {
     if (target.closest('.search-input, .search-results, .search-btn')) return;
     closeSearch();
   });
-  
+
   // Close search when clicking outside
   searchOverlay.addEventListener('click', (e) => {
     if (e.target === searchOverlay) {
@@ -1318,7 +1390,7 @@ function setupSearch() {
       closeSearch();
     }
   });
-  
+
   // Close on escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && searchOverlay.classList.contains('open')) {

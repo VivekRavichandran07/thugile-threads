@@ -151,24 +151,15 @@
           </div>
         </div>
         <h2>Payment method</h2>
-        <label class="payment-option">
-          <input type="radio" name="payment" value="upi" checked>
-          <span class="payment-icon">📱</span>
+        <div class="payment-option">
+          <span class="payment-icon" aria-hidden="true">🔒</span>
           <div class="payment-info">
-            <h3>UPI</h3>
-            <p>Pay using Google Pay, PhonePe, or any UPI app</p>
+            <h3>Secure online payment</h3>
+            <p>Complete payment with UPI, cards, or net banking on PhonePe.</p>
           </div>
-        </label>
-        <label class="payment-option">
-          <input type="radio" name="payment" value="card">
-          <span class="payment-icon">💳</span>
-          <div class="payment-info">
-            <h3>Credit / Debit Card</h3>
-            <p>Visa, Mastercard, RuPay accepted</p>
-          </div>
-        </label>
-
-        <button class="place-order-btn" id="place-order-btn" disabled onclick="placeOrder()">Place order</button>
+        </div>
+        <p id="payment-message" role="status" aria-live="polite"></p>
+        <button class="place-order-btn" id="place-order-btn" disabled onclick="placeOrder()">Continue to PhonePe</button>
         <a class="back-link" href="/shop/">← Back to shop</a>
       </div>
     </div>
@@ -221,7 +212,7 @@
   <div class="auth-overlay" id="auth-overlay">
       <div class="auth-modal" id="auth-modal">
         <button class="auth-close" id="auth-close" aria-label="Close">×</button>
-        
+
         <!-- Step 1: Enter mobile or email -->
         <div id="auth-step-1">
           <h2 style="margin:0 0 8px;font-size:28px;letter-spacing:-.02em;">Sign in or create account</h2>
@@ -274,12 +265,13 @@
 
   <div class="toast" id="toast" role="status"></div>
 
+  <script src="https://mercury.phonepe.com/web/bundle/checkout.js"></script>
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
   <script>
     async function renderSelectedAddress() {
       const displayEl = document.getElementById('selected-address-display');
       if (!displayEl) return;
-      
+
       const selectedAddressId = sessionStorage.getItem('selected_address_id');
       if (!selectedAddressId) {
         window.location.replace('/shop/shipping');
@@ -352,21 +344,94 @@
       `).join('');
     }
 
-    function placeOrder() {
-      if (!sessionStorage.getItem('selected_address_id')) {
+    let paymentInProgress = false;
+
+    async function checkPhonePePayment(merchantOrderId) {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const response = await fetch(`/api/payments/phonepe/${encodeURIComponent(merchantOrderId)}/status`, {
+          credentials: 'same-origin'
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to verify payment.');
+        if (data.state === 'COMPLETED' || data.state === 'FAILED') return data.state;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      return 'PENDING';
+    }
+
+    async function handlePhonePeCheckoutResult(result, merchantOrderId) {
+      const message = document.getElementById('payment-message');
+      const placeBtn = document.getElementById('place-order-btn');
+      message.textContent = 'Verifying your payment...';
+      try {
+        const state = await checkPhonePePayment(merchantOrderId);
+        if (state === 'COMPLETED') {
+          localStorage.removeItem('tnt_cart');
+          sessionStorage.removeItem('selected_address_id');
+          bag = [];
+          updateCartUI();
+          syncCartToServer();
+          message.textContent = 'Payment confirmed. Your order is placed.';
+          window.location.href = `/shop/payment/phonepe/return?merchantOrderId=${encodeURIComponent(merchantOrderId)}`;
+          return;
+        }
+        message.textContent = state === 'FAILED'
+          ? 'PhonePe could not complete the payment. Please try again.'
+          : result === 'USER_CANCEL'
+            ? 'The checkout was closed before payment could be confirmed. Please check My Orders in a moment.'
+            : 'Payment is still being confirmed. Please check My Orders in a moment.';
+      } catch (error) {
+        message.textContent = error.message || 'We could not verify your payment yet.';
+      }
+      placeBtn.disabled = false;
+      paymentInProgress = false;
+    }
+
+    async function placeOrder() {
+      if (paymentInProgress || !bag.length) return;
+      const addressId = sessionStorage.getItem('selected_address_id');
+      if (!addressId) {
         window.location.href = '/shop/shipping';
         return;
       }
-      const method = document.querySelector('input[name="payment"]:checked').value;
-      const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
-      alert('Order placed successfully!\n\nPayment: ' + method.toUpperCase() + '\nTotal: ' + rupees(total) + '\n\nThank you for shopping with Thugile & Threads.');
-      localStorage.removeItem('tnt_cart');
-      sessionStorage.removeItem('selected_address_id');
-      bag = [];
-      updateCartUI();
-      renderCheckout();
-      syncCartToServer();
-      setTimeout(() => { window.location.href = '/shop/'; }, 1500);
+
+      const placeBtn = document.getElementById('place-order-btn');
+      const message = document.getElementById('payment-message');
+      paymentInProgress = true;
+      placeBtn.disabled = true;
+      message.textContent = 'Starting secure PhonePe checkout...';
+
+      try {
+        const response = await fetch('/api/payments/phonepe', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address_id: Number(addressId),
+            items: bag.map(item => ({
+              name: item.name,
+              size: item.size || 'M',
+              qty: item.qty
+            }))
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to start payment.');
+
+        if (window.PhonePeCheckout && window.PhonePeCheckout.transact) {
+          window.PhonePeCheckout.transact({
+            tokenUrl: data.redirect_url,
+            type: 'IFRAME',
+            callback: result => handlePhonePeCheckoutResult(result, data.merchant_order_id)
+          });
+        } else {
+          window.location.assign(data.redirect_url);
+        }
+      } catch (error) {
+        message.textContent = error.message || 'Unable to start PhonePe checkout. Please try again.';
+        placeBtn.disabled = false;
+        paymentInProgress = false;
+      }
     }
     renderCheckout();
   </script>
