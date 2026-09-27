@@ -87,6 +87,9 @@ def init_db():
             order_number TEXT NOT NULL UNIQUE,
             total_amount REAL NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'pending',
+            payment_state TEXT NOT NULL DEFAULT 'PENDING',
+            phonepe_order_id TEXT,
+            shipping_address_json TEXT,
             items TEXT NOT NULL,
             created_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -124,6 +127,14 @@ def init_db():
         );
         """
     )
+    order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
+    for column, definition in (
+        ("payment_state", "TEXT NOT NULL DEFAULT 'PENDING'"),
+        ("phonepe_order_id", "TEXT"),
+        ("shipping_address_json", "TEXT"),
+    ):
+        if column not in order_columns:
+            conn.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")
     cart_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
     if "size" not in cart_columns:
         conn.execute("ALTER TABLE user_carts RENAME TO user_carts_legacy")

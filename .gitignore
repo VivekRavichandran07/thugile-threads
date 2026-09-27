@@ -7,3 +7,6 @@ htmlcov/
 node_modules/
 cypress/videos/
 cypress/screenshots/
+.env
+.env.*
+!.env.example

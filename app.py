@@ -1,13 +1,46 @@
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
-from html import escape
+import json
 import os
 import re
-from urllib.parse import unquote
+import uuid
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from html import escape
+from urllib.parse import unquote, urljoin, urlparse
 from datetime import datetime
+import requests
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db, now_iso
+
+
+def load_env_file(path):
+    try:
+        with open(path, encoding="utf-8") as env_file:
+            lines = env_file.readlines()
+    except FileNotFoundError:
+        return
+
+    for line in lines:
+        entry = line.strip()
+        if not entry or entry.startswith("#"):
+            continue
+        if entry.startswith("export "):
+            entry = entry[7:].lstrip()
+        key, separator, value = entry.partition("=")
+        key = key.strip()
+        if not separator or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            continue
+
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        else:
+            value = re.split(r"\s+#", value, maxsplit=1)[0].rstrip()
+        os.environ.setdefault(key, value)
+
+
+load_env_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "change-this-secret-key-please-use-a-random-secret"
@@ -583,6 +616,167 @@ def reset_password():
 # ---------------------------------------------------------------
 # ORDERS
 # ---------------------------------------------------------------
+def get_phonepe_settings():
+    environment = os.environ.get("PHONEPE_ENV", "sandbox").strip().lower()
+    if environment == "sandbox":
+        api_base = "https://api-preprod.phonepe.com/apis/pg-sandbox"
+        token_url = f"{api_base}/v1/oauth/token"
+    elif environment == "production":
+        api_base = "https://api.phonepe.com/apis/pg"
+        token_url = "https://api.phonepe.com/apis/identity-manager/v1/oauth/token"
+    else:
+        raise RuntimeError("PHONEPE_ENV must be either 'sandbox' or 'production'.")
+
+    credentials = {
+        "client_id": os.environ.get("PHONEPE_CLIENT_ID", "").strip(),
+        "client_secret": os.environ.get("PHONEPE_CLIENT_SECRET", "").strip(),
+        "client_version": os.environ.get("PHONEPE_CLIENT_VERSION", "").strip(),
+    }
+    if not all(credentials.values()):
+        raise RuntimeError(
+            "PhonePe is not configured. Set PHONEPE_CLIENT_ID, "
+            "PHONEPE_CLIENT_SECRET, and PHONEPE_CLIENT_VERSION."
+        )
+    public_base_url = os.environ.get("PHONEPE_REDIRECT_BASE_URL", "").strip()
+    if public_base_url:
+        parsed = urlparse(public_base_url)
+        local_sandbox_url = (
+            environment == "sandbox"
+            and parsed.scheme == "http"
+            and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+        )
+        if (
+            (parsed.scheme != "https" and not local_sandbox_url)
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise RuntimeError(
+                "PHONEPE_REDIRECT_BASE_URL must be an HTTPS URL. "
+                "Sandbox may use an HTTP localhost URL."
+            )
+    return api_base, token_url, credentials
+
+
+def phonepe_access_token(token_url, credentials):
+    response = requests.post(
+        token_url,
+        data={
+            **credentials,
+            "grant_type": "client_credentials",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        timeout=15,
+    )
+    if response.status_code == 401:
+        raise PhonePeAuthenticationError
+    response.raise_for_status()
+    token_data = response.json()
+    if not isinstance(token_data, dict):
+        raise ValueError("PhonePe authorization response was invalid.")
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise ValueError("PhonePe authorization response did not include an access token.")
+    return access_token
+
+
+def phonepe_authorization_header(token_url, credentials):
+    return f"O-Bearer {phonepe_access_token(token_url, credentials)}"
+
+
+class PhonePeAuthenticationError(Exception):
+    pass
+
+
+def phonepe_redirect_url(order_number):
+    redirect_path = url_for(
+        "phonepe_payment_return",
+        merchantOrderId=order_number,
+    )
+    public_base_url = os.environ.get("PHONEPE_REDIRECT_BASE_URL", "").strip()
+    if public_base_url:
+        return urljoin(public_base_url.rstrip("/") + "/", redirect_path.lstrip("/"))
+    return url_for(
+        "phonepe_payment_return",
+        merchantOrderId=order_number,
+        _external=True,
+    )
+
+
+def build_order_items(raw_items):
+    if not isinstance(raw_items, list) or not raw_items or len(raw_items) > 50:
+        raise ValueError("Your cart is empty or contains too many items.")
+
+    merged_items = {}
+    for item in raw_items:
+        if not isinstance(item, dict):
+            raise ValueError("Invalid cart item.")
+        name = item.get("name")
+        size = item.get("size") or "M"
+        quantity = item.get("qty")
+        if (
+            not isinstance(name, str)
+            or not name.strip()
+            or not isinstance(size, str)
+            or not size.strip()
+            or isinstance(quantity, bool)
+            or not isinstance(quantity, int)
+            or quantity < 1
+        ):
+            raise ValueError("Invalid cart item.")
+        key = (name.strip(), size.strip())
+        merged_items[key] = merged_items.get(key, 0) + quantity
+        if merged_items[key] > 100:
+            raise ValueError("Each product quantity must be 100 or less.")
+
+    conn = get_connection()
+    order_items = []
+    total = Decimal("0")
+    try:
+        for (name, size), quantity in merged_items.items():
+            variants = conn.execute(
+                """
+                SELECT discounted_price, selling_price, SUM(quantity) AS stock
+                FROM products
+                WHERE name = ? AND COALESCE(size, 'M') = ? AND quantity > 0
+                GROUP BY discounted_price, selling_price
+                """,
+                (name, size),
+            ).fetchall()
+            available_stock = sum(row["stock"] for row in variants)
+            if not variants or quantity > available_stock:
+                raise ValueError(f"{name} in size {size} is no longer available.")
+
+            prices = {
+                Decimal(str(row["discounted_price"] or row["selling_price"]))
+                for row in variants
+            }
+            if len(prices) != 1:
+                raise ValueError(f"{name} is unavailable at a consistent price.")
+            unit_price = prices.pop()
+            if not unit_price.is_finite() or unit_price <= 0:
+                raise ValueError(f"{name} has an invalid price.")
+            total += unit_price * quantity
+            order_items.append({
+                "name": name,
+                "size": size,
+                "qty": quantity,
+                "unit_price": float(unit_price),
+            })
+    except InvalidOperation as error:
+        raise ValueError("A cart item has an invalid price.") from error
+    finally:
+        conn.close()
+
+    total = total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    total_paisa = int((total * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    if total_paisa < 100:
+        raise ValueError("PhonePe checkout requires an order total of at least ₹1.")
+    return order_items, total, total_paisa
+
+
 @app.route("/api/orders", methods=["GET"])
 def orders_get():
     if "user_id" not in session:
@@ -596,27 +790,239 @@ def orders_get():
     return jsonify({"orders": [dict(row) for row in rows]})
 
 
-@app.route("/api/orders", methods=["POST"])
-def orders_create():
+@app.route("/api/payments/phonepe", methods=["POST"])
+def phonepe_create_payment():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
     data = request.get_json() or {}
-    items = data.get("items", [])
-    total = data.get("total", 0)
-    if not items:
-        return jsonify({"error": "No items in order"}), 400
-    order_number = f"ORD-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{session['user_id']}"
-    import json
+    try:
+        api_base, token_url, credentials = get_phonepe_settings()
+        items, total, total_paisa = build_order_items(data.get("items"))
+        address_id = data.get("address_id")
+        if isinstance(address_id, bool) or not isinstance(address_id, int):
+            return jsonify({"error": "Choose a valid shipping address before paying."}), 400
+
+        conn = get_connection()
+        try:
+            address = conn.execute(
+                "SELECT name, email, phone, address, address_line_2, city, pincode "
+                "FROM user_addresses WHERE id = ? AND user_id = ?",
+                (address_id, session["user_id"]),
+            ).fetchone()
+            if not address:
+                return jsonify({"error": "Choose a valid shipping address before paying."}), 400
+        finally:
+            conn.close()
+
+        authorization = phonepe_authorization_header(token_url, credentials)
+        order_number = f"TNT-{uuid.uuid4().hex}"
+        redirect_url = phonepe_redirect_url(order_number)
+        conn = get_connection()
+        conn.execute(
+            """
+            INSERT INTO orders
+                (user_id, order_number, total_amount, status, payment_state,
+                 shipping_address_json, items, created_at)
+            VALUES (?, ?, ?, 'pending', 'PENDING', ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                order_number,
+                float(total),
+                json.dumps(dict(address)),
+                json.dumps(items),
+                now_iso(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+        response = requests.post(
+            f"{api_base}/checkout/v2/pay",
+            json={
+                "merchantOrderId": order_number,
+                "amount": total_paisa,
+                "expireAfter": 1200,
+                "paymentFlow": {
+                    "type": "PG_CHECKOUT",
+                    "merchantUrls": {"redirectUrl": redirect_url},
+                },
+            },
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": authorization,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        payment_data = response.json()
+        if not isinstance(payment_data, dict):
+            raise ValueError("PhonePe payment response was invalid.")
+        pay_page_url = payment_data.get("redirectUrl", "")
+        if not isinstance(pay_page_url, str) or not pay_page_url:
+            raise ValueError("PhonePe did not return a checkout URL.")
+        pay_page = urlparse(pay_page_url)
+        if pay_page.scheme != "https" or not pay_page.hostname or not pay_page.hostname.endswith(".phonepe.com"):
+            raise ValueError("PhonePe returned an invalid checkout URL.")
+
+        conn = get_connection()
+        conn.execute(
+            "UPDATE orders SET phonepe_order_id = ? WHERE order_number = ? AND user_id = ?",
+            (payment_data.get("orderId"), order_number, session["user_id"]),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({
+            "merchant_order_id": order_number,
+            "redirect_url": pay_page_url,
+        })
+    except RuntimeError as error:
+        return jsonify({"error": str(error)}), 503
+    except PhonePeAuthenticationError:
+        app.logger.error(
+            "PhonePe rejected OAuth credentials for the configured %s environment",
+            os.environ.get("PHONEPE_ENV", "sandbox").strip().lower(),
+        )
+        return jsonify({
+            "error": (
+                "PhonePe rejected the configured credentials. Verify that "
+                "PHONEPE_CLIENT_ID, PHONEPE_CLIENT_SECRET, and "
+                "PHONEPE_CLIENT_VERSION are a matching Standard Checkout "
+                "credential set for the selected environment."
+            )
+        }), 502
+    except ValueError as error:
+        if "order_number" not in locals():
+            return jsonify({"error": str(error)}), 400
+        app.logger.exception("PhonePe payment initiation failed")
+        conn = get_connection()
+        conn.execute(
+            "UPDATE orders SET status = 'payment_failed', payment_state = 'FAILED' "
+            "WHERE order_number = ? AND user_id = ? AND payment_state = 'PENDING'",
+            (order_number, session["user_id"]),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"error": "We could not start PhonePe checkout. Please try again."}), 502
+    except requests.RequestException:
+        app.logger.exception("PhonePe payment initiation failed")
+        if "order_number" in locals():
+            conn = get_connection()
+            conn.execute(
+                "UPDATE orders SET status = 'payment_failed', payment_state = 'FAILED' "
+                "WHERE order_number = ? AND user_id = ? AND payment_state = 'PENDING'",
+                (order_number, session["user_id"]),
+            )
+            conn.commit()
+            conn.close()
+        return jsonify({"error": "We could not start PhonePe checkout. Please try again."}), 502
+
+
+@app.route("/api/payments/phonepe/<merchant_order_id>/status")
+def phonepe_payment_status(merchant_order_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    if not re.fullmatch(r"TNT-[a-f0-9]{32}", merchant_order_id):
+        return jsonify({"error": "Order not found."}), 404
+
     conn = get_connection()
-    conn.execute(
-        "INSERT INTO orders (user_id, order_number, total_amount, status, items, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        (session["user_id"], order_number, total, "confirmed", json.dumps(items), now_iso()),
-    )
-    conn.commit()
-    conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
-    conn.commit()
+    order = conn.execute(
+        "SELECT id, order_number, total_amount, status, payment_state "
+        "FROM orders WHERE order_number = ? AND user_id = ?",
+        (merchant_order_id, session["user_id"]),
+    ).fetchone()
     conn.close()
-    return jsonify({"ok": True, "order_number": order_number})
+    if not order:
+        return jsonify({"error": "Order not found."}), 404
+    if order["payment_state"] == "COMPLETED":
+        return jsonify({"order_number": merchant_order_id, "state": "COMPLETED"})
+
+    try:
+        api_base, token_url, credentials = get_phonepe_settings()
+        authorization = phonepe_authorization_header(token_url, credentials)
+        response = requests.get(
+            f"{api_base}/checkout/v2/order/{merchant_order_id}/status",
+            params={"details": "false"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": authorization,
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        payment_data = response.json()
+        if not isinstance(payment_data, dict):
+            raise ValueError("PhonePe status response was invalid.")
+        payment_state = payment_data.get("state")
+        if payment_state not in {"PENDING", "FAILED", "COMPLETED"}:
+            raise ValueError("PhonePe returned an unrecognized payment state.")
+
+        expected_paisa = int(
+            (Decimal(str(order["total_amount"])) * 100).quantize(
+                Decimal("1"), rounding=ROUND_HALF_UP
+            )
+        )
+        response_amount = payment_data.get("amount")
+        if payment_state == "COMPLETED" and (
+            isinstance(response_amount, bool)
+            or not isinstance(response_amount, int)
+            or response_amount != expected_paisa
+        ):
+            app.logger.error("PhonePe amount mismatch for order %s", merchant_order_id)
+            return jsonify({"error": "Payment verification failed. Contact support."}), 502
+
+        order_status = {
+            "COMPLETED": "confirmed",
+            "FAILED": "payment_failed",
+            "PENDING": "pending",
+        }[payment_state]
+        conn = get_connection()
+        conn.execute(
+            """
+            UPDATE orders
+            SET payment_state = ?, status = ?, phonepe_order_id = COALESCE(?, phonepe_order_id)
+            WHERE id = ? AND user_id = ? AND payment_state != 'COMPLETED'
+            """,
+            (
+                payment_state,
+                order_status,
+                payment_data.get("orderId"),
+                order["id"],
+                session["user_id"],
+            ),
+        )
+        if payment_state == "COMPLETED":
+            conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
+        stored_state = conn.execute(
+            "SELECT payment_state FROM orders WHERE id = ? AND user_id = ?",
+            (order["id"], session["user_id"]),
+        ).fetchone()["payment_state"]
+        conn.commit()
+        conn.close()
+        return jsonify({"order_number": merchant_order_id, "state": stored_state})
+    except RuntimeError as error:
+        return jsonify({"error": str(error)}), 503
+    except PhonePeAuthenticationError:
+        app.logger.error(
+            "PhonePe rejected OAuth credentials while checking order status "
+            "in the configured %s environment",
+            os.environ.get("PHONEPE_ENV", "sandbox").strip().lower(),
+        )
+        return jsonify({
+            "error": (
+                "PhonePe rejected the configured credentials. Verify that "
+                "PHONEPE_CLIENT_ID, PHONEPE_CLIENT_SECRET, and "
+                "PHONEPE_CLIENT_VERSION are a matching Standard Checkout "
+                "credential set for the selected environment."
+            )
+        }), 502
+    except (requests.RequestException, ValueError, InvalidOperation):
+        app.logger.exception("PhonePe status verification failed for order %s", merchant_order_id)
+        return jsonify({"error": "We could not verify this payment yet. Please try again."}), 502
+
+
+@app.route("/shop/payment/phonepe/return")
+def phonepe_payment_return():
+    return render_template("payment_result.html")
 
 
 # ---------------------------------------------------------------

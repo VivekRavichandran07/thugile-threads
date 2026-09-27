@@ -1,5 +1,19 @@
 # Thugile Website
 
+## PhonePe Standard Checkout
+
+PhonePe settings are loaded from the project-root `.env` file when the Flask app starts. The integration defaults to sandbox; use `PHONEPE_ENV=production` only with production credentials. Keep the client secret server-side; `.env` is ignored by Git.
+
+```text
+PHONEPE_CLIENT_ID=...
+PHONEPE_CLIENT_SECRET=...
+PHONEPE_CLIENT_VERSION=...
+PHONEPE_ENV=sandbox
+PHONEPE_REDIRECT_BASE_URL=https://your-public-site.example
+```
+
+`PHONEPE_REDIRECT_BASE_URL` should be the public HTTPS URL so PhonePe can return customers to `/shop/payment/phonepe/return`; a URL path prefix is supported, and sandbox may use an HTTP localhost URL. If omitted, the app builds the return URL from the current request host. The app verifies order status through PhonePe before marking an order confirmed; sandbox credentials are required to complete a real test payment.
+
 
 
 ## Getting started

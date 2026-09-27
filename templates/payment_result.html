@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment status | Thugile & Threads</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
+  <style>
+    .payment-result{max-width:640px;margin:18vh auto;padding:40px 24px;text-align:center}.payment-result h1{font-size:clamp(2rem,5vw,3rem)}.payment-result p{line-height:1.7;color:#5c5248}.payment-result a{display:inline-block;margin:12px;color:var(--terracotta)}
+  </style>
+</head>
+<body class="inner-page">
+  <main class="payment-result">
+    <p class="eyebrow">Thugile & Threads</p>
+    <h1>Payment status</h1>
+    <p id="payment-result-message" role="status" aria-live="polite">Verifying your payment with PhonePe...</p>
+    <p id="payment-result-order"></p>
+    <a href="/shop/orders">View my orders</a>
+    <a href="/shop/">Continue shopping</a>
+  </main>
+  <script>
+    (async function verifyPayment() {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('merchantOrderId');
+      const message = document.getElementById('payment-result-message');
+      const orderDisplay = document.getElementById('payment-result-order');
+      if (!orderId) {
+        message.textContent = 'No payment order was provided.';
+        return;
+      }
+      orderDisplay.textContent = `Order: ${orderId}`;
+      try {
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+          const response = await fetch(`/api/payments/phonepe/${encodeURIComponent(orderId)}/status`, {
+            credentials: 'same-origin'
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Unable to verify payment.');
+          if (data.state === 'COMPLETED') {
+            localStorage.removeItem('tnt_cart');
+            sessionStorage.removeItem('selected_address_id');
+            message.textContent = 'Payment confirmed. Thank you for your order.';
+            return;
+          }
+          if (data.state === 'FAILED') {
+            message.textContent = 'PhonePe could not complete the payment. Your order was not confirmed.';
+            return;
+          }
+          message.textContent = 'Payment is pending confirmation. This page will check again shortly.';
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        message.textContent = 'Payment is still pending. Please check My Orders again in a moment.';
+      } catch (error) {
+        message.textContent = error.message || 'We could not verify this payment yet. Please try again shortly.';
+      }
+    })();
+  </script>
+</body>
+</html>
