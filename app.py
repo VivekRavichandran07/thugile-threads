@@ -126,6 +126,7 @@ def product_image_variants(name, image_url):
 # ---------------------------------------------------------------
 # STOREFRONT
 # ---------------------------------------------------------------
+@app.route("/")
 @app.route("/shop/")
 def shop():
     """Serve the public boutique from the same app as the inventory system."""
