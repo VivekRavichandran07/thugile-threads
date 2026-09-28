@@ -11,7 +11,7 @@ CASHFREE_ENV=sandbox
 CASHFREE_REDIRECT_BASE_URL=https://your-public-site.example
 ```
 
-`CASHFREE_REDIRECT_BASE_URL` should be the public HTTPS URL so Cashfree can return customers to `/shop/payment/cashfree/return`; a URL path prefix is supported, and sandbox may use an HTTP localhost URL. If omitted, the app builds the return URL from the current request host. Whitelist the checkout domain in Cashfree before accepting live payments. The app verifies order status with Cashfree before confirming an order.
+`CASHFREE_REDIRECT_BASE_URL` **must be set to your public HTTPS URL** for production deployments. Cashfree requires all return URLs to use HTTPS; without this variable set correctly, the API will reject payment requests with `order_meta.return_url_invalid`. The app will attempt to auto-detect the return URL from the request if this variable is omitted, but this may fail if the incoming request is via HTTP (e.g., behind a proxy or CDN). A URL path prefix is supported, and sandbox may use an HTTP localhost URL. Whitelist the checkout domain in Cashfree before accepting live payments. The app verifies order status with Cashfree before confirming an order.
 
 ## Deploy to Railway
 
@@ -29,7 +29,7 @@ CASHFREE_SECRET_KEY=<sandbox-secret-key>
 CASHFREE_REDIRECT_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 ```
 
-Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. Generate a Railway public domain before setting `CASHFREE_REDIRECT_BASE_URL`, then whitelist that domain in the Cashfree dashboard.
+Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. For production, set `CASHFREE_REDIRECT_BASE_URL` to your custom domain (e.g., `https://thugilethreads.store`), and whitelist that domain in the Cashfree dashboard.
 
 The service stores its SQLite database and uploaded images under `/data`; without the volume these files are ephemeral. If you want to retain the current local catalog, stock, orders, and uploaded product images, upload `inventory.db` to the volume as `/inventory.db` and `static/uploads/` as `/uploads/` before accepting orders. Stop the service while replacing its SQLite database, then start/redeploy it. Existing `inventory.db` and uploads are not automatically transferred by deploying the source.
 
@@ -126,3 +126,4 @@ For open source projects, say how it is licensed.
 
 ## Project status
 If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
