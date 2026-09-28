@@ -62,6 +62,22 @@ def get_google_client_id():
     return os.environ.get("GOOGLE_CLIENT_ID", "").strip() or DEFAULT_GOOGLE_CLIENT_ID
 
 
+@app.context_processor
+def google_auth_template_context():
+    return {"google_client_id": get_google_client_id()}
+
+
+def inject_google_client_id(page):
+    client_id = escape(get_google_client_id(), quote=True)
+    return re.sub(
+        r'(data-client_id\s*=\s*)(["\'])(.*?)\2',
+        lambda match: f'{match.group(1)}"{client_id}"',
+        page,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+
+
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
@@ -133,15 +149,7 @@ def shop():
     html_path = os.path.join(app.static_folder, "storefront", "index.html")
     with open(html_path, "r") as f:
         page = f.read()
-    client_id = escape(get_google_client_id(), quote=True)
-    page = re.sub(
-        r'(data-client_id\s*=\s*)(["\'])(.*?)\2',
-        lambda match: f'{match.group(1)}"{client_id}"',
-        page,
-        count=1,
-        flags=re.IGNORECASE,
-    )
-    return page
+    return inject_google_client_id(page)
 
 
 @app.route("/api/store/products")
@@ -1354,7 +1362,9 @@ def add_sale():
 
 @app.route("/shop/shipping")
 def shipping():
-    return send_from_directory(os.path.join(app.static_folder, "storefront"), "shipping.html")
+    html_path = os.path.join(app.static_folder, "storefront", "shipping.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return inject_google_client_id(f.read())
 
 
 @app.route("/shop/checkout")
