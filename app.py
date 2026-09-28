@@ -638,7 +638,7 @@ def reset_password():
 # ORDERS
 # ---------------------------------------------------------------
 def get_cashfree_settings():
-    environment = os.environ.get("CASHFREE_ENV", "sandbox").strip().lower()
+    environment = os.environ.get("CASHFREE_ENV", "production").strip().lower()
     if environment == "sandbox":
         api_base = "https://sandbox.cashfree.com/pg"
     elif environment == "production":
