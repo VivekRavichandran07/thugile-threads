@@ -384,3 +384,5 @@ body[data-show-login="true"] .container {
 .toast.show {
   opacity: 1;
 }
+
+.back-link{font:500 14px "Source Sans 3",sans-serif;letter-spacing:.01em;text-transform:uppercase}

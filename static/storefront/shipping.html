@@ -3,42 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shipping Information | Thugile & Threads</title>
+  <title>Addresses &amp; Orders | Thugile &amp; Threads</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter+Tight:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/storefront/style.css" />
   <link rel="icon" href="/static/storefront/assets/thugile-and-threads-logo.png" type="image/png">
   <script src="https://accounts.google.com/gsi/client" async></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@500&family=Cormorant+Garamond:wght@500;600&family=DM+Serif+Display&family=Italiana&family=Prata&display=swap" rel="stylesheet">
 </head>
 <body class="inner-page">
   <div class="grain"></div>
 
-  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
-    <img src="/static/storefront/assets/thugile-and-threads-logo.png" alt="Thugile & Threads">
-    <span class="logo-text">Thugile & Threads</span>
-  </a>
-
   <header class="site-header">
     <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
     <div class="header-inner">
+      <a class="header-wordmark" href="/shop/">Thugile &amp; Threads</a>
       <nav class="main-nav">
         <a href="/shop/collections">Collections</a>
         <a href="/shop/our-story">Our story</a>
         <a href="/shop/#contact">Visit us</a>
       </nav>
       <div class="header-actions">
-        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="icon-btn search-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
         <div id="search-overlay" class="search-overlay">
           <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
           <div id="search-results" class="search-results"></div>
         </div>
         <button class="wishlist-btn-header" aria-label="Wishlist">
-          ♥ <span id="wishlist-count">0</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg> <span id="wishlist-count">0</span>
         </button>
-        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="" aria-hidden="true" width="24" height="24"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></button>
           <div class="profile-dropdown" id="profile-dropdown"></div>
         </div>
       </div>
@@ -67,14 +64,16 @@
     <div class="wishlist-items" id="wishlist-items"></div>
   </aside>
 
-  <main style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:100px 20px;">
-    <div style="max-width:600px;width:100%;">
+  <main class="shipping-page account-page">
+    <div class="account-grid">
+    <div class="checkout-section shipping-section">
+      <p class="shipping-step">Your account · Delivery addresses</p>
       <h1 style="font-family:var(--serif);font-size:clamp(2rem,4.5vw,3rem);margin:0 0 8px;letter-spacing:-.03em;">Shipping Information</h1>
       <p style="margin:0 0 24px;color:#5c5248;font-size:16px;">Please fill in your shipping details below</p>
       
       <div id="saved-addresses" style="margin-bottom:32px;">
         <h2 style="font-size:18px;margin:0 0 16px;letter-spacing:-.02em;">Saved Addresses</h2>
-        <div id="addresses-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;"></div>
+        <div id="addresses-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;"></div>
         <div id="add-address-wrapper" style="margin-top:16px;">
           <button id="add-address-btn" type="button" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase; position:relative; z-index:1;">
             <span>+</span> Add New Address
@@ -82,6 +81,8 @@
         </div>
       </div>
       
+      <p id="address-selection-error" class="address-selection-error" role="alert" aria-live="polite"></p>
+
       <form id="shipping-form" style="display:none;flex-direction:column;gap:16px;">
         <img src="https://ucarecdn.com/412d5bde-bec7-49c8-94c9-f6df6434ed12/address.png" alt="Address Form Image" class="form-img" style="display:block;margin:0 auto 24px;max-width:160px;width:100%;">
         <div>
@@ -118,8 +119,15 @@
       </form>
       
       <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--line);text-align:left;">
-        <a href="/shop/orders" style="color:var(--ink);text-decoration:none;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;display:inline-block;">My Orders →</a>
+        <a href="/shop/" class="back-link">← Back to shop</a>
       </div>
+    </div>
+    <section class="checkout-section account-orders" aria-labelledby="orders-heading">
+      <p class="shipping-step">Your account · Order history</p>
+      <h2 id="orders-heading">My Orders</h2>
+      <p class="account-subtitle">Track and manage your orders</p>
+      <div id="orders-list" aria-live="polite"><p class="no-orders">Loading orders...</p></div>
+    </section>
     </div>
   </main>
 
@@ -244,10 +252,12 @@
   const addressesList = document.getElementById('addresses-list');
   const addAddressWrapper = document.getElementById('add-address-wrapper');
   const shippingError = document.getElementById('shipping-error');
+  const addressSelectionError = document.getElementById('address-selection-error');
+  let selectedAddressId = null;
 
   // Make these global so onclick works
   window.showAddForm = function() {
-    console.log("Add clicked");
+    addressSelectionError.textContent = '';
     if (shippingForm) {
       shippingForm.style.display = 'flex';
       shippingForm.querySelectorAll('input, textarea').forEach(i => i.value = '');
@@ -270,6 +280,10 @@
   });
 
   async function loadAddresses() {
+    selectedAddressId = null;
+    document.getElementById('continue-to-payment-btn')?.remove();
+    addressSelectionError.textContent = '';
+    hideAddForm();
     try {
       const checkRes = await fetch('/api/auth/me');
       const checkData = await checkRes.json();
@@ -281,31 +295,30 @@
       const data = await res.json();
       if (res.ok && data.addresses && data.addresses.length) {
         addressesList.innerHTML = data.addresses.map(addr => `
-          <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" style="padding:16px;background:#f8f6f3;border-radius:8px;border:1px solid var(--line);text-align:left;cursor:pointer;font:inherit;color:inherit;">
+          <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" aria-pressed="false">
             <strong>${escapeHtml(addr.name)}</strong>
-            <p style="margin:4px 0 0;font-size:13px;color:#7a6e62;">${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
+            <p>${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
           </button>
         `).join('');
-        addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" disabled onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Continue to payment</button>');
+        addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" aria-describedby="address-selection-error" onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Continue to payment</button>');
       } else {
         addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
       }
 
       window.selectAddress = function(addressId) {
-        sessionStorage.setItem('selected_address_id', String(addressId));
+        selectedAddressId = String(addressId);
+        sessionStorage.setItem('selected_address_id', selectedAddressId);
+        addressSelectionError.textContent = '';
         document.querySelectorAll('.saved-address-card').forEach(card => {
           const selected = card.dataset.addressId === String(addressId);
           card.classList.toggle('selected', selected);
-          card.style.borderColor = selected ? 'var(--ink)' : 'var(--line)';
-          card.style.background = selected ? '#fff' : '#f8f6f3';
+          card.setAttribute('aria-pressed', String(selected));
         });
-        const continueButton = document.getElementById('continue-to-payment-btn');
-        if (continueButton) continueButton.disabled = false;
       };
 
       window.continueToPayment = function() {
-        if (!sessionStorage.getItem('selected_address_id')) {
-          shippingError.textContent = 'Please select a shipping address first.';
+        if (!selectedAddressId) {
+          addressSelectionError.textContent = 'Please choose an address to proceed.';
           return;
         }
         window.location.href = '/shop/checkout';
@@ -377,7 +390,45 @@
     }
   };
 
-  loadAddresses();
+    async function loadOrdersPage() {
+      const list = document.getElementById('orders-list');
+      if (!currentUser) {
+        list.innerHTML = '<p class="no-orders">Please login to view your orders.</p>';
+        return;
+      }
+      try {
+        const res = await fetch('/api/orders');
+        if (!res.ok) throw new Error('Could not load orders');
+        const data = await res.json();
+        if (!data.orders || !data.orders.length) {
+          list.innerHTML = '<p class="no-orders">Please make an order to see your past orders.</p>';
+          return;
+        }
+        const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+        list.innerHTML = data.orders.map(order => {
+          let items = [];
+          try { items = JSON.parse(order.items); } catch {}
+          const date = new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          const itemsList = items.map(i => `${escapeHtml(i.name)} × ${escapeHtml(i.qty)}`).join(', ');
+          return `<div class="order-item">
+            <div class="order-header">
+              <span class="order-number">${escapeHtml(order.order_number)}</span>
+              <span class="order-status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
+            </div>
+            <p class="order-date">${date}</p>
+            <p class="order-items">${itemsList}</p>
+            <p class="order-total">Total: ${rupees(order.total_amount)}</p>
+          </div>`;
+        }).join('');
+      } catch {
+        list.innerHTML = '<p class="no-orders">Failed to load orders. Please try again.</p>';
+      }
+    }
+
+  document.addEventListener('account-updated', () => {
+    loadAddresses();
+    loadOrdersPage();
+  });
 </script>
 </body>
 </html>

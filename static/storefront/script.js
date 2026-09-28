@@ -15,7 +15,6 @@ const wishlistSidebar = document.querySelector('#wishlist-sidebar');
 const wishlistOverlay = document.querySelector('#wishlist-overlay');
 const wishlistClose = document.querySelector('#wishlist-close');
 const wishlistItems = document.querySelector('#wishlist-items');
-const floatingLogo = document.querySelector('.floating-logo');
 const productOverlay = document.getElementById('product-overlay');
 const productPopup = document.getElementById('product-popup');
 const productPopupClose = document.getElementById('product-popup-close');
@@ -38,7 +37,7 @@ const fallbackImages = [
   '/static/storefront/assets/Chudidar/image-3.jpg',
   '/static/storefront/assets/Chudidar/image-4.jpg'
 ];
-var bag = [], toastTimer, lastScrollY = 0, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null, searchProducts = [];
+var bag = [], toastTimer, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null, searchProducts = [];
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const imageFor = (url, index, name) => {
   const imageMap = {
@@ -399,7 +398,7 @@ function renderProducts(products) {
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
     const availableSizes = product.available_sizes || [];
     const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
-    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}<button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div></div></article>`;
+    return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
   observeReveals();
   setupImageHoverSlides();
@@ -698,34 +697,6 @@ document.querySelectorAll('[data-before-after]').forEach(compare => {
   updateCompare();
 });
 
-function handleLogoScroll() {
-  if (!floatingLogo) return;
-  const header = document.querySelector('.site-header');
-  const footer = document.querySelector('.site-footer');
-  const currentY = window.scrollY;
-
-  if (document.body.classList.contains('inner-page')) {
-    if (footer) {
-      const footerTop = footer.getBoundingClientRect().top;
-      const logoHeight = floatingLogo.offsetHeight;
-      if (footerTop < logoHeight + 120) {
-        floatingLogo.classList.add('logo-hidden');
-      } else {
-        floatingLogo.classList.remove('logo-hidden');
-      }
-    }
-  } else {
-    if (currentY > 80) {
-      floatingLogo.classList.add('logo-scrolled');
-      if (header) header.classList.add('logo-scrolled');
-    } else {
-      floatingLogo.classList.remove('logo-scrolled');
-      if (header) header.classList.remove('logo-scrolled');
-    }
-  }
-  lastScrollY = currentY;
-}
-window.addEventListener('scroll', handleLogoScroll, {passive:true});
 
 function observeReveals() {
   const revealElements = document.querySelectorAll('.reveal:not(.visible)');
@@ -865,7 +836,7 @@ async function updateAuthUI() {
         </div>
         <div class="profile-links">
           <a href="/shop/shipping" class="profile-link">Shipping Address</a>
-          <a href="/shop/orders" class="profile-link">My Orders</a>
+          <a href="/shop/shipping" class="profile-link">My Orders</a>
           <button class="profile-link" id="logout-btn">Logout</button>
         </div>
       `;
@@ -873,11 +844,12 @@ async function updateAuthUI() {
       if (logoutBtn) logoutBtn.addEventListener('click', logout);
     }
   } else {
-    authBtn.innerHTML = '<img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true">';
+    authBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>';
     authBtn.title = 'Account';
     authBtn.classList.remove('logged-in');
     if (profileDropdown) profileDropdown.classList.remove('open');
   }
+  document.dispatchEvent(new Event('account-updated'));
 }
 
 async function checkAuth() {
@@ -1249,7 +1221,7 @@ async function logout() {
     if (placeOrderBtn) placeOrderBtn.disabled = true;
   }
   if (authBtn) {
-    authBtn.innerHTML = '<img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true">';
+    authBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>';
     authBtn.title = 'Account';
     authBtn.classList.remove('logged-in');
   }
@@ -1286,16 +1258,15 @@ async function syncWishlistToServer() {
 async function init() {
   console.log('init() called');
   document.querySelectorAll('img:not([loading])').forEach(image => {
-    if (!image.closest('.site-header, .floating-logo')) image.loading = 'lazy';
+    if (!image.closest('.site-header')) image.loading = 'lazy';
     image.decoding = 'async';
   });
   await checkAuth();
-  handleLogoScroll();
   updateWishlistUI();
   if (document.querySelector('.collection-section') || document.querySelector('.collections-page')) {
     loadCatalog();
   }
-  if (typeof loadOrdersPage === 'function') {
+  if (!document.querySelector('.account-page') && typeof loadOrdersPage === 'function') {
     loadOrdersPage();
   }
   if (typeof renderCheckout === 'function') {

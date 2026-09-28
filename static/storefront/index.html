@@ -11,35 +11,32 @@
   <link rel="stylesheet" href="/static/storefront/style.css" />
   <script src="https://accounts.google.com/gsi/client" async></script>
   <link rel="icon" href="/static/storefront/assets/thugile-and-threads-logo.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@500&family=Cormorant+Garamond:wght@500;600&family=DM+Serif+Display&family=Italiana&family=Prata&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="grain"></div>
 
-  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
-    <img src="/static/storefront/assets/thugile-and-threads-logo.png" alt="Thugile & Threads">
-    <span class="logo-text">Thugile & Threads</span>
-  </a>
-
   <header class="site-header">
     <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
     <div class="header-inner">
+      <a class="header-wordmark" href="/shop/">Thugile &amp; Threads</a>
       <nav class="main-nav">
         <a href="/shop/collections">Collections</a>
         <a href="/shop/our-story">Our story</a>
         <a href="#contact">Visit us</a>
       </nav>
       <div class="header-actions">
-        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="icon-btn search-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
         <div id="search-overlay" class="search-overlay">
           <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
           <div id="search-results" class="search-results"></div>
         </div>
         <button class="wishlist-btn-header" aria-label="Wishlist">
-          ♥ <span id="wishlist-count">0</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg> <span id="wishlist-count">0</span>
         </button>
-        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="" aria-hidden="true" width="24" height="24"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-        <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
+        <button class="auth-btn-header" id="auth-btn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></button>
         <div class="profile-dropdown" id="profile-dropdown"></div>
       </div>
     </div>
@@ -174,35 +171,35 @@
       <div class="products">
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png" alt="Rust embroidered chudidar set" loading="lazy"><span class="tag">New arrival</span></div>
-          <div class="product-info"><div><h3>Gulmohar Set</h3><p>Rust · embroidered cotton silk</p></div><div class="buy"><strong>₹ 4,850</strong><button data-item="Gulmohar Set" data-price="4850">Add to bag</button><button class="size-guide-btn" data-item="Gulmohar Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Gulmohar Set</h3><p>Rust · embroidered cotton silk</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Gulmohar Set">Size Guide</button></div><div class="buy"><strong>₹ 4,850</strong><button data-item="Gulmohar Set" data-price="4850">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/image-1.png" alt="Blue occasionwear chudidar" loading="lazy"></div>
-          <div class="product-info"><div><h3>Neelam Set</h3><p>Indigo · hand block print</p></div><div class="buy"><strong>₹ 3,950</strong><button data-item="Neelam Set" data-price="3950">Add to bag</button><button class="size-guide-btn" data-item="Neelam Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Neelam Set</h3><p>Indigo · hand block print</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Neelam Set">Size Guide</button></div><div class="buy"><strong>₹ 3,950</strong><button data-item="Neelam Set" data-price="3950">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/image-2.jpg" alt="Rose pink embroidered salwar suit" loading="lazy"><span class="tag">Bestseller</span></div>
-          <div class="product-info"><div><h3>Rosa Set</h3><p>Rose · zari detail</p></div><div class="buy"><strong>₹ 5,250</strong><button data-item="Rosa Set" data-price="5250">Add to bag</button><button class="size-guide-btn" data-item="Rosa Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Rosa Set</h3><p>Rose · zari detail</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Rosa Set">Size Guide</button></div><div class="buy"><strong>₹ 5,250</strong><button data-item="Rosa Set" data-price="5250">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/image-3.jpg" alt="Green festive Indian suit" loading="lazy"></div>
-          <div class="product-info"><div><h3>Maragatham Set</h3><p>Emerald · woven tissue</p></div><div class="buy"><strong>₹ 6,150</strong><button data-item="Maragatham Set" data-price="6150">Add to bag</button><button class="size-guide-btn" data-item="Maragatham Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Maragatham Set</h3><p>Emerald · woven tissue</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Maragatham Set">Size Guide</button></div><div class="buy"><strong>₹ 6,150</strong><button data-item="Maragatham Set" data-price="6150">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/image-4.jpg" alt="Mustard yellow Indian outfit" loading="lazy"></div>
-          <div class="product-info"><div><h3>Manjal Set</h3><p>Marigold · mul cotton</p></div><div class="buy"><strong>₹ 3,650</strong><button data-item="Manjal Set" data-price="3650">Add to bag</button><button class="size-guide-btn" data-item="Manjal Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Manjal Set</h3><p>Marigold · mul cotton</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Manjal Set">Size Guide</button></div><div class="buy"><strong>₹ 3,650</strong><button data-item="Manjal Set" data-price="3650">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/PavaiHandloomSet.png" alt="Ivory traditional chudidar" loading="lazy"><span class="tag">Limited</span></div>
-          <div class="product-info"><div><h3>Vennila Set</h3><p>Ivory · mukaish work</p></div><div class="buy"><strong>₹ 5,750</strong><button data-item="Vennila Set" data-price="5750">Add to bag</button><button class="size-guide-btn" data-item="Vennila Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Vennila Set</h3><p>Ivory · mukaish work</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Vennila Set">Size Guide</button></div><div class="buy"><strong>₹ 5,750</strong><button data-item="Vennila Set" data-price="5750">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/KalamkariPrintSet.png" alt="Terracotta festive chudidar set" loading="lazy"></div>
-          <div class="product-info"><div><h3>Thamarai Set</h3><p>Terracotta · thread embroidery</p></div><div class="buy"><strong>₹ 4,450</strong><button data-item="Thamarai Set" data-price="4450">Add to bag</button><button class="size-guide-btn" data-item="Thamarai Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Thamarai Set</h3><p>Terracotta · thread embroidery</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Thamarai Set">Size Guide</button></div><div class="buy"><strong>₹ 4,450</strong><button data-item="Thamarai Set" data-price="4450">Add to bag</button></div></div>
         </article>
         <article class="product">
           <div class="product-image reveal"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.png" alt="Purple silk chudidar set" loading="lazy"><span class="tag">New arrival</span></div>
-          <div class="product-info"><div><h3>Mayil Set</h3><p>Mulberry · silk blend</p></div><div class="buy"><strong>₹ 5,950</strong><button data-item="Mayil Set" data-price="5950">Add to bag</button><button class="size-guide-btn" data-item="Mayil Set">Size Guide</button></div></div>
+          <div class="product-info"><div><h3>Mayil Set</h3><p>Mulberry · silk blend</p><div class="product-card-sizes"></div><button class="size-guide-btn" data-item="Mayil Set">Size Guide</button></div><div class="buy"><strong>₹ 5,950</strong><button data-item="Mayil Set" data-price="5950">Add to bag</button></div></div>
         </article>
       </div>
     </section>

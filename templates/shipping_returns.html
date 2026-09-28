@@ -18,36 +18,34 @@
     .policy-section p{margin:0 0 12px;font-size:15px;line-height:1.7;color:#3d3229}
     .policy-section ul{margin:0;padding-left:20px}
     .policy-section li{margin-bottom:8px;font-size:15px;line-height:1.7;color:#3d3229}
-    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:0;padding-bottom:2px}
+    .back-link{display:inline-block;margin-bottom:32px;color:var(--ink);text-decoration:none;font:500 14px "Source Sans 3",sans-serif;letter-spacing:.01em;text-transform:uppercase;border-bottom:0;padding-bottom:2px}
   </style>
   <script src="https://accounts.google.com/gsi/client" async></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@500&family=Cormorant+Garamond:wght@500;600&family=DM+Serif+Display&family=Italiana&family=Prata&display=swap" rel="stylesheet">
 </head>
 <body class="inner-page">
   <div class="grain"></div>
-  <a class="floating-logo" href="#top" aria-label="Thugile and Threads home">
-    <img src="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" alt="Thugile & Threads">
-    <span class="logo-text">Thugile & Threads</span>
-  </a>
   <header class="site-header">
     <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹2,499 · 2+ items 10% off · 3+ items 15% off * No COD * No Returns</span></div></div>
     <div class="header-inner">
+      <a class="header-wordmark" href="/shop/">Thugile &amp; Threads</a>
       <nav class="main-nav">
         <a href="/shop/collections">Collections</a>
         <a href="/shop/our-story">Our story</a>
         <a href="/shop/#contact">Visit us</a>
       </nav>
       <div class="header-actions">
-        <button class="icon-btn search-btn" aria-label="Search">⌕</button>
+        <button class="icon-btn search-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
         <div id="search-overlay" class="search-overlay">
           <input type="text" id="search-input" placeholder="Search products..." class="search-input" />
           <div id="search-results" class="search-results"></div>
         </div>
         <button class="wishlist-btn-header" aria-label="Wishlist">
-          ♥ <span id="wishlist-count">0</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg> <span id="wishlist-count">0</span>
         </button>
-        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="Bag" width="30" height="30"><span id="bag-count" class="bag-badge">0</span></span></button>
+        <button class="bag" aria-label="Shopping bag" id="bag-btn"><span class="bag-icon-wrap"><img src="/static/storefront/assets/shopping.png" alt="" aria-hidden="true" width="24" height="24"><span id="bag-count" class="bag-badge">0</span></span></button>
         <div class="auth-menu">
-          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><img src="/static/storefront/assets/sign-in-icon.png" alt="" aria-hidden="true"></button>
+          <button class="auth-btn-header" id="auth-btn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></button>
           <div class="profile-dropdown" id="profile-dropdown"></div>
         </div>
       </div>

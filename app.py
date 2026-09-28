@@ -1420,7 +1420,7 @@ def privacy_policy():
 
 @app.route("/shop/orders")
 def orders():
-    return render_template("orders.html")
+    return redirect(url_for("shipping"))
 
 
 @app.route("/api/orders")
