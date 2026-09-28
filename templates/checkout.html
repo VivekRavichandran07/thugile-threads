@@ -72,6 +72,7 @@
   white-space:nowrap;
 }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body class="inner-page checkout-page">
   <div class="grain"></div>
@@ -221,7 +222,17 @@
             <input type="text" id="auth-identifier" placeholder="Mobile number or email" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);margin-bottom:12px;box-sizing:border-box;">
             <button type="submit" class="auth-submit" style="width:100%;">Continue</button>
           </form>
-          <p style="margin:16px 0 0;font-size:12px;color:#7a6e62;text-align:center;">By continuing, you agree to Thugile & Threads's Conditions</p>
+                    <div style="margin:18px 0;text-align:center">
+            <span style="display:inline-block;width:1px;height:1px;background:#ccc;border-radius:50%"></span>
+            <span style="margin:0 10px;font-size:12px;color:#7a6e62;text-transform:uppercase;letter-spacing:.05em">or sign in with</span>
+            <span style="display:inline-block;width:1px;height:1px;background:#ccc;border-radius:50%"></span>
+          </div>
+          <div id="g_id_onload" data-auto_prompt="false" data-callback="handleGoogleCredentialResponse" data-client_id="">
+          </div>
+          <div class="g_id_signin" style="margin-bottom:16px;text-align:center">
+            <div id="google-button-container"></div>
+          </div>
+<p style="margin:16px 0 0;font-size:12px;color:#7a6e62;text-align:center;">By continuing, you agree to Thugile & Threads's Conditions</p>
           <p style="margin:8px 0 0;font-size:12px;text-align:center;"><a href="#" id="forgot-password-link" style="color:var(--terracotta);text-decoration:none;">Forgot password?</a></p>
         </div>
 
