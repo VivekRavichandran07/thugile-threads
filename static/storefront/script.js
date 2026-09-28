@@ -144,6 +144,29 @@ function updateCartUI() {
   renderCartItems();
 }
 
+function cartQuantityControls(item, index) {
+  return `<div class="cart-quantity" role="group" aria-label="Quantity for ${escapeHtml(item.name)}">
+    <button type="button" data-cart-quantity="-1" data-idx="${index}" aria-label="Decrease quantity" ${item.qty <= 1 ? 'disabled' : ''}>−</button>
+    <output aria-label="Quantity" aria-live="polite">${item.qty}</output>
+    <button type="button" data-cart-quantity="1" data-idx="${index}" aria-label="Increase quantity" ${item.qty >= 100 ? 'disabled' : ''}>+</button>
+  </div>`;
+}
+
+function changeCartQuantity(index, delta) {
+  if (!Number.isInteger(index) || !bag[index] || ![-1, 1].includes(delta)) return;
+  const quantity = Math.max(1, Math.min(100, Number(bag[index].qty) + delta));
+  if (quantity === bag[index].qty) return;
+  bag[index].qty = quantity;
+  saveCart();
+  if (document.getElementById('checkout-items')) renderCheckout(false);
+}
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('button[data-cart-quantity]');
+  if (!button || button.disabled) return;
+  changeCartQuantity(Number(button.dataset.idx), Number(button.dataset.cartQuantity));
+});
+
 function renderCartItems() {
   if (!cartItems) return;
   if (!checkoutBtn) return;
@@ -161,7 +184,8 @@ function renderCartItems() {
       <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
       <div class="cart-item-info">
         <p class="cart-item-name">${escapeHtml(item.name)}</p>
-        <p class="cart-item-meta">Size: ${item.size || 'M'} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
+        <p class="cart-item-meta">Size: ${item.size || 'M'} · ${rupees(item.price)} each</p>
+        ${cartQuantityControls(item, idx)}
         <button class="cart-item-remove" data-idx="${idx}">Remove</button>
       </div>
       <strong>${rupees(item.price * item.qty)}</strong>
@@ -922,7 +946,8 @@ function renderCheckout() {
       <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
       <div class="cart-item-info">
         <p class="cart-item-name">${escapeHtml(item.name)}</p>
-        <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
+        <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · ${rupees(item.price)} each</p>
+        ${cartQuantityControls(item, idx)}
         <button class="cart-item-remove" data-idx="${idx}" onclick="removeFromBag(${idx}); renderCheckout();">Remove</button>
       </div>
       <strong>${rupees(item.price * item.qty)}</strong>
@@ -1232,15 +1257,16 @@ async function logout() {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-async function syncCartToServer() {
+let cartSyncQueue = Promise.resolve();
+function syncCartToServer() {
   if (!currentUser) return;
-  try {
-    await fetch('/api/user/cart', {
+  const body = JSON.stringify({ cart: bag });
+  cartSyncQueue = cartSyncQueue.catch(() => {}).then(() => fetch('/api/user/cart', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cart: bag }),
-    });
-  } catch {}
+      body,
+    })).catch(() => {});
+  return cartSyncQueue;
 }
 
 async function syncWishlistToServer() {

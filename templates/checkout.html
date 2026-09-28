@@ -320,8 +320,8 @@
       }
     }
 
-    async function renderCheckout() {
-      await renderSelectedAddress();
+    async function renderCheckout(refreshAddress = true) {
+      if (refreshAddress) await renderSelectedAddress();
       loadCart();
       const itemsEl = document.getElementById('checkout-items');
       const totalEl = document.getElementById('checkout-total');
@@ -345,7 +345,8 @@
           <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
           <div class="cart-item-info">
             <p class="cart-item-name">${escapeHtml(item.name)}</p>
-            <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · Qty: ${item.qty} · ${rupees(item.price)} each</p>
+            <p class="cart-item-meta">Size: ${escapeHtml(item.size || 'M')} · ${rupees(item.price)} each</p>
+            ${cartQuantityControls(item, idx)}
             <button class="cart-item-remove" data-idx="${idx}" onclick="removeFromBag(${idx}); renderCheckout();">Remove</button>
           </div>
           <strong>${rupees(item.price * item.qty)}</strong>

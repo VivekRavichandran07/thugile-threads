@@ -113,7 +113,7 @@
           <label style="display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;opacity:.7;">Pincode*</label>
           <input type="text" id="shipping-pincode" placeholder="Pincode" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
-        <button type="button" id="proceed-btn" onclick="saveAndGo()" style="width:100%;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Proceed to Pay</button>
+        <button type="button" id="save-address-btn" onclick="saveAddress()" style="width:100%;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Add to address</button>
         <p id="shipping-error" style="margin:0;font-size:13px;color:#c0392b;min-height:18px;"></p>
         <button type="button" id="cancel-form-btn" onclick="hideAddForm()" style="width:100%;padding:10px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;">Cancel</button>
       </form>
@@ -255,6 +255,11 @@
   const addressSelectionError = document.getElementById('address-selection-error');
   let selectedAddressId = null;
 
+  shippingForm.addEventListener('submit', event => {
+    event.preventDefault();
+    saveAddress();
+  });
+
   // Make these global so onclick works
   window.showAddForm = function() {
     addressSelectionError.textContent = '';
@@ -293,14 +298,15 @@
       }
       const res = await fetch('/api/user/addresses');
       const data = await res.json();
-      if (res.ok && data.addresses && data.addresses.length) {
+      if (!res.ok) throw new Error('Could not load addresses');
+      if (data.addresses && data.addresses.length) {
         addressesList.innerHTML = data.addresses.map(addr => `
           <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" aria-pressed="false">
             <strong>${escapeHtml(addr.name)}</strong>
             <p>${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
           </button>
         `).join('');
-        addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" aria-describedby="address-selection-error" onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Continue to payment</button>');
+        addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" aria-describedby="address-selection-error" onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Proceed to pay</button>');
       } else {
         addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
       }
@@ -324,11 +330,14 @@
         window.location.href = '/shop/checkout';
       };
     } catch (err) {
-      addressesList.innerHTML = '<p style="color:#7a6e62;">No saved addresses yet.</p>';
+      addressesList.innerHTML = '<p role="alert">Could not load addresses. Please refresh to try again.</p>';
     }
   }
 
-  window.saveAndGo = async function() {
+  window.saveAddress = async function() {
+    const saveButton = document.getElementById('save-address-btn');
+    if (saveButton.disabled) return;
+    shippingError.textContent = '';
     const nameInput = document.getElementById('shipping-name');
     const emailInput = document.getElementById('shipping-email');
     const phoneInput = document.getElementById('shipping-phone');
@@ -354,39 +363,33 @@
       return;
     }
 
+    if (!shippingForm.reportValidity()) return;
     const shippingData = { name, email, phone, address, address_line_2, city, pincode };
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
     try {
       const res = await fetch('/api/user/addresses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(shippingData),
       });
-
       if (!res.ok) {
         const data = await res.json();
         shippingError.textContent = data.error || 'Failed to save address';
         return;
       }
+      sessionStorage.removeItem('shipping_form_data');
+      sessionStorage.removeItem('selected_address_id');
+      await loadAddresses();
+      toast.textContent = 'Address added. Choose an address to proceed to pay.';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
     } catch (e) {
       shippingError.textContent = 'Network error. Please try again.';
-      return;
-    }
-
-    try {
-      sessionStorage.removeItem('shipping_form_data');
-    } catch {}
-
-    toast.textContent = 'Address saved! Proceeding to checkout...';
-    try { toast.classList.add('show'); } catch {}
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { try { toast.classList.remove('show'); } catch {} }, 2600);
-
-    const res = await fetch('/api/user/addresses');
-    const data = await res.json();
-    const savedAddress = data.addresses && data.addresses[data.addresses.length - 1];
-    if (savedAddress) {
-      selectAddress(savedAddress.id);
-      window.location.href = '/shop/checkout';
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = 'Add to address';
     }
   };
 
