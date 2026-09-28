@@ -687,6 +687,29 @@ def cashfree_api_headers(credentials):
     }
 
 
+def cashfree_error_details(error):
+    response = error.response
+    if response is None:
+        return None
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+
+    details = {"status": response.status_code}
+    for key in ("code", "type", "message"):
+        value = payload.get(key)
+        if isinstance(value, str):
+            value = " ".join(value.split())[:250]
+            if key == "message":
+                value = re.sub(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b", "[redacted]", value)
+                value = re.sub(r"\b\d{7,}\b", "[redacted]", value)
+            details[key] = value
+    return details
+
+
 def cashfree_return_url(order_number):
     redirect_path = url_for("cashfree_payment_return", order_id=order_number)
     public_base_url = os.environ.get("CASHFREE_REDIRECT_BASE_URL", "").strip()
@@ -872,7 +895,10 @@ def cashfree_create_payment():
         conn.commit()
         conn.close()
         return jsonify({"error": "We could not start Cashfree checkout. Please try again."}), 502
-    except requests.RequestException:
+    except requests.RequestException as error:
+        details = cashfree_error_details(error)
+        if details:
+            app.logger.error("Cashfree order API rejected request: %s", details)
         app.logger.exception("Cashfree payment initiation failed")
         if "order_number" in locals():
             conn = get_connection()

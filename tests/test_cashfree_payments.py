@@ -247,12 +247,19 @@ def test_cashfree_checkout_reports_missing_server_credentials(cashfree_client, m
 
 
 def test_cashfree_order_creation_failure_does_not_leave_pending_order(
-    cashfree_client, monkeypatch
+    cashfree_client, monkeypatch, caplog
 ):
     client, database_path = cashfree_client
     monkeypatch.setattr(
         "app.requests.post",
-        lambda *args, **kwargs: FakeResponse({"message": "bad credentials"}, status_code=401),
+        lambda *args, **kwargs: FakeResponse(
+            {
+                "code": "invalid_request",
+                "type": "invalid_request_error",
+                "message": "customer_phone must contain 10 digits",
+            },
+            status_code=400,
+        ),
     )
 
     response = client.post(
@@ -268,3 +275,5 @@ def test_cashfree_order_creation_failure_does_not_leave_pending_order(
     state = conn.execute("SELECT status, payment_state FROM orders").fetchone()
     conn.close()
     assert state == ("payment_failed", "FAILED")
+    assert "customer_phone must contain 10 digits" in caplog.text
+    assert "invalid_request" in caplog.text
