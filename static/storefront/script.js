@@ -1,3 +1,39 @@
+if (document.querySelector('.site-header')) {
+  const socialLinks = [
+    {
+      label: 'Instagram',
+      href: 'https://www.instagram.com/thugile_and_threads/',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.6" cy="6.6" r="1.1" fill="currentColor"/></svg>',
+      external: true
+    },
+    {
+      label: 'Facebook',
+      href: 'https://www.facebook.com/thugileandthreads',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.3V13h2.8v8z"/></svg>',
+      external: true
+    },
+    {
+      label: 'WhatsApp',
+      href: 'https://wa.me/c/230554632978683',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 11.8a8.1 8.1 0 0 1-12 7.1L4 20l1.1-4a8.1 8.1 0 1 1 15.1-4.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8.5c.2-.4.4-.4.7-.4h.4c.2 0 .3.1.4.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.2.2-.2.3 0 .6.5.8 1.1 1.4 1.9 1.8.3.2.4.2.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.5.7c.2.1.3.2.3.4 0 .3-.2 1.1-.7 1.5-.4.4-1 .6-1.6.5-1-.2-2.2-.7-3.4-1.8-1-.9-1.7-2.1-1.9-3.1-.2-.7 0-1.4.4-1.9Z" fill="currentColor"/></svg>',
+      external: true
+    },
+    {
+      label: 'Email',
+      href: 'mailto:thugile.official@gmail.com',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      external: false
+    }
+  ];
+  const socialRail = document.createElement('nav');
+  socialRail.className = 'social-rail';
+  socialRail.setAttribute('aria-label', 'Reach us');
+  socialRail.innerHTML = socialLinks.map(({label, href, icon, external}) =>
+    `<a class="social-rail-link social-rail-${label.toLowerCase()}" href="${href}" aria-label="${label}" title="${label}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>${icon}</a>`
+  ).join('');
+  document.body.append(socialRail);
+}
+
 const count = document.querySelector('#bag-count');
 const wishlistCount = document.querySelector('#wishlist-count');
 const toast = document.querySelector('#toast');

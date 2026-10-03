@@ -39,6 +39,25 @@ input,textarea,select,button{border-radius:10px}
 .back-link{border-bottom:0!important;text-decoration:none!important}
 .add-to-bag-btn,.size-guide-btn{border-bottom:0!important;text-decoration:none!important}
 .footer-col a{white-space:nowrap}
+#newsletter-signup .eyebrow{margin:0}
+.footer-col h4{color:#fff;opacity:1}
+.footer-col a{opacity:.9}
+.footer-inner{flex-wrap:wrap}
+.footer-reach{flex:0 0 100%;width:100%;display:flex;align-items:center;gap:36px;scroll-margin-top:100px}
+.footer-reach h4{flex:0 0 auto;margin:0;color:#fff;font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.footer-reach-links{display:flex;flex-wrap:wrap;align-items:center;gap:clamp(24px,5vw,72px)}
+.footer-reach-links a{color:var(--cream);text-decoration:none;font-size:14px;opacity:.9;transition:opacity .3s ease,color .3s ease}
+.footer-reach-links a:hover{opacity:1;color:#fff}
+.social-rail{position:fixed;left:16px;top:50%;z-index:250;display:flex;flex-direction:column;gap:10px;transform:translateY(-50%)}
+.social-rail-link{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(26,21,18,.12);border-radius:50%;background:rgba(255,255,255,.96);color:var(--ink);box-shadow:0 4px 16px rgba(26,21,18,.12);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease,color .25s ease,background .25s ease}
+.social-rail-link svg{width:20px;height:20px}
+.social-rail-instagram:hover{background:linear-gradient(45deg,#feda75 0%,#fa7e1e 25%,#d62976 55%,#962fbf 78%,#4f5bd5 100%);color:#fff;box-shadow:0 7px 20px rgba(214,41,118,.35)}
+.social-rail-facebook:hover{background:#1877f2;color:#fff;box-shadow:0 7px 20px rgba(24,119,242,.3)}
+.social-rail-whatsapp:hover{background:#25d366;color:#fff;box-shadow:0 7px 20px rgba(37,211,102,.3)}
+.social-rail-email:hover{background:var(--ink);color:#fff}
+.social-rail-link:hover{transform:translateX(5px) scale(1.08) rotate(-4deg)}
+.social-rail-link:focus-visible{outline:3px solid var(--terracotta);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.social-rail-link{transition:none}.social-rail-link:hover{transform:none}}
 #collection{background:#fff;position:relative;z-index:6}
 .collection-spacer{height:40px;background:#fff;position:relative;z-index:6}
 .before-after-section{padding:120px 5vw 130px;background:#fff}
@@ -133,6 +152,8 @@ input,textarea,select,button{border-radius:10px}
   .footer-links { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 18px; }
   .footer-col a { font-size: 12px; white-space: normal; }
   .newsletter { width: 100%; padding: 28px 20px; }
+  .footer-reach { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .footer-reach-links { width: 100%; gap: 16px 24px; }
   .newsletter h2 { font-size: 2rem; }
   .newsletter form { flex-direction: column; gap: 10px; }
   .newsletter input, .newsletter button { width: 100%; min-height: 46px; }

@@ -73,3 +73,32 @@ def test_google_signin_pages_embed_the_configured_client_id(monkeypatch):
             'data-client_id="custom-client-id.apps.googleusercontent.com"'
             in response.get_data(as_text=True)
         ), path
+
+
+def test_storefront_pages_link_to_social_contact_section():
+    client = app.test_client()
+    paths = (
+        "/shop/",
+        "/shop/collections",
+        "/shop/shipping",
+        "/shop/checkout",
+        "/shop/our-story",
+        "/shop/shipping-returns",
+        "/shop/terms",
+        "/shop/privacy-policy",
+    )
+    social_links = (
+        'href="https://wa.me/c/230554632978683"',
+        'href="https://www.instagram.com/thugile_and_threads/"',
+        'href="https://www.facebook.com/thugileandthreads"',
+        'href="mailto:thugile.official@gmail.com"',
+    )
+
+    for path in paths:
+        response = client.get(path)
+        html = response.get_data(as_text=True)
+
+        assert response.status_code == 200, path
+        assert html.count('id="contact"') == 1, path
+        assert 'id="newsletter-signup"' in html, path
+        assert all(link in html for link in social_links), path
