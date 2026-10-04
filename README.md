@@ -32,15 +32,24 @@ SMTP_PORT=465
 SMTP_USERNAME=thugile.official@gmail.com
 SMTP_PASSWORD=<Google-app-password>
 CONTACT_EMAIL=thugile.official@gmail.com
+ADMIN_EMAILS=<registered-admin-email>
+PUBLIC_BASE_URL=https://thugilethreads.store
+SESSION_COOKIE_SECURE=true
 ```
 
 Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. For production, set `CASHFREE_REDIRECT_BASE_URL` to your custom domain (e.g., `https://thugilethreads.store`), and whitelist that domain in the Cashfree dashboard.
 
-The contact form sends messages through Gmail SMTP. Use port `465` for implicit TLS or `587` for STARTTLS; the application selects the correct TLS mode from `SMTP_PORT`. Create a Google App Password for `SMTP_USERNAME` (Google Account → Security → 2-Step Verification → App passwords), then add it as `SMTP_PASSWORD` in Railway; do not use your normal Gmail password or commit the app password. Set `CONTACT_EMAIL` to the inbox that should receive messages. Redeploy the service after adding or changing these variables.
+The contact form and password-reset emails use Gmail SMTP. Use port `465` for implicit TLS or `587` for STARTTLS; the application selects the correct TLS mode from `SMTP_PORT`. Create a Google App Password for `SMTP_USERNAME` (Google Account → Security → 2-Step Verification → App passwords), then add it as `SMTP_PASSWORD` in Railway; do not use your normal Gmail password or commit the app password. Set `CONTACT_EMAIL` to the inbox that should receive contact messages. Password-reset links are sent only to the account email, expire after 30 minutes, and can be used once. Set `PUBLIC_BASE_URL` to the canonical HTTPS origin so emails and SEO metadata use your public domain. Redeploy after adding or changing these variables.
+
+Unsafe requests require a per-session CSRF token; the storefront adds it to API requests and HTML forms. Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` by default when `RAILWAY_ENVIRONMENT` is set; `SESSION_COOKIE_SECURE=true` makes that explicit. The app trusts one Railway reverse proxy for forwarded client-IP and HTTPS headers. Login, account lookup, registration, password reset, contact, and newsletter submission endpoints are rate-limited per client IP using shared SQLite storage.
+
+The storefront provides `robots.txt`, `sitemap.xml`, canonical URLs, page-specific descriptions, Open Graph/Twitter metadata, and Product structured data for available catalog items. Keep the site’s public domain in `PUBLIC_BASE_URL` when changing Railway domains.
+
+Set `ADMIN_EMAILS` in Railway to a comma-separated list of email addresses belonging to existing registered accounts that should have admin access. Admin roles are synchronized from this variable when the application starts; accounts not on the list are not admins. Create and sign in to your own account before adding its email, then redeploy. To revoke access, remove the address from `ADMIN_EMAILS` and redeploy. Admin routes and subscriber-list endpoints reject all non-admin users.
 
 The service stores its SQLite database and uploaded images under `/data`; without the volume these files are ephemeral. If you want to retain the current local catalog, stock, orders, and uploaded product images, upload `inventory.db` to the volume as `/inventory.db` and `static/uploads/` as `/uploads/` before accepting orders. Stop the service while replacing its SQLite database, then start/redeploy it. Existing `inventory.db` and uploads are not automatically transferred by deploying the source.
 
-Keep the service to one replica while it uses SQLite. Before making the site public, protect `/admin/` and its mutation endpoints with an administrator-only role: the current app checks for a signed-in user, but does not distinguish administrators from customer accounts.
+Keep the service to one replica while it uses SQLite.
 
 
 

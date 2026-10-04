@@ -1,3 +1,20 @@
+let currentCsrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (input, init = {}) => {
+  const inputUrl = input instanceof Request ? input.url : input;
+  const requestUrl = new URL(inputUrl, window.location.href);
+  const method = (init.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+  if (requestUrl.origin === window.location.origin &&
+      !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method) &&
+      currentCsrfToken) {
+    headers.set('X-CSRFToken', currentCsrfToken);
+  }
+  const response = await nativeFetch(input, { ...init, headers });
+  currentCsrfToken = response.headers.get('X-CSRF-Token') || currentCsrfToken;
+  return response;
+};
+
 if (document.querySelector('.site-header')) {
   const socialLinks = [
     {
@@ -1289,7 +1306,7 @@ if (forgotPasswordForm) {
         return;
       }
       forgotError.style.color = 'green';
-      forgotError.textContent = 'Reset link sent! Check your email.';
+      forgotError.textContent = 'If an account exists for that email, a reset link will arrive shortly.';
       setTimeout(() => { showAuthStep('identifier'); forgotError.style.color = ''; }, 2000);
     } catch {
       forgotError.textContent = 'Network error. Try again.';
@@ -1418,7 +1435,7 @@ function setupSearch() {
 
       searchResults.innerHTML = filtered.slice(0, 8).map((p, index) => `
         <button class="search-result" type="button" data-product-index="${products.indexOf(p)}">
-          <span class="search-result-image"><img src="${escapeHtml(imageFor(p.image_url, index, p.name))}" alt=""></span>
+          <span class="search-result-image"><img src="${escapeHtml(imageFor(p.image_url, index, p.name))}" alt="${escapeHtml(p.name)}"></span>
           <span class="search-result-copy">
             <strong>${escapeHtml(p.name)}</strong>
             <small>${escapeHtml([p.category, p.color].filter(Boolean).join(' · ') || 'Thugile & Threads')}</small>

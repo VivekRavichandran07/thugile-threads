@@ -1,7 +1,10 @@
 import sqlite3
 import json
+import hashlib
+import hmac
 import os
 import re
+import secrets
 import smtplib
 import ssl
 import uuid
@@ -9,10 +12,13 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from email.message import EmailMessage
 from email.utils import formataddr
 from html import escape
-from urllib.parse import unquote, urljoin, urlparse
-from datetime import datetime
+from urllib.parse import quote, unquote, urljoin, urlparse
+from datetime import datetime, timedelta, timezone
+import time
+from xml.sax.saxutils import escape as xml_escape
 import requests
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
+from flask import Flask, Response, abort, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db, now_iso
@@ -47,11 +53,29 @@ def load_env_file(path):
 load_env_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 railway_environment = os.environ.get("RAILWAY_ENVIRONMENT")
 secret_key = os.environ.get("SECRET_KEY")
 if railway_environment and not secret_key:
     raise RuntimeError("Set a strong SECRET_KEY in the Railway service variables.")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "fallback-dev-secret-key")
+secure_cookie_setting = os.environ.get("SESSION_COOKIE_SECURE")
+if secure_cookie_setting is None:
+    secure_cookie = bool(railway_environment)
+elif secure_cookie_setting.strip().lower() in {"1", "true", "yes", "on"}:
+    secure_cookie = True
+elif secure_cookie_setting.strip().lower() in {"0", "false", "no", "off"}:
+    secure_cookie = False
+else:
+    raise RuntimeError("SESSION_COOKIE_SECURE must be a boolean value.")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=secure_cookie,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+    SESSION_REFRESH_EACH_REQUEST=False,
+    PUBLIC_BASE_URL=os.environ.get("PUBLIC_BASE_URL", "https://thugilethreads.store").rstrip("/"),
+)
 app.config["UPLOAD_FOLDER"] = os.environ.get(
     "UPLOAD_FOLDER",
     os.path.join(app.static_folder, "uploads"),
@@ -60,6 +84,407 @@ app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "webp"}
 DEFAULT_GOOGLE_CLIENT_ID = "296701170942-b4p3gv5us65uape6unq1jtqhsbljdutf.apps.googleusercontent.com"
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 init_db()
+
+
+def synchronize_admin_accounts():
+    admin_emails = sorted(
+        {
+            email.strip().lower()
+            for email in os.environ.get("ADMIN_EMAILS", "").split(",")
+            if email.strip()
+        }
+    )
+    conn = get_connection()
+    try:
+        if admin_emails:
+            placeholders = ",".join("?" for _ in admin_emails)
+            matched_count = conn.execute(
+                f"SELECT COUNT(*) FROM users WHERE lower(email) IN ({placeholders})",
+                admin_emails,
+            ).fetchone()[0]
+            conn.execute(
+                f"UPDATE users SET is_admin = CASE WHEN lower(email) IN ({placeholders}) "
+                "THEN 1 ELSE 0 END",
+                admin_emails,
+            )
+            if matched_count != len(admin_emails):
+                app.logger.warning(
+                    "Some ADMIN_EMAILS values do not match a registered account; "
+                    "register those accounts before granting admin access."
+                )
+        else:
+            conn.execute("UPDATE users SET is_admin = 0")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+synchronize_admin_accounts()
+
+
+@app.before_request
+def require_admin_access():
+    if not (
+        request.path == "/admin"
+        or request.path.startswith("/admin/")
+        or request.path == "/api/newsletter/subscribers"
+    ):
+        return None
+
+    user_id = session.get("user_id")
+    conn = get_connection()
+    try:
+        user = (
+            conn.execute("SELECT is_admin FROM users WHERE id = ?", (user_id,)).fetchone()
+            if user_id is not None
+            else None
+        )
+    finally:
+        conn.close()
+
+    if user is not None and user["is_admin"]:
+        return None
+
+    if request.path == "/api/newsletter/subscribers":
+        status_code = 401 if user_id is None else 403
+        return jsonify({"error": "Administrator access required."}), status_code
+
+    abort(403)
+
+
+RATE_LIMITS = {
+    "auth_login": (10, 15 * 60),
+    "auth_check_user": (20, 15 * 60),
+    "auth_register": (5, 60 * 60),
+    "forgot_password": (5, 60 * 60),
+    "send_contact_message": (5, 60 * 60),
+    "subscribe_newsletter": (5, 60 * 60),
+}
+
+
+def csrf_token():
+    token = session.get("_csrf_token")
+    if not isinstance(token, str) or len(token) < 32:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+def enforce_rate_limit(endpoint):
+    limit, window_seconds = RATE_LIMITS[endpoint]
+    now = int(time.time())
+    window_start = now - now % window_seconds
+    client_address = request.remote_addr or "unknown"
+    client_key = hashlib.sha256(
+        f"{app.config['SECRET_KEY']}:{client_address}".encode("utf-8")
+    ).hexdigest()
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO request_rate_limits (route_key, client_key, window_start, request_count)
+            VALUES (?, ?, ?, 1)
+            ON CONFLICT(route_key, client_key) DO UPDATE SET
+                request_count = CASE
+                    WHEN request_rate_limits.window_start = excluded.window_start
+                    THEN request_rate_limits.request_count + 1
+                    ELSE 1
+                END,
+                window_start = excluded.window_start
+            """,
+            (endpoint, client_key, window_start),
+        )
+        count = conn.execute(
+            "SELECT request_count FROM request_rate_limits WHERE route_key = ? AND client_key = ?",
+            (endpoint, client_key),
+        ).fetchone()["request_count"]
+        conn.execute(
+            "DELETE FROM request_rate_limits WHERE window_start < ?",
+            (now - 24 * 60 * 60,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    if count > limit:
+        return jsonify({"error": "Too many requests. Please try again later."}), 429, {
+            "Retry-After": str(window_seconds - (now - window_start))
+        }
+    return None
+
+
+@app.before_request
+def protect_mutating_requests():
+    csrf_token()
+    if request.method not in {"GET", "HEAD", "OPTIONS", "TRACE"}:
+        supplied_token = (
+            request.headers.get("X-CSRFToken")
+            or request.form.get("csrf_token")
+            or ""
+        )
+        if not hmac.compare_digest(supplied_token, session["_csrf_token"]):
+            return jsonify({"error": "Request verification failed. Reload the page and try again."}), 400
+    if request.endpoint in RATE_LIMITS:
+        return enforce_rate_limit(request.endpoint)
+    return None
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if request.path == "/shop/reset-password":
+        response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if app.config["SESSION_COOKIE_SECURE"]:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    response.headers["X-CSRF-Token"] = csrf_token()
+
+    if response.mimetype == "text/html":
+        html = response.get_data(as_text=True)
+        token = escape(session["_csrf_token"], quote=True)
+        csrf_meta = f'<meta name="csrf-token" content="{token}">'
+        if re.search(r'<meta\s+name=["\']csrf-token["\']', html, re.I):
+            html = re.sub(
+                r'<meta\s+name=["\']csrf-token["\'][^>]*>',
+                csrf_meta,
+                html,
+                count=1,
+                flags=re.I,
+            )
+        else:
+            html = re.sub(r"</head>", f"  {csrf_meta}\n</head>", html, count=1, flags=re.I)
+        html = re.sub(
+            r"<form\b([^>]*)>",
+            lambda match: match.group(0) + (
+                f'<input type="hidden" name="csrf_token" value="{token}">'
+                if re.search(r"\bmethod\s*=\s*['\"]?post\b", match.group(1), re.I)
+                and not re.search(r'name=["\']csrf_token["\']', match.group(0), re.I)
+                else ""
+            ),
+            html,
+            flags=re.I,
+        )
+        response.set_data(html)
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers.add("Vary", "Cookie")
+    return response
+
+
+@app.context_processor
+def csrf_template_context():
+    return {"csrf_token": csrf_token}
+
+
+def establish_user_session(user):
+    session.clear()
+    session.permanent = True
+    session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
+    session["user_email"] = user["email"]
+    session["user_phone"] = user["phone"] if user["phone"] else None
+    session["user_address"] = user["address"] if user["address"] else None
+    session["user_city"] = user["city"] if user["city"] else None
+    session["user_pincode"] = user["pincode"] if user["pincode"] else None
+
+
+def send_storefront_email(email_message):
+    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
+    try:
+        smtp_port = int(os.environ.get("SMTP_PORT", "465"))
+    except ValueError as error:
+        raise ValueError("SMTP_PORT must be a valid port number.") from error
+    if (
+        not smtp_username
+        or not smtp_password
+        or not smtp_host
+        or smtp_port not in {465, 587}
+    ):
+        raise ValueError("SMTP credentials and port 465 or 587 must be configured.")
+
+    email_message["From"] = formataddr(("Thugile & Threads", smtp_username))
+    if smtp_port == 465:
+        smtp_connection = smtplib.SMTP_SSL(
+            smtp_host,
+            smtp_port,
+            timeout=15,
+            context=ssl.create_default_context(),
+        )
+    else:
+        smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+    with smtp_connection as smtp:
+        if smtp_port == 587:
+            smtp.ehlo()
+            smtp.starttls(context=ssl.create_default_context())
+            smtp.ehlo()
+        smtp.login(smtp_username, smtp_password)
+        smtp.send_message(email_message)
+
+
+def page_metadata(path):
+    pages = {
+        "/": (
+            "Thugile & Threads | Chudidar & Indian Occasionwear",
+            "Discover thoughtfully made chudidars and Indian occasionwear from Thugile & Threads.",
+        ),
+        "/shop/": (
+            "Thugile & Threads | Chudidar & Indian Occasionwear",
+            "Discover thoughtfully made chudidars and Indian occasionwear from Thugile & Threads.",
+        ),
+        "/shop/collections": (
+            "Shop Chudidar Collections | Thugile & Threads",
+            "Explore handcrafted chudidar sets, cotton co-ords, and occasionwear from Thugile & Threads.",
+        ),
+        "/shop/contact": (
+            "Contact Thugile & Threads | Customer Care",
+            "Contact Thugile & Threads about orders, sizing, collections, or anything else. We would love to help.",
+        ),
+        "/shop/checkout": (
+            "Secure Checkout | Thugile & Threads",
+            "Review your order and complete your Thugile & Threads purchase securely.",
+        ),
+        "/shop/payment/cashfree/return": (
+            "Payment Status | Thugile & Threads",
+            "View the status of your Thugile & Threads payment.",
+        ),
+        "/shop/our-story": (
+            "Our Story | Thugile & Threads",
+            "Learn about the story, craft, and inspiration behind Thugile & Threads.",
+        ),
+        "/shop/shipping": (
+            "My Account, Orders & Shipping | Thugile & Threads",
+            "Manage your Thugile & Threads account, saved addresses, and order history.",
+        ),
+        "/shop/shipping-returns": (
+            "Shipping & Returns | Thugile & Threads",
+            "Read Thugile & Threads shipping, delivery, and return information before placing an order.",
+        ),
+        "/shop/terms": (
+            "Terms & Conditions | Thugile & Threads",
+            "Read the terms and conditions for using the Thugile & Threads website and store.",
+        ),
+        "/shop/privacy-policy": (
+            "Privacy Policy | Thugile & Threads",
+            "Learn how Thugile & Threads handles account, order, and contact information.",
+        ),
+        "/shop/reset-password": (
+            "Reset Your Password | Thugile & Threads",
+            "Securely reset your Thugile & Threads account password using your private reset link.",
+        ),
+    }
+    return pages.get(path)
+
+
+def product_item_list_json_ld():
+    base_url = app.config["PUBLIC_BASE_URL"]
+    page_url = urljoin(base_url + "/", "shop/collections")
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT name, category, color, selling_price, discounted_price, image_url
+        FROM products WHERE quantity > 0 ORDER BY name, color, id
+        """
+    ).fetchall()
+    conn.close()
+    products = {}
+    for row in rows:
+        key = (row["name"], row["color"] or "")
+        products.setdefault(key, row)
+    items = []
+    for index, product in enumerate(products.values(), start=1):
+        image = product["image_url"] or ""
+        structured_product = {
+            "@type": "Product",
+            "name": product["name"],
+            "description": (
+                f"{product['color']} {product['category'] or 'Indian wear'} from Thugile & Threads."
+                if product["color"]
+                else f"{product['category'] or 'Indian wear'} from Thugile & Threads."
+            ),
+            "url": page_url,
+            "offers": {
+                "@type": "Offer",
+                "priceCurrency": "INR",
+                "price": f"{product['discounted_price'] or product['selling_price']:.2f}",
+                "availability": "https://schema.org/InStock",
+                "url": page_url,
+            },
+        }
+        if image:
+            structured_product["image"] = [urljoin(base_url + "/", image.lstrip("/"))]
+        items.append({
+            "@type": "ListItem",
+            "position": index,
+            "item": structured_product,
+        })
+    return json.dumps(
+        {"@context": "https://schema.org", "@type": "ItemList", "itemListElement": items},
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).replace("<", "\\u003c")
+
+
+@app.after_request
+def add_storefront_seo(response):
+    seo_path = "/" if request.path in {"/", "/shop/"} else request.path.rstrip("/")
+    metadata = page_metadata("/shop/" if request.path == "/shop/" else seo_path)
+    if metadata is None or response.mimetype != "text/html":
+        return response
+    title, description = metadata
+    base_url = app.config["PUBLIC_BASE_URL"]
+    canonical_path = "/" if request.path in {"/", "/shop/"} else seo_path
+    canonical_url = urljoin(base_url + "/", canonical_path.lstrip("/"))
+    image_url = urljoin(base_url + "/", "static/storefront/assets/thugile-and-threads-logo.png")
+    html = response.get_data(as_text=True)
+    html = re.sub(
+        r"<title\b[^>]*>.*?</title>",
+        f"<title>{escape(title)}</title>",
+        html,
+        count=1,
+        flags=re.I | re.S,
+    )
+    html = re.sub(
+        r'<meta\s+name=["\']description["\'][^>]*>',
+        "",
+        html,
+        flags=re.I,
+    )
+    html = re.sub(r'<link\s+rel=["\']canonical["\'][^>]*>', "", html, flags=re.I)
+    seo_tags = (
+        f'<meta name="description" content="{escape(description, quote=True)}">'
+        f'<link rel="canonical" href="{escape(canonical_url, quote=True)}">'
+        f'<meta property="og:type" content="website">'
+        f'<meta property="og:title" content="{escape(title, quote=True)}">'
+        f'<meta property="og:description" content="{escape(description, quote=True)}">'
+        f'<meta property="og:url" content="{escape(canonical_url, quote=True)}">'
+        f'<meta property="og:image" content="{escape(image_url, quote=True)}">'
+        f'<meta name="twitter:card" content="summary_large_image">'
+        f'<meta name="twitter:title" content="{escape(title, quote=True)}">'
+        f'<meta name="twitter:description" content="{escape(description, quote=True)}">'
+        f'<meta name="twitter:image" content="{escape(image_url, quote=True)}">'
+    )
+    if request.path in {
+        "/shop/checkout",
+        "/shop/shipping",
+        "/shop/reset-password",
+        "/shop/payment/cashfree/return",
+    }:
+        seo_tags += '<meta name="robots" content="noindex, nofollow">'
+    html = re.sub(r"</head>", f"  {seo_tags}\n</head>", html, count=1, flags=re.I)
+    if request.path in {"/", "/shop/", "/shop/collections"}:
+        html = re.sub(
+            r"</body>",
+            f'<script type="application/ld+json">{product_item_list_json_ld()}</script></body>',
+            html,
+            count=1,
+            flags=re.I,
+        )
+    response.set_data(html)
+    return response
 
 
 def get_google_client_id():
@@ -156,6 +581,37 @@ def shop():
     return inject_google_client_id(page)
 
 
+@app.route("/robots.txt")
+def robots_txt():
+    sitemap_url = urljoin(app.config["PUBLIC_BASE_URL"] + "/", "sitemap.xml")
+    return Response(
+        "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n"
+        "Disallow: /shop/checkout\nDisallow: /shop/shipping\n"
+        "Disallow: /shop/reset-password\nDisallow: /shop/payment/\n"
+        f"Sitemap: {sitemap_url}\n",
+        mimetype="text/plain",
+    )
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    base_url = app.config["PUBLIC_BASE_URL"]
+    paths = (
+        "/", "/shop/collections", "/shop/contact", "/shop/our-story",
+        "/shop/shipping-returns", "/shop/terms", "/shop/privacy-policy",
+    )
+    locations = "".join(
+        f"<url><loc>{xml_escape(urljoin(base_url + '/', path.lstrip('/')))}</loc></url>"
+        for path in paths
+    )
+    return Response(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{locations}</urlset>",
+        mimetype="application/xml",
+    )
+
+
 @app.route("/shop/contact")
 @app.route("/shop/contact/")
 def contact_page():
@@ -229,13 +685,7 @@ def auth_register():
         )
         conn.commit()
         user = conn.execute("SELECT id, name, email, phone, address, city, pincode FROM users WHERE email = ?", (email,)).fetchone()
-        session["user_id"] = user["id"]
-        session["user_name"] = user["name"]
-        session["user_email"] = user["email"]
-        session["user_phone"] = user["phone"]
-        session["user_address"] = user["address"] if user["address"] else None
-        session["user_city"] = user["city"] if user["city"] else None
-        session["user_pincode"] = user["pincode"] if user["pincode"] else None
+        establish_user_session(user)
         return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"], "address": user["address"] if user["address"] else None, "city": user["city"] if user["city"] else None, "pincode": user["pincode"] if user["pincode"] else None}})
     except sqlite3.IntegrityError:
         return jsonify({"error": "An account with this email or phone already exists."}), 409
@@ -258,13 +708,7 @@ def auth_login():
     conn.close()
     if not user or not check_password_hash(user["password_hash"], password):
         return jsonify({"error": "Invalid credentials."}), 401
-    session["user_id"] = user["id"]
-    session["user_name"] = user["name"]
-    session["user_email"] = user["email"]
-    session["user_phone"] = user["phone"]
-    session["user_address"] = user["address"] if user["address"] else None
-    session["user_city"] = user["city"] if user["city"] else None
-    session["user_pincode"] = user["pincode"] if user["pincode"] else None
+    establish_user_session(user)
     return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"], "phone": user["phone"], "address": user["address"] if user["address"] else None, "city": user["city"] if user["city"] else None, "pincode": user["pincode"] if user["pincode"] else None}})
 
 
@@ -287,8 +731,7 @@ def auth_check_user():
 
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
-    session.pop("user_id", None)
-    session.pop("user_name", None)
+    session.clear()
     return jsonify({"ok": True})
 
 
@@ -341,13 +784,7 @@ def auth_google():
                 )
                 conn.commit()
                 user = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
-        session["user_id"] = user["id"]
-        session["user_name"] = user["name"]
-        session["user_email"] = user["email"]
-        session["user_phone"] = user["phone"] if user["phone"] else None
-        session["user_address"] = user["address"] if user["address"] else None
-        session["user_city"] = user["city"] if user["city"] else None
-        session["pincode"] = user["pincode"] if user["pincode"] else None
+        establish_user_session(user)
     finally:
         conn.close()
     return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
@@ -616,31 +1053,15 @@ def send_contact_message():
     ):
         return jsonify({"error": "Please check your details and try again."}), 400
 
-    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
-    smtp_password = os.environ.get("SMTP_PASSWORD", "")
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
     recipient = os.environ.get("CONTACT_EMAIL", "thugile.official@gmail.com").strip()
-    try:
-        smtp_port = int(os.environ.get("SMTP_PORT", "465"))
-    except ValueError:
-        app.logger.error("SMTP_PORT must be a valid port number.")
-        return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
-
-    if (
-        not smtp_username
-        or not smtp_password
-        or not smtp_host
-        or not recipient
-        or smtp_port not in {465, 587}
-    ):
+    if not recipient:
         app.logger.error(
-            "Contact email configuration is invalid; set SMTP credentials and use port 465 or 587."
+            "Contact email configuration is invalid; set CONTACT_EMAIL."
         )
         return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
 
     email_message = EmailMessage()
     email_message["Subject"] = f"Website contact: {topic}"
-    email_message["From"] = formataddr(("Thugile & Threads", smtp_username))
     email_message["To"] = recipient
     email_message["Reply-To"] = email
     email_message.set_content(
@@ -648,22 +1069,10 @@ def send_contact_message():
     )
 
     try:
-        if smtp_port == 465:
-            smtp_connection = smtplib.SMTP_SSL(
-                smtp_host,
-                smtp_port,
-                timeout=15,
-                context=ssl.create_default_context(),
-            )
-        else:
-            smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
-        with smtp_connection as smtp:
-            if smtp_port == 587:
-                smtp.ehlo()
-                smtp.starttls(context=ssl.create_default_context())
-                smtp.ehlo()
-            smtp.login(smtp_username, smtp_password)
-            smtp.send_message(email_message)
+        send_storefront_email(email_message)
+    except ValueError:
+        app.logger.exception("Contact email configuration is invalid.")
+        return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
     except (smtplib.SMTPException, OSError):
         app.logger.exception("Failed to send a storefront contact message.")
         return jsonify({"error": "We couldn't send your message right now. Please try again or email us directly."}), 502
@@ -686,52 +1095,117 @@ def list_subscribers():
 # ---------------------------------------------------------------
 @app.route("/api/auth/forgot-password", methods=["POST"])
 def forgot_password():
-    data = request.get_json() or {}
-    email = (data.get("email") or "").strip().lower()
-    if not email:
-        return jsonify({"error": "Email required"}), 400
+    data = request.get_json(silent=True)
+    email = (data.get("email") or "").strip().lower() if isinstance(data, dict) else ""
+    if not re.fullmatch(r"[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+", email):
+        return jsonify({"error": "Enter a valid email address."}), 400
+
+    generic_response = {
+        "ok": True,
+        "message": "If an account exists for that email, a password reset link will be sent.",
+    }
     conn = get_connection()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-    if not user:
+    try:
+        user = conn.execute(
+            "SELECT id, email FROM users WHERE email = ?", (email,)
+        ).fetchone()
+        if user:
+            token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+            expires = (
+                datetime.now(timezone.utc) + timedelta(minutes=30)
+            ).replace(tzinfo=None).isoformat()
+            conn.execute(
+                "UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0",
+                (user["id"],),
+            )
+            conn.execute(
+                """
+                INSERT INTO password_resets (user_id, token, expires_at, used, created_at)
+                VALUES (?, ?, ?, 0, ?)
+                """,
+                (user["id"], token_hash, expires, now_iso()),
+            )
+            conn.commit()
+            reset_link = (
+                f"{app.config['PUBLIC_BASE_URL']}/shop/reset-password"
+                f"?token={quote(token, safe='')}"
+            )
+            message = EmailMessage()
+            message["To"] = user["email"]
+            message["Subject"] = "Reset your Thugile & Threads password"
+            message.set_content(
+                "We received a request to reset the password for your Thugile & Threads account.\n\n"
+                f"Use this link within 30 minutes to choose a new password:\n{reset_link}\n\n"
+                "If you did not request this, you can ignore this email. Your password will not change."
+            )
+            try:
+                send_storefront_email(message)
+            except ValueError:
+                app.logger.exception("Password-reset email configuration is invalid.")
+                conn.execute(
+                    "UPDATE password_resets SET used = 1 WHERE token = ?",
+                    (token_hash,),
+                )
+                conn.commit()
+            except (smtplib.SMTPException, OSError):
+                app.logger.exception("Failed to send a password-reset email.")
+                conn.execute(
+                    "UPDATE password_resets SET used = 1 WHERE token = ?",
+                    (token_hash,),
+                )
+                conn.commit()
+    finally:
         conn.close()
-        return jsonify({"error": "User not found"}), 404
-    import secrets
-    token = secrets.token_hex(32)
-    expires = (datetime.utcnow()).isoformat()
-    conn.execute(
-        "INSERT INTO password_resets (user_id, token, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)",
-        (user["id"], token, expires, now_iso()),
-    )
-    conn.commit()
-    conn.close()
-    reset_link = f"/shop/reset-password?token={token}"
-    return jsonify({"ok": True, "reset_link": reset_link})
+    return jsonify(generic_response)
 
 
 @app.route("/api/auth/reset-password", methods=["POST"])
 def reset_password():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or expired reset token."}), 400
     token = (data.get("token") or "").strip()
-    new_password = (data.get("password") or "").strip()
+    new_password = data.get("password") or ""
     if not token or not new_password:
-        return jsonify({"error": "Token and password required"}), 400
+        return jsonify({"error": "Token and password are required."}), 400
     if len(new_password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
+        return jsonify({"error": "Password must be at least 6 characters."}), 400
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     conn = get_connection()
-    row = conn.execute(
-        "SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > ?",
-        (token, now_iso()),
-    ).fetchone()
-    if not row:
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            """
+            SELECT id, user_id FROM password_resets
+            WHERE token = ? AND used = 0 AND expires_at > ?
+            """,
+            (token_hash, now_iso()),
+        ).fetchone()
+        if not row:
+            conn.rollback()
+            return jsonify({"error": "Invalid or expired reset token."}), 400
+        updated = conn.execute(
+            """
+            UPDATE password_resets SET used = 1
+            WHERE id = ? AND used = 0 AND expires_at > ?
+            """,
+            (row["id"], now_iso()),
+        )
+        if updated.rowcount != 1:
+            conn.rollback()
+            return jsonify({"error": "Invalid or expired reset token."}), 400
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(new_password), row["user_id"]),
+        )
+        conn.execute(
+            "UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0",
+            (row["user_id"],),
+        )
+        conn.commit()
+    finally:
         conn.close()
-        return jsonify({"error": "Invalid or expired token"}), 400
-    conn.execute(
-        "UPDATE users SET password_hash = ? WHERE id = ?",
-        (generate_password_hash(new_password), row["user_id"]),
-    )
-    conn.execute("UPDATE password_resets SET used = 1 WHERE id = ?", (row["id"],))
-    conn.commit()
-    conn.close()
     return jsonify({"ok": True, "message": "Password reset successfully"})
 
 

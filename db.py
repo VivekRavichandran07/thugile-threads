@@ -61,7 +61,8 @@ def init_db():
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            is_admin INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS user_carts (
@@ -113,6 +114,14 @@ def init_db():
             used INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS request_rate_limits (
+            route_key TEXT NOT NULL,
+            client_key TEXT NOT NULL,
+            window_start INTEGER NOT NULL,
+            request_count INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (route_key, client_key)
         );
 
         CREATE TABLE IF NOT EXISTS user_addresses (
@@ -218,6 +227,8 @@ def init_db():
     
     # Add phone column to users if missing
     user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    if "is_admin" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
     if "phone" not in user_columns:
         conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone)")
@@ -244,4 +255,3 @@ def init_db():
 
 def now_iso():
     return datetime.utcnow().isoformat()
-
