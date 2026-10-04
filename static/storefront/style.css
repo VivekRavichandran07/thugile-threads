@@ -54,9 +54,16 @@ input,textarea,select,button{border-radius:10px}
 .social-rail-instagram:hover{background:linear-gradient(45deg,#feda75 0%,#fa7e1e 25%,#d62976 55%,#962fbf 78%,#4f5bd5 100%);color:#fff;box-shadow:0 7px 20px rgba(214,41,118,.35)}
 .social-rail-facebook:hover{background:#1877f2;color:#fff;box-shadow:0 7px 20px rgba(24,119,242,.3)}
 .social-rail-whatsapp:hover{background:#25d366;color:#fff;box-shadow:0 7px 20px rgba(37,211,102,.3)}
-.social-rail-email:hover{background:var(--ink);color:#fff}
+.social-rail-email,.social-rail-email:hover{background:#fff;color:var(--ink)}
+.social-rail-email:hover{box-shadow:0 7px 20px rgba(234,67,53,.22),0 0 12px rgba(66,133,244,.16)}
+.social-rail-email svg{filter:drop-shadow(0 0 2px rgba(234,67,53,.15))}
 .social-rail-link:hover{transform:translateX(5px) scale(1.08) rotate(-4deg)}
 .social-rail-link:focus-visible{outline:3px solid var(--terracotta);outline-offset:3px}
+@media(max-width:640px){
+  body:has(.social-rail){padding-bottom:84px}
+  .social-rail{top:auto;bottom:12px;left:50%;flex-direction:row;gap:8px;padding:6px;border:1px solid rgba(26,21,18,.1);border-radius:999px;background:rgba(255,255,255,.96);box-shadow:0 4px 18px rgba(26,21,18,.16);transform:translateX(-50%)}
+  .social-rail-link:hover{transform:translateY(-3px) scale(1.08) rotate(-4deg)}
+}
 @media(prefers-reduced-motion:reduce){.social-rail-link{transition:none}.social-rail-link:hover{transform:none}}
 #collection{background:#fff;position:relative;z-index:6}
 .collection-spacer{height:40px;background:#fff;position:relative;z-index:6}
@@ -485,9 +492,11 @@ main img:hover{transform:scale(1.04)}
   .cart-item-info{min-width:0}
 }
 
-/* Centred underline drawn under the account button. */
-.auth-menu .auth-btn-header{position:relative;padding-bottom:8px}
-.auth-menu .auth-btn-header::after{content:"";position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:17.7px;height:2px;background-color:currentColor;border-radius:2px}
+.header-actions .auth-btn-header:not(.logged-in){width:36px;height:36px;padding:6px;border:1px solid transparent;border-radius:50%!important;background:transparent!important;color:var(--ink);transition:background .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.header-actions .auth-btn-header:not(.logged-in) svg{width:20px;height:20px}
+.header-actions .auth-btn-header:not(.logged-in):hover{transform:scale(1.04);border-color:var(--ink);background:var(--ink)!important;color:#fff;box-shadow:0 3px 10px rgba(26,21,18,.18);opacity:1}
+.header-actions .auth-btn-header:not(.logged-in):focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
+.header-actions .auth-btn-header.logged-in:hover{transform:scale(1.04);box-shadow:0 3px 10px rgba(0,150,136,.24);opacity:1}
 
 /* Nudge the footer newsletter block left within the footer row. */
 .site-footer .newsletter{margin-left:-50px}

@@ -21,7 +21,7 @@ if (document.querySelector('.site-header')) {
     {
       label: 'Email',
       href: 'mailto:thugile.official@gmail.com',
-      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="email-mark-red" x1="4" y1="6" x2="14" y2="13" gradientUnits="userSpaceOnUse"><stop stop-color="#ea4335"/><stop offset="1" stop-color="#c5221f"/></linearGradient><linearGradient id="email-mark-blue" x1="4" y1="7" x2="4" y2="19" gradientUnits="userSpaceOnUse"><stop stop-color="#4285f4"/><stop offset="1" stop-color="#1967d2"/></linearGradient><linearGradient id="email-mark-green" x1="20" y1="7" x2="20" y2="19" gradientUnits="userSpaceOnUse"><stop stop-color="#34a853"/><stop offset="1" stop-color="#188038"/></linearGradient><linearGradient id="email-mark-yellow" x1="16" y1="10" x2="20" y2="17" gradientUnits="userSpaceOnUse"><stop stop-color="#fbbc04"/><stop offset="1" stop-color="#f9ab00"/></linearGradient></defs><path d="M4 7.5v10.8" fill="none" stroke="url(#email-mark-blue)" stroke-width="3" stroke-linecap="round"/><path d="m4 7.5 8 6 8-6" fill="none" stroke="url(#email-mark-red)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 7.5v3" fill="none" stroke="url(#email-mark-green)" stroke-width="3" stroke-linecap="round"/><path d="M20 10.5v7.8" fill="none" stroke="url(#email-mark-yellow)" stroke-width="3" stroke-linecap="round"/></svg>',
       external: false
     }
   ];
