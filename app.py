@@ -621,7 +621,7 @@ def send_contact_message():
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
     recipient = os.environ.get("CONTACT_EMAIL", "thugile.official@gmail.com").strip()
     try:
-        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+        smtp_port = int(os.environ.get("SMTP_PORT", "465"))
     except ValueError:
         app.logger.error("SMTP_PORT must be a valid port number.")
         return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
