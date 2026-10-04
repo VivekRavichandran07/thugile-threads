@@ -493,7 +493,7 @@ main img:hover{transform:scale(1.04)}
 }
 
 .header-actions .auth-btn-header:not(.logged-in){width:38px;height:38px;padding:6px;border:1px solid transparent;border-radius:50%!important;background:transparent!important;color:var(--ink);transition:background .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
-.header-actions .auth-btn-header:not(.logged-in) svg{width:20px;height:20px}
+.header-actions .auth-btn-header:not(.logged-in) svg{width:30px;height:30px}
 .header-actions .auth-btn-header:not(.logged-in):hover{transform:scale(1.04);border-color:var(--ink);background:var(--ink)!important;color:#fff;box-shadow:0 3px 10px rgba(26,21,18,.18);opacity:1}
 .header-actions .auth-btn-header:not(.logged-in):focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
 .header-actions .auth-btn-header.logged-in:hover{transform:scale(1.04);box-shadow:0 3px 10px rgba(0,150,136,.24);opacity:1}
@@ -501,9 +501,63 @@ main img:hover{transform:scale(1.04)}
 /* Nudge the footer newsletter block left within the footer row. */
 .site-footer .newsletter{margin-left:-50px}
 
+/* Centre the contact row and keep its offset from the columns above. */
+.site-footer .footer-reach{justify-content:center}
+
 /* Brand-tinted glyphs on a white fill; hover fills with the brand colour. */
 .social-rail-instagram{border-color:rgba(255,255,255,.22);background:#fff;color:#d62976;box-shadow:0 4px 16px rgba(26,21,18,.28)}
 .social-rail-facebook{border-color:rgba(255,255,255,.22);background:#fff;color:#1877f2;box-shadow:0 4px 16px rgba(26,21,18,.28)}
 .social-rail-whatsapp{border-color:rgba(255,255,255,.22);background:#fff;color:#25d366;box-shadow:0 4px 16px rgba(26,21,18,.28)}
 .social-rail-email:hover{background:linear-gradient(135deg,#4285f4 0%,#34a853 32%,#fbbc04 58%,#ea4335 100%);color:#fff;border-color:rgba(255,255,255,.35);box-shadow:0 7px 20px rgba(234,67,53,.3),0 0 14px rgba(66,133,244,.2)}
 .social-rail-email:hover svg path{stroke:#fff}
+
+.contact-page{background:#f8f5ef}
+.contact-main{background:linear-gradient(135deg,#f8f5ef 0%,#f2ece2 100%)}
+.contact-hero{position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(390px,1.1fr);align-items:center;gap:clamp(48px,8vw,112px);max-width:1320px;margin:0 auto;padding:clamp(72px,9vw,132px) 7vw clamp(84px,10vw,140px)}
+.contact-intro{max-width:490px}
+.contact-intro>.eyebrow,.contact-card .eyebrow{margin-bottom:20px;color:#89563f}
+.contact-intro h1{font-size:clamp(3.2rem,6vw,5.7rem);letter-spacing:-.055em}
+.contact-intro h1 em{color:#9a4d35}
+.contact-lede{max-width:410px;margin:28px 0 40px;color:#65594e;font-size:18px;line-height:1.65}
+.contact-details{display:grid;gap:14px}
+.contact-detail{display:flex;align-items:center;gap:15px;padding:17px 0;border-top:1px solid rgba(26,21,18,.14);color:var(--ink);text-decoration:none}
+.contact-detail:last-child{border-bottom:1px solid rgba(26,21,18,.14)}
+.contact-detail-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border:1px solid rgba(26,21,18,.16);border-radius:50%;font-size:18px;transition:background .2s ease,color .2s ease,transform .2s ease}
+.contact-detail:hover .contact-detail-icon{background:var(--ink);color:#fff;transform:translate(2px,-2px)}
+.contact-detail span:last-child{display:grid;gap:4px}
+.contact-detail small,.contact-socials>span{font:500 10px var(--mono);letter-spacing:.09em;color:#75695d}
+.contact-detail strong{font-size:15px;font-weight:500}
+.contact-socials{display:flex;align-items:center;flex-wrap:wrap;gap:10px 22px;margin-top:30px}
+.contact-socials a{color:#493d34;font-size:13px;text-underline-offset:4px}
+.contact-socials a:hover{color:#9a4d35}
+.contact-card{position:relative;padding:clamp(28px,4vw,52px);background:rgba(255,255,255,.94);border:1px solid rgba(26,21,18,.08);box-shadow:0 26px 80px rgba(69,43,25,.1)}
+.contact-card::after{position:absolute;top:18px;right:18px;width:44px;height:44px;border:1px solid rgba(154,77,53,.22);border-radius:50%;content:"";pointer-events:none}
+.contact-card-heading h2{font-size:clamp(2rem,3.4vw,2.8rem);letter-spacing:-.04em}
+.contact-card-heading>p:last-child{margin:14px 0 30px;color:#75695d;font-size:14px}
+.contact-form{display:grid;gap:20px}
+.contact-form-row{display:grid;gap:8px}
+.contact-form-row label{font:500 11px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:#51463d}
+.contact-form-row input,.contact-form-row select,.contact-form-row textarea{width:100%;min-height:48px;padding:12px 14px;border:1px solid #ded7ce;border-radius:0;background:#fff;color:var(--ink);font:400 15px var(--sans);outline:none;transition:border-color .2s ease,box-shadow .2s ease}
+.contact-form-row textarea{min-height:142px;resize:vertical}
+.contact-form-row input:focus,.contact-form-row select:focus,.contact-form-row textarea:focus{border-color:#9a4d35;box-shadow:0 0 0 3px rgba(154,77,53,.1)}
+.contact-form-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.contact-submit{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:54px;padding:0 20px;border:1px solid var(--ink);border-radius:0;background:var(--ink);color:#fff;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background .2s ease,color .2s ease}
+.contact-submit:hover:not(:disabled){background:transparent;color:var(--ink)}
+.contact-submit:focus-visible{outline:3px solid #9a4d35;outline-offset:3px}
+.contact-submit:disabled{opacity:.65;cursor:wait}
+.contact-submit span{font-size:18px}
+.contact-form-status{min-height:20px;margin:0;color:#287447;font-size:14px}
+.contact-form-status.is-error{color:#a52d23}
+.contact-privacy-note{margin:-12px 0 0;color:#82786d;font-size:12px}
+@media(max-width:800px){
+  .contact-hero{grid-template-columns:1fr;gap:44px;padding:66px 7vw 82px}
+  .contact-intro{max-width:640px}
+  .contact-lede{font-size:16px}
+}
+@media(max-width:480px){
+  .contact-hero{gap:34px;padding:52px 6vw 64px}
+  .contact-intro h1{font-size:clamp(2.8rem,13vw,4.1rem)}
+  .contact-card{padding:26px 20px}
+  .contact-detail strong{font-size:13px}
+  .contact-socials{gap:12px 18px}
+}

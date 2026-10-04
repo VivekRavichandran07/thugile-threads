@@ -2,8 +2,12 @@ import sqlite3
 import json
 import os
 import re
+import smtplib
+import ssl
 import uuid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from email.message import EmailMessage
+from email.utils import formataddr
 from html import escape
 from urllib.parse import unquote, urljoin, urlparse
 from datetime import datetime
@@ -150,6 +154,12 @@ def shop():
     with open(html_path, "r") as f:
         page = f.read()
     return inject_google_client_id(page)
+
+
+@app.route("/shop/contact")
+@app.route("/shop/contact/")
+def contact_page():
+    return render_template("contact.html")
 
 
 @app.route("/api/store/products")
@@ -568,6 +578,79 @@ def subscribe_newsletter():
         return jsonify({"ok": True, "message": "Subscribed successfully"})
     finally:
         conn.close()
+
+
+@app.route("/api/contact", methods=["POST"])
+def send_contact_message():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Please submit the contact form again."}), 400
+
+    name_value = data.get("name", "")
+    email_value = data.get("email", "")
+    topic_value = data.get("topic", "General enquiry")
+    message_value = data.get("message", "")
+    website_value = data.get("website", "")
+    if not all(
+        isinstance(value, str)
+        for value in (name_value, email_value, topic_value, message_value, website_value)
+    ):
+        return jsonify({"error": "Please check your details and try again."}), 400
+    if website_value.strip():
+        return jsonify({"ok": True})
+
+    name = name_value.strip()
+    email = email_value.strip()
+    topic = topic_value.strip() or "General enquiry"
+    message = message_value.strip()
+    if (
+        not name
+        or len(name) > 120
+        or not email
+        or len(email) > 254
+        or not re.fullmatch(r"[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+", email)
+        or len(topic) > 120
+        or not message
+        or len(message) > 5000
+        or any(ord(char) < 32 and char not in "\t\n\r" for char in name + topic + message)
+    ):
+        return jsonify({"error": "Please check your details and try again."}), 400
+
+    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
+    recipient = os.environ.get("CONTACT_EMAIL", "thugile.official@gmail.com").strip()
+    try:
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    except ValueError:
+        app.logger.error("SMTP_PORT must be a valid port number.")
+        return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
+
+    if not smtp_username or not smtp_password or not smtp_host or not recipient or not 1 <= smtp_port <= 65535:
+        app.logger.error("Contact email is not configured; set SMTP_USERNAME and SMTP_PASSWORD.")
+        return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
+
+    email_message = EmailMessage()
+    email_message["Subject"] = f"Website contact: {topic}"
+    email_message["From"] = formataddr(("Thugile & Threads", smtp_username))
+    email_message["To"] = recipient
+    email_message["Reply-To"] = email
+    email_message.set_content(
+        f"Name: {name}\nEmail: {email}\nTopic: {topic}\n\nMessage:\n{message}\n"
+    )
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+            smtp.ehlo()
+            smtp.starttls(context=ssl.create_default_context())
+            smtp.ehlo()
+            smtp.login(smtp_username, smtp_password)
+            smtp.send_message(email_message)
+    except (smtplib.SMTPException, OSError):
+        app.logger.exception("Failed to send a storefront contact message.")
+        return jsonify({"error": "We couldn't send your message right now. Please try again or email us directly."}), 502
+
+    return jsonify({"ok": True, "message": "Thank you — your message is on its way."})
 
 
 @app.route("/api/newsletter/subscribers")

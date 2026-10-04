@@ -702,6 +702,41 @@ if (newsletterForm) {
   });
 }
 
+const contactForm = document.getElementById('contact-form');
+if (contactForm) {
+  contactForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const status = document.getElementById('contact-form-status');
+    const submitButton = contactForm.querySelector('button[type="submit"]');
+    const formData = new FormData(contactForm);
+    const payload = Object.fromEntries(formData.entries());
+    submitButton.disabled = true;
+    status.textContent = 'Sending your note…';
+    status.classList.remove('is-error');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        status.textContent = data.error || 'We couldn’t send your note. Please try again.';
+        status.classList.add('is-error');
+        return;
+      }
+      status.textContent = data.message || 'Thank you — your message is on its way.';
+      contactForm.reset();
+    } catch {
+      status.textContent = 'Network error — please try again or email us directly.';
+      status.classList.add('is-error');
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+}
+
 if (productPopupClose) {
   productPopupClose.addEventListener('click', closeProductPopup);
 }
