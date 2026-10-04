@@ -488,3 +488,6 @@ main img:hover{transform:scale(1.04)}
 /* Centred underline drawn under the account button. */
 .auth-menu .auth-btn-header{position:relative;padding-bottom:8px}
 .auth-menu .auth-btn-header::after{content:"";position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:17.7px;height:2px;background-color:currentColor;border-radius:2px}
+
+/* Nudge the footer newsletter block left within the footer row. */
+.site-footer .newsletter{margin-left:-50px}
