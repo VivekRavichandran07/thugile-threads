@@ -10,12 +10,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='storefront/style.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='storefront/assets/thugile-and-threads-logo.png') }}" type="image/png">
   <style>
-    body {
-        background-image: url({{ url_for('static', filename='storefront/assets/Cotton1.jpg') }});
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }
+    /* Ambient backdrop: fixed like background-attachment was, behind all content. */
+    .story-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5;pointer-events:none;border:0}
     .story-wrap:before{
       content:"";
       position:fixed;
@@ -54,6 +50,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@500&family=Cormorant+Garamond:wght@500;600&family=DM+Serif+Display&family=Italiana&family=Prata&display=swap" rel="stylesheet">
 </head>
 <body class="inner-page">
+  <video class="story-video" autoplay muted loop playsinline preload="auto" aria-hidden="true" tabindex="-1">
+    <source src="{{ url_for('static', filename='storefront/assets/contactus.mp4') }}" type="video/mp4">
+  </video>
   <div class="grain"></div>
 
   <header class="site-header">
