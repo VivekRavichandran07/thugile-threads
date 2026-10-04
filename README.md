@@ -28,7 +28,7 @@ CASHFREE_APP_ID=<sandbox-app-id>
 CASHFREE_SECRET_KEY=<sandbox-secret-key>
 CASHFREE_REDIRECT_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
+SMTP_PORT=465
 SMTP_USERNAME=thugile.official@gmail.com
 SMTP_PASSWORD=<Google-app-password>
 CONTACT_EMAIL=thugile.official@gmail.com
@@ -36,7 +36,7 @@ CONTACT_EMAIL=thugile.official@gmail.com
 
 Generate `SECRET_KEY` locally with `python -c "import secrets; print(secrets.token_hex(32))"` and paste the output into Railway. For production, set `CASHFREE_REDIRECT_BASE_URL` to your custom domain (e.g., `https://thugilethreads.store`), and whitelist that domain in the Cashfree dashboard.
 
-The contact form sends messages through Gmail SMTP using STARTTLS on port 587. Create a Google App Password for `SMTP_USERNAME` (Google Account → Security → 2-Step Verification → App passwords), then add it as `SMTP_PASSWORD` in Railway; do not use your normal Gmail password or commit the app password. Set `CONTACT_EMAIL` to the inbox that should receive messages. Redeploy the service after adding or changing these variables.
+The contact form sends messages through Gmail SMTP. Use port `465` for implicit TLS or `587` for STARTTLS; the application selects the correct TLS mode from `SMTP_PORT`. Create a Google App Password for `SMTP_USERNAME` (Google Account → Security → 2-Step Verification → App passwords), then add it as `SMTP_PASSWORD` in Railway; do not use your normal Gmail password or commit the app password. Set `CONTACT_EMAIL` to the inbox that should receive messages. Redeploy the service after adding or changing these variables.
 
 The service stores its SQLite database and uploaded images under `/data`; without the volume these files are ephemeral. If you want to retain the current local catalog, stock, orders, and uploaded product images, upload `inventory.db` to the volume as `/inventory.db` and `static/uploads/` as `/uploads/` before accepting orders. Stop the service while replacing its SQLite database, then start/redeploy it. Existing `inventory.db` and uploads are not automatically transferred by deploying the source.
 

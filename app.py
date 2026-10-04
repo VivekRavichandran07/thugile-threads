@@ -626,8 +626,16 @@ def send_contact_message():
         app.logger.error("SMTP_PORT must be a valid port number.")
         return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
 
-    if not smtp_username or not smtp_password or not smtp_host or not recipient or not 1 <= smtp_port <= 65535:
-        app.logger.error("Contact email is not configured; set SMTP_USERNAME and SMTP_PASSWORD.")
+    if (
+        not smtp_username
+        or not smtp_password
+        or not smtp_host
+        or not recipient
+        or smtp_port not in {465, 587}
+    ):
+        app.logger.error(
+            "Contact email configuration is invalid; set SMTP credentials and use port 465 or 587."
+        )
         return jsonify({"error": "Email is temporarily unavailable. Please email us directly."}), 503
 
     email_message = EmailMessage()
@@ -640,10 +648,20 @@ def send_contact_message():
     )
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-            smtp.ehlo()
-            smtp.starttls(context=ssl.create_default_context())
-            smtp.ehlo()
+        if smtp_port == 465:
+            smtp_connection = smtplib.SMTP_SSL(
+                smtp_host,
+                smtp_port,
+                timeout=15,
+                context=ssl.create_default_context(),
+            )
+        else:
+            smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+        with smtp_connection as smtp:
+            if smtp_port == 587:
+                smtp.ehlo()
+                smtp.starttls(context=ssl.create_default_context())
+                smtp.ehlo()
             smtp.login(smtp_username, smtp_password)
             smtp.send_message(email_message)
     except (smtplib.SMTPException, OSError):
