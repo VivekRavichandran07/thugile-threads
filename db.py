@@ -10,7 +10,7 @@ DB_PATH = os.environ.get(
 
 def get_connection():
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -142,6 +142,8 @@ def init_db():
         );
         """
     )
+    # Serialize schema inspection and migration across Gunicorn workers.
+    conn.execute("BEGIN IMMEDIATE")
     order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
     for column, definition in (
         ("payment_state", "TEXT NOT NULL DEFAULT 'PENDING'"),
@@ -157,6 +159,31 @@ def init_db():
             conn.execute(f"ALTER TABLE sales ADD COLUMN {column} {definition}")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS sales_order_item "
                  "ON sales(order_id, order_item_index)")
+    # Historical online sales survive catalog deletion and missing legacy IDs.
+    sales_info = conn.execute("PRAGMA table_info(sales)").fetchall()
+    if next(column for column in sales_info if column[1] == "product_id")[3]:
+        indexes = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'index' "
+                               "AND tbl_name = 'sales' AND sql IS NOT NULL").fetchall()
+        conn.execute("""CREATE TABLE sales_migrated (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            quantity INTEGER NOT NULL,
+            selling_price REAL NOT NULL,
+            customer TEXT,
+            date TEXT NOT NULL,
+            order_id INTEGER,
+            order_item_index INTEGER,
+            product_name TEXT,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+        )""")
+        conn.execute("INSERT INTO sales_migrated SELECT id, "
+                     "CASE WHEN EXISTS (SELECT 1 FROM products WHERE products.id = sales.product_id) "
+                     "THEN product_id ELSE NULL END, quantity, "
+                     "selling_price, customer, date, order_id, order_item_index, product_name FROM sales")
+        conn.execute("DROP TABLE sales")
+        conn.execute("ALTER TABLE sales_migrated RENAME TO sales")
+        for index in indexes:
+            conn.execute(index[0])
     cart_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
     if "product_id" not in cart_columns or "size" not in cart_columns:
         legacy_carts = conn.execute("SELECT * FROM user_carts").fetchall()

@@ -1557,23 +1557,40 @@ def record_order_sales(conn, order_id):
     if not isinstance(items, list) or not items:
         raise ValueError("Completed order has no valid items.")
     address = json.loads(order["shipping_address_json"] or "{}")
+    if not isinstance(address, dict):
+        raise ValueError("Completed order has an invalid address snapshot.")
     user = conn.execute("SELECT name FROM users WHERE id = ?", (order["user_id"],)).fetchone()
     customer = address.get("name") or (user["name"] if user else "")
-    count = 0
+    validated = []
+    total = Decimal("0")
     for index, item in enumerate(items):
-        product_id = item.get("product_id")
+        if not isinstance(item, dict):
+            raise ValueError("Completed order has an invalid item snapshot.")
         quantity = item.get("qty")
-        price = Decimal(str(item.get("unit_price")))
+        price = Decimal(str(item.get("unit_price", item.get("price"))))
         if (isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1
-                or not price.is_finite() or price <= 0
-                or not conn.execute("SELECT id FROM products WHERE id = ?", (product_id,)).fetchone()):
-            raise ValueError("Completed order contains an invalid or deleted product.")
+                or not price.is_finite() or price <= 0):
+            raise ValueError("Completed order has an invalid quantity or recorded price.")
+        product = conn.execute("SELECT id, name FROM products WHERE id = ?",
+                               (item.get("product_id"),)).fetchone()
+        # Use stored order details when a historical product was deleted or had no ID.
+        name = item.get("name") or (product["name"] if product else None)
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Completed order has no product name snapshot.")
+        validated.append((product["id"] if product else None, quantity, float(price),
+                          customer, order["created_at"], order_id, index, name))
+        total += price * quantity
+    recorded_total = Decimal(str(order["total_amount"]))
+    if (not recorded_total.is_finite()
+            or total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) != recorded_total):
+        raise ValueError("Completed order item amounts do not match the paid total.")
+    count = 0
+    for values in validated:
         cursor = conn.execute(
-            "INSERT OR IGNORE INTO sales "
+            "INSERT INTO sales "
             "(product_id, quantity, selling_price, customer, date, order_id, order_item_index, product_name) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (product_id, quantity, float(price), customer, order["created_at"],
-             order_id, index, item.get("name")),
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(order_id, order_item_index) DO NOTHING", values,
         )
         count += cursor.rowcount
     return count
@@ -1586,9 +1603,17 @@ def synchronize_completed_order_sales():
             conn.execute("BEGIN IMMEDIATE")
             orders = conn.execute("SELECT id FROM orders WHERE payment_state = 'COMPLETED'").fetchall()
             for order in orders:
-                record_order_sales(conn, order["id"])
-    except (ValueError, TypeError, InvalidOperation, sqlite3.IntegrityError):
-        app.logger.exception("Completed order sales import failed; transaction rolled back")
+                conn.execute("SAVEPOINT order_sales_import")
+                try:
+                    record_order_sales(conn, order["id"])
+                except (ValueError, TypeError, InvalidOperation, sqlite3.IntegrityError):
+                    conn.execute("ROLLBACK TO order_sales_import")
+                    app.logger.warning("Skipped sales import for order id %s: invalid snapshot",
+                                       order["id"])
+                finally:
+                    conn.execute("RELEASE order_sales_import")
+    except sqlite3.Error:
+        app.logger.exception("Completed order sales import unavailable; startup will continue")
     finally:
         conn.close()
 
@@ -1617,6 +1642,8 @@ def cashfree_payment_status(merchant_order_id):
         try:
             with conn:
                 record_order_sales(conn, order["id"])
+        except (ValueError, TypeError, InvalidOperation, sqlite3.Error):
+            app.logger.warning("Sales import unavailable for completed order id %s", order["id"])
         finally:
             conn.close()
         return jsonify({"order_number": merchant_order_id, "state": "COMPLETED"})
