@@ -10,3 +10,11 @@ cypress/screenshots/
 .env
 .env.*
 !.env.example
+# Local runtime environments and private SQLite data
+vene/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*

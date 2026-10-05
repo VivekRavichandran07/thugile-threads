@@ -23,3 +23,14 @@ class CsrfTestClient(FlaskClient):
 
 
 app.test_client_class = CsrfTestClient
+
+
+# Keep tests and persisted rate limits out of the developer's real database.
+import pytest
+import db
+
+
+@pytest.fixture(autouse=True)
+def isolated_database(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "test.db"))
+    db.init_db()

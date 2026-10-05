@@ -164,3 +164,50 @@ def test_session_cookie_flags_are_hardened(security_client, monkeypatch):
     assert "samesite=lax" in cookie
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
+
+
+@pytest.mark.parametrize("identifier, exists", [
+    ("customer@example.com", True), ("missing@example.com", False),
+])
+def test_account_lookup_returns_only_existence(security_client, identifier, exists):
+    client, _ = security_client
+    response = client.post("/api/auth/check-user", json={"identifier": identifier})
+    assert response.status_code == 200
+    assert response.get_json() == {"exists": exists}
+
+
+@pytest.mark.parametrize("password", ["123456", "123456789"])
+def test_short_password_rejected_for_registration_and_reset(security_client, password):
+    client, _ = security_client
+    registration = client.post("/api/auth/register", json={
+        "name": "New Customer", "email": "new@example.com", "password": password,
+    })
+    reset = client.post("/api/auth/reset-password", json={
+        "token": "unused-token", "password": password,
+    })
+    assert registration.status_code == reset.status_code == 400
+    assert registration.get_json() == reset.get_json() == {
+        "error": "Password must be at least 10 characters."
+    }
+
+
+def test_ten_character_password_registration_succeeds(security_client):
+    client, _ = security_client
+    response = client.post("/api/auth/register", json={
+        "name": "New Customer", "email": "new@example.com", "password": "1234567890",
+    })
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/", "/shop/checkout", "/api/store/products", "/missing-page"])
+def test_csp_restricts_external_code_and_embedding(security_client, path):
+    client, _ = security_client
+    response = client.get(path)
+    policy = response.headers["Content-Security-Policy"]
+    assert "default-src 'self'" in policy
+    assert "object-src 'none'" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "form-action 'self'" in policy
+    assert "https://accounts.google.com" in policy
+    assert "https://sdk.cashfree.com" in policy
+    assert "'unsafe-eval'" not in policy

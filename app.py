@@ -230,6 +230,21 @@ def protect_mutating_requests():
 
 @app.after_request
 def add_security_headers(response):
+    # Existing templates use inline scripts, styles and event handlers.
+    # Keep those working while restricting external code and blocking embedding.
+    response.headers.setdefault("Content-Security-Policy", "; ".join([
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "script-src 'self' 'unsafe-inline' https://accounts.google.com https://sdk.cashfree.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: https:",
+        "connect-src 'self' https://accounts.google.com https://*.cashfree.com",
+        "frame-src https://accounts.google.com https://*.cashfree.com",
+    ]))
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -681,8 +696,8 @@ def auth_register():
     password = data.get("password") or ""
     if not name or not email or not password:
         return jsonify({"error": "Name, email and password are required."}), 400
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters."}), 400
+    if len(password) < 10:
+        return jsonify({"error": "Password must be at least 10 characters."}), 400
     conn = get_connection()
     try:
         conn.execute(
@@ -726,12 +741,12 @@ def auth_check_user():
         return jsonify({"error": "Email or phone required"}), 400
     conn = get_connection()
     user = conn.execute(
-        "SELECT id, name, email, phone FROM users WHERE email = ? OR phone = ?",
+        "SELECT 1 FROM users WHERE email = ? OR phone = ?",
         (identifier.lower(), identifier)
     ).fetchone()
     conn.close()
     if user:
-        return jsonify({"exists": True, "user": dict(user)})
+        return jsonify({"exists": True})
     return jsonify({"exists": False})
 
 
@@ -1219,8 +1234,8 @@ def reset_password():
     new_password = data.get("password") or ""
     if not token or not new_password:
         return jsonify({"error": "Token and password are required."}), 400
-    if len(new_password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters."}), 400
+    if len(new_password) < 10:
+        return jsonify({"error": "Password must be at least 10 characters."}), 400
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     conn = get_connection()
     try:
