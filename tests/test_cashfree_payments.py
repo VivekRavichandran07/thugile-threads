@@ -51,13 +51,13 @@ def cashfree_client(tmp_path, monkeypatch):
             "2026-01-01T00:00:00",
         ),
     )
-    conn.execute(
+    product_id = conn.execute(
         """
         INSERT INTO products (name, sku, size, selling_price, discounted_price, quantity, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         ("Test Kurta", "payment-test-kurta", "M", 100, 75, 2, "2026-01-01T00:00:00"),
-    )
+    ).lastrowid
     conn.commit()
     conn.close()
 
@@ -67,6 +67,7 @@ def cashfree_client(tmp_path, monkeypatch):
     monkeypatch.setenv("CASHFREE_REDIRECT_BASE_URL", "https://shop.example")
 
     client = app.test_client()
+    client.product_id = product_id
     with client.session_transaction() as session:
         session["user_id"] = user_id
     return client, database_path
@@ -94,7 +95,7 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
         json={
             "address_id": 1,
             "total": 1,
-            "items": [{"name": "Test Kurta", "size": "M", "qty": 1, "price": 1}],
+            "items": [{"product_id": client.product_id, "qty": 1, "price": 1}],
         },
     )
 
@@ -142,8 +143,8 @@ def test_cashfree_checkout_rejects_client_controlled_stock_and_prices(cashfree_c
         json={
             "address_id": 1,
             "items": [
-                {"name": "Test Kurta", "size": "M", "qty": 2, "price": 0.01},
-                {"name": "Test Kurta", "size": "M", "qty": 2, "price": 0.01},
+                {"product_id": client.product_id, "qty": 2, "price": 0.01},
+                {"product_id": client.product_id, "qty": 2, "price": 0.01},
             ],
         },
     )
@@ -165,7 +166,7 @@ def test_cashfree_status_does_not_confirm_amount_or_currency_mismatch(
     )
     created = client.post(
         "/api/payments/cashfree",
-        json={"address_id": 1, "items": [{"name": "Test Kurta", "size": "M", "qty": 1}]},
+        json={"address_id": 1, "items": [{"product_id": client.product_id, "qty": 1}]},
     ).get_json()
     monkeypatch.setattr(
         "app.requests.get",
@@ -239,7 +240,7 @@ def test_cashfree_checkout_reports_missing_server_credentials(cashfree_client, m
 
     response = client.post(
         "/api/payments/cashfree",
-        json={"address_id": 1, "items": [{"name": "Test Kurta", "size": "M", "qty": 1}]},
+        json={"address_id": 1, "items": [{"product_id": client.product_id, "qty": 1}]},
     )
 
     assert response.status_code == 503
@@ -266,7 +267,7 @@ def test_cashfree_order_creation_failure_does_not_leave_pending_order(
         "/api/payments/cashfree",
         json={
             "address_id": 1,
-            "items": [{"name": "Test Kurta", "size": "M", "qty": 1}],
+            "items": [{"product_id": client.product_id, "qty": 1}],
         },
     )
 

@@ -640,12 +640,18 @@ def storefront_products():
             "category": product["category"] or "Chudidar", "color": product["color"] or "",
             "price": product["selling_price"], "discounted_price": product["discounted_price"] or product["selling_price"],
             "image_url": product["image_url"] or "", "created_at": product["created_at"],
-            "available_sizes": [], "size_quantities": {}, "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
+            "available_sizes": [], "variants": [], "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
         })
         size = product["size"] or "M"
-        item["size_quantities"][size] = item["size_quantities"].get(size, 0) + product["quantity"]
         if product["quantity"] > 0 and size not in item["available_sizes"]:
             item["available_sizes"].append(size)
+            item["variants"].append({
+                "id": product["id"],
+                "sku": product["sku"],
+                "size": size,
+                "price": product["selling_price"],
+                "discounted_price": product["discounted_price"] or product["selling_price"],
+            })
     return jsonify({
         "products": [
             {**product, "size": ", ".join(product["available_sizes"]), "in_stock": True}
@@ -928,40 +934,84 @@ def user_cart_get():
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT product_name, size, MAX(price) AS price, SUM(qty) AS qty
-        FROM user_carts
-        WHERE user_id = ?
-        GROUP BY product_name, size
+        SELECT c.product_id, p.name, p.size,
+               COALESCE(NULLIF(p.discounted_price, 0), p.selling_price) AS price,
+               p.image_url, c.qty,
+               CASE WHEN p.quantity >= c.qty THEN 1 ELSE 0 END AS available
+        FROM user_carts AS c
+        JOIN products AS p ON p.id = c.product_id
+        WHERE c.user_id = ?
+        ORDER BY c.id
         """,
         (session["user_id"],),
     ).fetchall()
+    unresolved_count = conn.execute(
+        "SELECT COUNT(*) FROM user_carts WHERE user_id = ? AND product_id IS NULL",
+        (session["user_id"],),
+    ).fetchone()[0]
     conn.close()
-    return jsonify({"cart": [dict(row) for row in rows]})
+    return jsonify({"cart": [dict(row) for row in rows], "unresolved_count": unresolved_count})
 
 
 @app.route("/api/user/cart", methods=["POST"])
 def user_cart_save():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
-    data = request.get_json() or {}
-    cart = data.get("cart", [])
-    conn = get_connection()
-    conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get("cart"), list) or len(data["cart"]) > 50:
+        return jsonify({"error": "Invalid cart."}), 400
+
     merged_cart = {}
-    for item in cart:
-        name = item.get("name", "")
-        size = item.get("size") or "M"
-        key = (name, size)
-        if key not in merged_cart:
-            merged_cart[key] = {
-                "price": float(item.get("price", 0)),
-                "qty": 0,
-            }
-        merged_cart[key]["qty"] += int(item.get("qty", 1))
-    for (name, size), item in merged_cart.items():
+    for item in data["cart"]:
+        if not isinstance(item, dict):
+            return jsonify({"error": "Invalid cart item."}), 400
+        product_id = item.get("product_id")
+        quantity = item.get("qty")
+        if (
+            isinstance(product_id, bool)
+            or not isinstance(product_id, int)
+            or product_id < 1
+            or isinstance(quantity, bool)
+            or not isinstance(quantity, int)
+            or quantity < 1
+        ):
+            return jsonify({"error": "Invalid cart item."}), 400
+        merged_cart[product_id] = merged_cart.get(product_id, 0) + quantity
+        if merged_cart[product_id] > 100:
+            return jsonify({"error": "Each product quantity must be 100 or less."}), 400
+
+    conn = get_connection()
+    validated_items = []
+    for product_id, quantity in merged_cart.items():
+        product = conn.execute(
+            "SELECT id, name, size, quantity FROM products WHERE id = ?",
+            (product_id,),
+        ).fetchone()
+        if not product or product["quantity"] < quantity:
+            conn.close()
+            return jsonify({"error": "A cart item is no longer available in the requested quantity."}), 400
+        price_row = conn.execute(
+            "SELECT COALESCE(NULLIF(discounted_price, 0), selling_price) AS price "
+            "FROM products WHERE id = ?",
+            (product_id,),
+        ).fetchone()
+        validated_items.append((product, price_row["price"], quantity))
+
+    conn.execute("DELETE FROM user_carts WHERE user_id = ? AND product_id IS NOT NULL", (session["user_id"],))
+    for product, price, quantity in validated_items:
         conn.execute(
-            "INSERT INTO user_carts (user_id, product_name, size, price, qty) VALUES (?, ?, ?, ?, ?)",
-            (session["user_id"], name, size, item["price"], item["qty"]),
+            """
+            INSERT INTO user_carts (user_id, product_id, product_name, size, price, qty)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                product["id"],
+                product["name"],
+                product["size"] or "M",
+                price,
+                quantity,
+            ),
         )
     conn.commit()
     conn.close()
@@ -1301,54 +1351,48 @@ def build_order_items(raw_items):
     for item in raw_items:
         if not isinstance(item, dict):
             raise ValueError("Invalid cart item.")
-        name = item.get("name")
-        size = item.get("size") or "M"
+        product_id = item.get("product_id")
         quantity = item.get("qty")
         if (
-            not isinstance(name, str)
-            or not name.strip()
-            or not isinstance(size, str)
-            or not size.strip()
+            isinstance(product_id, bool)
+            or not isinstance(product_id, int)
+            or product_id < 1
             or isinstance(quantity, bool)
             or not isinstance(quantity, int)
             or quantity < 1
         ):
             raise ValueError("Invalid cart item.")
-        key = (name.strip(), size.strip())
-        merged_items[key] = merged_items.get(key, 0) + quantity
-        if merged_items[key] > 100:
+        merged_items[product_id] = merged_items.get(product_id, 0) + quantity
+        if merged_items[product_id] > 100:
             raise ValueError("Each product quantity must be 100 or less.")
 
     conn = get_connection()
     order_items = []
     total = Decimal("0")
     try:
-        for (name, size), quantity in merged_items.items():
-            variants = conn.execute(
+        for product_id, quantity in merged_items.items():
+            product = conn.execute(
                 """
-                SELECT discounted_price, selling_price, SUM(quantity) AS stock
+                SELECT id, name, sku, color, size, discounted_price, selling_price, quantity
                 FROM products
-                WHERE name = ? AND COALESCE(size, 'M') = ? AND quantity > 0
-                GROUP BY discounted_price, selling_price
+                WHERE id = ?
                 """,
-                (name, size),
-            ).fetchall()
-            available_stock = sum(row["stock"] for row in variants)
-            if not variants or quantity > available_stock:
-                raise ValueError(f"{name} in size {size} is no longer available.")
+                (product_id,),
+            ).fetchone()
+            if not product or quantity > product["quantity"]:
+                raise ValueError("A cart item is no longer available in the requested quantity.")
 
-            prices = {
-                Decimal(str(row["discounted_price"] or row["selling_price"]))
-                for row in variants
-            }
-            if len(prices) != 1:
-                raise ValueError(f"{name} is unavailable at a consistent price.")
-            unit_price = prices.pop()
+            name = product["name"]
+            size = product["size"] or "M"
+            unit_price = Decimal(str(product["discounted_price"] or product["selling_price"]))
             if not unit_price.is_finite() or unit_price <= 0:
                 raise ValueError(f"{name} has an invalid price.")
             total += unit_price * quantity
             order_items.append({
+                "product_id": product["id"],
+                "sku": product["sku"],
                 "name": name,
+                "color": product["color"],
                 "size": size,
                 "qty": quantity,
                 "unit_price": float(unit_price),
@@ -1381,7 +1425,9 @@ def orders_get():
 def cashfree_create_payment():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid payment request."}), 400
     try:
         api_base, credentials, environment = get_cashfree_settings()
         items, total = build_order_items(data.get("items"))

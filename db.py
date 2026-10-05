@@ -68,12 +68,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS user_carts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
+            product_id INTEGER,
             product_name TEXT NOT NULL,
             size TEXT NOT NULL DEFAULT 'M',
             price REAL NOT NULL DEFAULT 0,
             qty INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE(user_id, product_name, size)
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            UNIQUE(user_id, product_id)
         );
 
         CREATE TABLE IF NOT EXISTS user_wishlists (
@@ -149,29 +151,50 @@ def init_db():
         if column not in order_columns:
             conn.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")
     cart_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
-    if "size" not in cart_columns:
+    if "product_id" not in cart_columns or "size" not in cart_columns:
+        legacy_carts = conn.execute("SELECT * FROM user_carts").fetchall()
+        legacy_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
         conn.execute("ALTER TABLE user_carts RENAME TO user_carts_legacy")
         conn.execute(
             """
             CREATE TABLE user_carts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
+                product_id INTEGER,
                 product_name TEXT NOT NULL,
                 size TEXT NOT NULL DEFAULT 'M',
                 price REAL NOT NULL DEFAULT 0,
                 qty INTEGER NOT NULL DEFAULT 1,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                UNIQUE(user_id, product_name, size)
+                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+                UNIQUE(user_id, product_id)
             )
             """
         )
-        conn.execute(
-            """
-            INSERT INTO user_carts (id, user_id, product_name, size, price, qty)
-            SELECT id, user_id, product_name, 'M', price, qty
-            FROM user_carts_legacy
-            """
-        )
+        for item in legacy_carts:
+            product_name = item["product_name"]
+            size = item["size"] if "size" in legacy_columns else "M"
+            candidates = conn.execute(
+                "SELECT id FROM products WHERE name = ? AND COALESCE(size, 'M') = ?",
+                (product_name, size),
+            ).fetchall()
+            product_id = candidates[0]["id"] if len(candidates) == 1 else None
+            conn.execute(
+                """
+                INSERT INTO user_carts
+                    (id, user_id, product_id, product_name, size, price, qty)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    item["id"],
+                    item["user_id"],
+                    product_id,
+                    product_name,
+                    size,
+                    item["price"],
+                    item["qty"],
+                ),
+            )
         conn.execute("DROP TABLE user_carts_legacy")
     # Keep existing inventory databases compatible when the storefront adds image support.
     columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}

@@ -168,13 +168,16 @@ function loadCart() {
 function mergeCartItems(items) {
   return items.reduce((merged, item) => {
     const size = item.size || 'M';
-    const existing = merged.find(cartItem => cartItem.name === item.name && (cartItem.size || 'M') === size);
+    const existing = merged.find(cartItem => item.product_id
+      ? Number(cartItem.product_id) === Number(item.product_id)
+      : !cartItem.product_id && cartItem.name === item.name && (cartItem.size || 'M') === size);
     if (existing) {
       existing.qty += Number(item.qty) || 0;
     } else {
       merged.push({
         ...item,
         size,
+        product_id: Number(item.product_id) || null,
         price: Number(item.price) || 0,
         qty: Number(item.qty) || 1,
       });
@@ -246,17 +249,24 @@ function renderCartItems() {
   `).join('');
 }
 
-function addToBag(name, price, size, image_url, quantity = 1) {
+function addToBag(name, price, size, image_url, quantity = 1, product_id = null) {
   if (!currentUser) {
-    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null, quantity };
+    pendingCartItem = { name, price: Number(price), size: size || null, image_url: image_url || null, quantity, product_id };
     openAuthModal();
     return;
   }
-  const existing = bag.find(item => item.name === name && (item.size || 'M') === (size || 'M'));
+  if (!Number.isInteger(Number(product_id)) || Number(product_id) < 1) {
+    toast.textContent = 'Please choose an available product size again.';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    return;
+  }
+  const existing = bag.find(item => Number(item.product_id) === Number(product_id));
   if (existing) {
     existing.qty += quantity;
   } else {
-    bag.push({ name, price: Number(price), qty: quantity, size: size || null, image_url: image_url || null });
+    bag.push({ product_id: Number(product_id), name, price: Number(price), qty: quantity, size: size || null, image_url: image_url || null });
   }
   saveCart();
   toast.textContent = `${name} added to your bag`;
@@ -314,22 +324,46 @@ function renderWishlistItems() {
   `).join('');
 
   wishlistItems.querySelectorAll('.move-to-cart-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const name = btn.dataset.name;
       const price = Number(btn.dataset.price);
       const image_url = btn.dataset.image || null;
-      addToBag(name, price, null, image_url);
-      const items = getWishlist();
-      const idx = items.findIndex(i => i.name === name);
-      if (idx >= 0) {
-        items.splice(idx, 1);
-        saveWishlist(items);
-        renderWishlistItems();
+      try {
+        if (!searchProducts.length) {
+          const response = await fetch('/api/store/products');
+          if (!response.ok) throw new Error('The catalog is unavailable.');
+          searchProducts = (await response.json()).products || [];
+        }
+        const namedProducts = searchProducts.filter(product => product.name === name);
+        const product = namedProducts.find(item => item.image_url === image_url)
+          || (namedProducts.length === 1 ? namedProducts[0] : null);
+        const variant = product?.variants?.find(item => item.size === 'M') || product?.variants?.[0];
+        if (!variant) {
+          toast.textContent = 'Please choose this item and its size from the catalog.';
+          toast.classList.add('show');
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+          return;
+        }
+        addToBag(name, Number(variant.discounted_price || variant.price || price), variant.size, image_url, 1, variant.id);
+        const items = getWishlist();
+        const idx = items.findIndex(i => i.name === name);
+        if (idx >= 0) {
+          items.splice(idx, 1);
+          saveWishlist(items);
+          renderWishlistItems();
+        }
+        toast.textContent = `${name} moved to your bag`;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      } catch (error) {
+        console.error('Failed to move wishlist item to cart:', error);
+        toast.textContent = 'This item could not be added right now.';
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
       }
-      toast.textContent = `${name} moved to your bag`;
-      toast.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
     });
   });
 }
@@ -395,7 +429,10 @@ function openProductPopup(product) {
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const availableSizes = product.available_sizes || [];
-  productSizes.innerHTML = sizes.map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
+  productSizes.innerHTML = sizes.map(s => {
+    const variant = (product.variants || []).find(item => item.size === s);
+    return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${s}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${s}</button>`;
+  }).join('');
   productSizes.querySelectorAll('.size-option').forEach(btn => {
     btn.addEventListener('click', () => {
       productSizes.querySelectorAll('.size-option').forEach(b => b.classList.remove('selected'));
@@ -434,7 +471,15 @@ function openProductPopup(product) {
       return;
     }
     const quantity = Math.max(1, Number(document.getElementById('product-quantity')?.textContent || 1));
-    addToBag(product.name, discountedPrice(product.price, product.discounted_price), selectedSize.dataset.size, product.image_url, quantity);
+    const variant = (product.variants || []).find(item => item.id === Number(selectedSize.dataset.productId));
+    addToBag(
+      product.name,
+      discountedPrice(variant?.price || product.price, variant?.discounted_price || product.discounted_price),
+      selectedSize.dataset.size,
+      product.image_url,
+      quantity,
+      Number(selectedSize.dataset.productId)
+    );
     closeProductPopup();
   };
 
@@ -474,7 +519,10 @@ function renderProducts(products) {
     const action = `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`;
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
     const availableSizes = product.available_sizes || [];
-    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button class="size-option${availableSizes.includes(s) ? '' : ' unavailable'}" data-size="${s}" ${availableSizes.includes(s) ? '' : 'disabled'}>${s}</button>`).join('');
+    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => {
+      const variant = (product.variants || []).find(item => item.size === s);
+      return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${s}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${s}</button>`;
+    }).join('');
     return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
   observeReveals();
@@ -608,10 +656,10 @@ function handleProductCardClick(event) {
         toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
         return;
       }
-      const price = addBtn.dataset.price || 0;
+      const price = selectedSize.dataset.price || addBtn.dataset.price || 0;
       const cardImg = card.querySelector('.product-image img');
       const image_url = cardImg ? cardImg.src : '';
-      addToBag(addBtn.dataset.item, price, selectedSize.dataset.size, image_url);
+      addToBag(addBtn.dataset.item, price, selectedSize.dataset.size, image_url, 1, Number(selectedSize.dataset.productId));
       return;
     }
 
@@ -844,11 +892,27 @@ function handleGoogleCredentialResponse(response) {
     body: JSON.stringify({ credential }),
   })
     .then(res => res.json())
-    .then(data => {
+    .then(async data => {
       if (data.user) {
         currentUser = data.user;
         updateAuthUI();
+        await loadCartFromServer();
+        await loadWishlistFromServer();
         closeAuthModal();
+        if (pendingCartItem) {
+          addToBag(
+            pendingCartItem.name,
+            pendingCartItem.price,
+            pendingCartItem.size,
+            pendingCartItem.image_url,
+            pendingCartItem.quantity,
+            pendingCartItem.product_id
+          );
+          pendingCartItem = null;
+        } else if (pendingWishlistItem) {
+          toggleWishlist(pendingWishlistItem);
+          pendingWishlistItem = null;
+        }
         toast.textContent = `Welcome, ${data.user.name}!`;
         toast.classList.add('show');
         clearTimeout(toastTimer);
@@ -1047,19 +1111,28 @@ async function loadCartFromServer() {
   if (!currentUser) return;
   try {
     const res = await fetch('/api/user/cart');
+    if (!res.ok) throw new Error('Unable to load saved cart.');
     const data = await res.json();
     bag = mergeCartItems((data.cart || []).map(item => ({
-      name: item.product_name,
+      product_id: item.product_id,
+      name: item.name,
       price: item.price,
       qty: item.qty,
       size: item.size || null,
-      image_url: item.image_url || null
+      image_url: item.image_url || null,
     })));
     updateCartUI();
     localStorage.setItem('tnt_cart', JSON.stringify(bag));
-    syncCartToServer();
+    if (data.unresolved_count) {
+      toast.textContent = 'Some older saved items could not be matched to a current size variant. Please add them again from the catalog.';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+    }
     if (typeof renderCheckout === 'function') renderCheckout();
-  } catch {}
+  } catch (error) {
+    console.error('Failed to load saved cart:', error);
+  }
 }
 
 async function loadWishlistFromServer() {
@@ -1215,7 +1288,7 @@ if (loginForm) {
         return;
       }
       if (pendingCartItem) {
-        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity);
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity, pendingCartItem.product_id);
         pendingCartItem = null;
       } else if (pendingWishlistItem) {
         toggleWishlist(pendingWishlistItem);
@@ -1263,7 +1336,7 @@ if (signupForm) {
         return;
       }
       if (pendingCartItem) {
-        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity);
+        addToBag(pendingCartItem.name, pendingCartItem.price, pendingCartItem.size, pendingCartItem.image_url, pendingCartItem.quantity, pendingCartItem.product_id);
         pendingCartItem = null;
       } else if (pendingWishlistItem) {
         toggleWishlist(pendingWishlistItem);
@@ -1348,12 +1421,21 @@ async function logout() {
 let cartSyncQueue = Promise.resolve();
 function syncCartToServer() {
   if (!currentUser) return;
-  const body = JSON.stringify({ cart: bag });
+  const body = JSON.stringify({
+    cart: bag.map(item => ({ product_id: item.product_id, qty: item.qty })),
+  });
   cartSyncQueue = cartSyncQueue.catch(() => {}).then(() => fetch('/api/user/cart', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
-    })).catch(() => {});
+    })).then(async response => {
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Unable to save your cart.');
+      }
+    }).catch(error => {
+      console.error('Failed to save cart:', error);
+    });
   return cartSyncQueue;
 }
 

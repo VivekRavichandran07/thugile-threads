@@ -387,8 +387,7 @@
           body: JSON.stringify({
             address_id: Number(addressId),
             items: bag.map(item => ({
-              name: item.name,
-              size: item.size || 'M',
+              product_id: item.product_id,
               qty: item.qty
             }))
           })
