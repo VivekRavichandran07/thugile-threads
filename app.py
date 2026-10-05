@@ -237,7 +237,7 @@ def add_security_headers(response):
         "base-uri 'self'",
         "object-src 'none'",
         "frame-ancestors 'none'",
-        "form-action 'self'",
+        "form-action 'self' https://api.cashfree.com",
         "script-src 'self' 'unsafe-inline' https://accounts.google.com https://sdk.cashfree.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
         "font-src 'self' https://fonts.gstatic.com",
