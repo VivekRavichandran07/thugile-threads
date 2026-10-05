@@ -9,12 +9,13 @@
     {% if sales %}
         <table>
             <tr>
-                <th>Date</th><th>Product</th><th>Qty</th><th>Price/Unit</th><th>Total</th><th>Customer</th>
+                <th>Order</th><th>Date</th><th>Product</th><th>Qty</th><th>Price/Unit</th><th>Total</th><th>Customer</th>
             </tr>
             {% for s in sales %}
             <tr>
+                <td>{{ s.order_number or 'Manual sale' }}</td>
                 <td>{{ s.date.strftime('%d %b %Y') }}</td>
-                <td>{{ s.product.name if s.product else '—' }}</td>
+                <td>{{ s.product_name }}</td>
                 <td>{{ s.quantity }}</td>
                 <td>₹{{ s.selling_price }}</td>
                 <td>₹{{ s.total_amount }}</td>

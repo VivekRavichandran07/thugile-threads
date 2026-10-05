@@ -150,6 +150,13 @@ def init_db():
     ):
         if column not in order_columns:
             conn.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")
+    sale_columns = {row[1] for row in conn.execute("PRAGMA table_info(sales)")}
+    for column, definition in (("order_id", "INTEGER"), ("order_item_index", "INTEGER"),
+                               ("product_name", "TEXT")):
+        if column not in sale_columns:
+            conn.execute(f"ALTER TABLE sales ADD COLUMN {column} {definition}")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS sales_order_item "
+                 "ON sales(order_id, order_item_index)")
     cart_columns = {row[1] for row in conn.execute("PRAGMA table_info(user_carts)")}
     if "product_id" not in cart_columns or "size" not in cart_columns:
         legacy_carts = conn.execute("SELECT * FROM user_carts").fetchall()

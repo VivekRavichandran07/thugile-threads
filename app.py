@@ -1012,7 +1012,7 @@ def user_cart_save():
         ).fetchone()
         validated_items.append((product, price_row["price"], quantity))
 
-    conn.execute("DELETE FROM user_carts WHERE user_id = ? AND product_id IS NOT NULL", (session["user_id"],))
+    conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
     for product, price, quantity in validated_items:
         conn.execute(
             """
@@ -1548,6 +1548,54 @@ def cashfree_create_payment():
         return jsonify({"error": "We could not start Cashfree checkout. Please try again."}), 502
 
 
+def record_order_sales(conn, order_id):
+    """Import paid order snapshots once; never infer a sale from a pending payment."""
+    order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    if not order or order["payment_state"] != "COMPLETED":
+        return 0
+    items = json.loads(order["items"])
+    if not isinstance(items, list) or not items:
+        raise ValueError("Completed order has no valid items.")
+    address = json.loads(order["shipping_address_json"] or "{}")
+    user = conn.execute("SELECT name FROM users WHERE id = ?", (order["user_id"],)).fetchone()
+    customer = address.get("name") or (user["name"] if user else "")
+    count = 0
+    for index, item in enumerate(items):
+        product_id = item.get("product_id")
+        quantity = item.get("qty")
+        price = Decimal(str(item.get("unit_price")))
+        if (isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1
+                or not price.is_finite() or price <= 0
+                or not conn.execute("SELECT id FROM products WHERE id = ?", (product_id,)).fetchone()):
+            raise ValueError("Completed order contains an invalid or deleted product.")
+        cursor = conn.execute(
+            "INSERT OR IGNORE INTO sales "
+            "(product_id, quantity, selling_price, customer, date, order_id, order_item_index, product_name) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (product_id, quantity, float(price), customer, order["created_at"],
+             order_id, index, item.get("name")),
+        )
+        count += cursor.rowcount
+    return count
+
+
+def synchronize_completed_order_sales():
+    conn = get_connection()
+    try:
+        with conn:
+            conn.execute("BEGIN IMMEDIATE")
+            orders = conn.execute("SELECT id FROM orders WHERE payment_state = 'COMPLETED'").fetchall()
+            for order in orders:
+                record_order_sales(conn, order["id"])
+    except (ValueError, TypeError, InvalidOperation, sqlite3.IntegrityError):
+        app.logger.exception("Completed order sales import failed; transaction rolled back")
+    finally:
+        conn.close()
+
+
+synchronize_completed_order_sales()
+
+
 @app.route("/api/payments/cashfree/<merchant_order_id>/status")
 def cashfree_payment_status(merchant_order_id):
     if "user_id" not in session:
@@ -1565,6 +1613,12 @@ def cashfree_payment_status(merchant_order_id):
     if not order:
         return jsonify({"error": "Order not found."}), 404
     if order["payment_state"] == "COMPLETED":
+        conn = get_connection()
+        try:
+            with conn:
+                record_order_sales(conn, order["id"])
+        finally:
+            conn.close()
         return jsonify({"order_number": merchant_order_id, "state": "COMPLETED"})
 
     try:
@@ -1608,22 +1662,25 @@ def cashfree_payment_status(merchant_order_id):
             "PENDING": "pending",
         }[payment_state]
         conn = get_connection()
-        conn.execute(
-            """
-            UPDATE orders
-            SET payment_state = ?, status = ?, cashfree_order_id = ?
-            WHERE id = ? AND user_id = ? AND payment_state != 'COMPLETED'
-            """,
-            (payment_state, order_status, merchant_order_id, order["id"], session["user_id"]),
-        )
-        if payment_state == "COMPLETED":
-            conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
-        stored_state = conn.execute(
-            "SELECT payment_state FROM orders WHERE id = ? AND user_id = ?",
-            (order["id"], session["user_id"]),
-        ).fetchone()["payment_state"]
-        conn.commit()
-        conn.close()
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    UPDATE orders
+                    SET payment_state = ?, status = ?, cashfree_order_id = ?
+                    WHERE id = ? AND user_id = ? AND payment_state != 'COMPLETED'
+                    """,
+                    (payment_state, order_status, merchant_order_id, order["id"], session["user_id"]),
+                )
+                if payment_state == "COMPLETED":
+                    record_order_sales(conn, order["id"])
+                    conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
+                stored_state = conn.execute(
+                    "SELECT payment_state FROM orders WHERE id = ? AND user_id = ?",
+                    (order["id"], session["user_id"]),
+                ).fetchone()["payment_state"]
+        finally:
+            conn.close()
         return jsonify({"order_number": merchant_order_id, "state": stored_state})
     except RuntimeError as error:
         return jsonify({"error": str(error)}), 503
@@ -1658,7 +1715,7 @@ def dashboard():
 
     recent_sales_rows = conn.execute(
         """
-        SELECT sales.*, products.name AS product_name
+        SELECT sales.*, COALESCE(sales.product_name, products.name) AS display_product_name
         FROM sales
         LEFT JOIN products ON sales.product_id = products.id
         ORDER BY sales.date DESC
@@ -1670,7 +1727,7 @@ def dashboard():
     recent_sales = [
         {
             "date": parse_date(s["date"]),
-            "product_name": s["product_name"] or "—",
+            "product_name": s["display_product_name"] or "—",
             "quantity": s["quantity"],
             "total_amount": round(s["quantity"] * s["selling_price"], 2),
             "customer": s["customer"],
@@ -1927,9 +1984,10 @@ def sales():
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT sales.*, products.name AS product_name
+        SELECT sales.*, COALESCE(sales.product_name, products.name) AS display_product_name, orders.order_number
         FROM sales
         LEFT JOIN products ON sales.product_id = products.id
+        LEFT JOIN orders ON sales.order_id = orders.id
         ORDER BY sales.date DESC
         """
     ).fetchall()
@@ -1938,11 +1996,12 @@ def sales():
     all_sales = [
         {
             "date": parse_date(r["date"]),
-            "product_name": r["product_name"] or "—",
+            "product_name": r["display_product_name"] or "—",
             "quantity": r["quantity"],
             "selling_price": r["selling_price"],
             "total_amount": round(r["quantity"] * r["selling_price"], 2),
             "customer": r["customer"],
+            "order_number": r["order_number"],
         }
         for r in rows
     ]

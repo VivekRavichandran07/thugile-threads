@@ -133,6 +133,12 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
     ).fetchone()
     conn.close()
     assert order == (75.0, "confirmed", "COMPLETED", data["merchant_order_id"])
+    repeated = client.get(f"/api/payments/cashfree/{data['merchant_order_id']}/status")
+    assert repeated.status_code == 200
+    conn = sqlite3.connect(database_path)
+    assert conn.execute("SELECT quantity, selling_price, product_name FROM sales").fetchall() == [(1, 75, "Test Kurta")]
+    conn.close()
+
 
 
 def test_cashfree_checkout_rejects_client_controlled_stock_and_prices(cashfree_client):
