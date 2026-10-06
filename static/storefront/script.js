@@ -85,45 +85,45 @@ const searchOverlay = document.getElementById('search-overlay');
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 const fallbackImages = [
-  '/static/storefront/assets/Chudidar/image-1.png',
-  '/static/storefront/assets/Chudidar/image-2.jpg',
-  '/static/storefront/assets/Chudidar/image-3.jpg',
-  '/static/storefront/assets/Chudidar/image-4.jpg'
+  '/static/storefront/assets/Chudidar/image-1.webp',
+  '/static/storefront/assets/Chudidar/image-2.webp',
+  '/static/storefront/assets/Chudidar/image-3.webp',
+  '/static/storefront/assets/Chudidar/image-4.webp'
 ];
 var bag = [], toastTimer, currentProduct = null, currentImageIndex = 0, pendingCartItem = null, pendingWishlistItem = null, searchProducts = [];
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const imageFor = (url, index, name) => {
   const imageMap = {
-    'Sanganeri Block Print Kurta': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png',
-    'Ajrakh Co-ord Set': '/static/storefront/assets/Chudidar/AjrakhCoordSet.png',
-    'Kalamkari Print Set': '/static/storefront/assets/Chudidar/KalamkariPrintSet.png',
-    'Acharam Block Print Kurta': '/static/storefront/assets/Chudidar/AcharamBlockPrintKurta.png',
-    'Vasantha Embroidery Set': '/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.png',
-    'Thalaikku Workwear': '/static/storefront/assets/Chudidar/ThalaikkuWorkwear.png',
-    'Meenakari Embroidered Set': '/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.png',
-    'Thenral Cotton Co-ord': '/static/storefront/assets/Chudidar/ThenralCottonCoord.png',
-    'Pavai Handloom Set': '/static/storefront/assets/Chudidar/PavaiHandloomSet.png',
-    'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.png',
-    'Kanakavalli Silk Co-ord': '/static/storefront/assets/Chudidar/KanakavalliSilkCoord.png',
-    'Thaai Silk Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.png',
-    'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.png',
-    'Mayil Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.png',
-    'Thamarai Set': '/static/storefront/assets/Chudidar/KalamkariPrintSet.png',
-    'Vennila Set': '/static/storefront/assets/Chudidar/PavaiHandloomSet.png',
-    'Manjal Set': '/static/storefront/assets/Chudidar/image-1.png',
-    'Maragatham Set': '/static/storefront/assets/Chudidar/image-2.jpg',
-    'Rosa Set': '/static/storefront/assets/Chudidar/Rosaset.png',
-    'Neelam Set': '/static/storefront/assets/Chudidar/image-3.jpg',
-    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png',
-    'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.png',
-    'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.png'
+    'Sanganeri Block Print Kurta': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp',
+    'Ajrakh Co-ord Set': '/static/storefront/assets/Chudidar/AjrakhCoordSet.webp',
+    'Kalamkari Print Set': '/static/storefront/assets/Chudidar/KalamkariPrintSet.webp',
+    'Acharam Block Print Kurta': '/static/storefront/assets/Chudidar/AcharamBlockPrintKurta.webp',
+    'Vasantha Embroidery Set': '/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.webp',
+    'Thalaikku Workwear': '/static/storefront/assets/Chudidar/ThalaikkuWorkwear.webp',
+    'Meenakari Embroidered Set': '/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.webp',
+    'Thenral Cotton Co-ord': '/static/storefront/assets/Chudidar/ThenralCottonCoord.webp',
+    'Pavai Handloom Set': '/static/storefront/assets/Chudidar/PavaiHandloomSet.webp',
+    'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.webp',
+    'Kanakavalli Silk Co-ord': '/static/storefront/assets/Chudidar/KanakavalliSilkCoord.webp',
+    'Thaai Silk Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.webp',
+    'Kongu Cotton Coord': '/static/storefront/assets/Chudidar/KonguCottonCoord.webp',
+    'Mayil Set': '/static/storefront/assets/Chudidar/ThaaiSilkSet.webp',
+    'Thamarai Set': '/static/storefront/assets/Chudidar/KalamkariPrintSet.webp',
+    'Vennila Set': '/static/storefront/assets/Chudidar/PavaiHandloomSet.webp',
+    'Manjal Set': '/static/storefront/assets/Chudidar/image-1.webp',
+    'Maragatham Set': '/static/storefront/assets/Chudidar/image-2.webp',
+    'Rosa Set': '/static/storefront/assets/Chudidar/Rosaset.webp',
+    'Neelam Set': '/static/storefront/assets/Chudidar/image-3.webp',
+    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp',
+    'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.webp',
+    'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.webp'
   };
   return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
   const match = String(image).match(/^(.*)\.([a-z0-9]+)$/i);
   if (!match || !match[1].includes('/static/storefront/assets/Chudidar/')) return [image];
-  return [image, `${match[1]}-1.png`, `${match[1]}-2.png`, `${match[1]}-3.png`, `${match[1]}-4.png`];
+  return [image, `${match[1]}-1.webp`, `${match[1]}-2.webp`, `${match[1]}-3.webp`, `${match[1]}-4.webp`];
 };
 const availableImageVariants = async image => {
   const candidates = productImageVariants(image);

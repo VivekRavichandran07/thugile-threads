@@ -23,7 +23,7 @@ for name, sku, cat, price, qty in products:
     conn.execute("""
       INSERT INTO products (name, sku, category, size, color, image_url, cost_price, selling_price, quantity, reorder_level, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (name, sku, cat, "M", "Multi", f"/static/storefront/assets/Chudidar/{name.replace(' ', '')}.png", price*0.6, price, qty, 5, now_iso()))
+    """, (name, sku, cat, "M", "Multi", f"/static/storefront/assets/Chudidar/{name.replace(' ', '').replace('-', '')}.webp", price*0.6, price, qty, 5, now_iso()))
 
 conn.commit()
 conn.close()

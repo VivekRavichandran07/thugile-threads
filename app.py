@@ -22,6 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db, now_iso
+from image_assets import webp_image_url
 
 
 def load_env_file(path):
@@ -561,6 +562,8 @@ def product_image_variants(name, image_url):
         stem, extension = os.path.splitext(filename)
         if ":" in filename or extension.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
             continue
+        if extension.lower() != ".webp" and os.path.isfile(os.path.join(assets_dir, stem + ".webp")):
+            continue
         normalized_stem = re.sub(r"[^a-z0-9]", "", stem.lower())
         matches_image = image_stem and (
             normalized_stem == image_stem
@@ -573,7 +576,7 @@ def product_image_variants(name, image_url):
         if matches_image or matches_name:
             variants.append("/static/storefront/assets/Chudidar/" + filename)
     if not variants and image_url:
-        variants.append(image_url)
+        variants.append(webp_image_url(image_url))
     return sorted(
         variants,
         key=lambda path: (
@@ -654,7 +657,7 @@ def storefront_products():
             "id": product["id"], "name": product["name"], "sku": product["sku"],
             "category": product["category"] or "Chudidar", "color": product["color"] or "",
             "price": product["selling_price"], "discounted_price": product["discounted_price"] or product["selling_price"],
-            "image_url": product["image_url"] or "", "created_at": product["created_at"],
+            "image_url": webp_image_url(product["image_url"] or ""), "created_at": product["created_at"],
             "available_sizes": [], "variants": [], "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
         })
         size = product["size"] or "M"

@@ -1,3 +1,4 @@
+from image_assets import migrate_image_urls
 import sqlite3
 import os
 from datetime import datetime
@@ -242,26 +243,26 @@ def init_db():
     )
 
     storefront_products = [
-        ("Gulmohar Set", "store-gulmohar-set", "Chudidar", "M", "Rust", "/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png", 4850),
-        ("Neelam Set", "store-neelam-set", "Chudidar", "M", "Indigo", "/static/storefront/assets/Chudidar/image-3.jpg", 3950),
-        ("Rosa Set", "store-rosa-set", "Chudidar", "M", "Rose", "/static/storefront/assets/Chudidar/image-2.jpg", 5250),
-        ("Maragatham Set", "store-maragatham-set", "Chudidar", "M", "Emerald", "/static/storefront/assets/Chudidar/image-3.jpg", 6150),
-        ("Manjal Set", "store-manjal-set", "Chudidar", "M", "Marigold", "/static/storefront/assets/Chudidar/image-1.png", 3650),
-        ("Thamarai Set", "store-thamarai-set", "Chudidar", "M", "Terracotta", "/static/storefront/assets/Chudidar/KalamkariPrintSet.png", 4450),
-        ("Mayil Set", "store-mayil-set", "Chudidar", "M", "Mulberry", "/static/storefront/assets/Chudidar/ThaaiSilkSet.png", 5950),
-        ("Vennila Set", "store-vennila-set", "Chudidar", "M", "Ivory", "/static/storefront/assets/Chudidar/PavaiHandloomSet.png", 5750),
-        ("Sanganeri Block Print Kurta", "store-sanganeri-block-print-kurta", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.png", 2499),
-        ("Ajrakh Co-ord Set", "store-ajrakh-co-ord-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/AjrakhCoordSet.png", 3499),
-        ("Kalamkari Print Set", "store-kalamkari-print-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KalamkariPrintSet.png", 1999),
-        ("Acharam Block Print Kurta", "store-acharam-block-print-kurta", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/AcharamBlockPrintKurta.png", 1799),
-        ("Vasantha Embroidery Set", "store-vasantha-embroidery-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.png", 3999),
-        ("Thalaikku Workwear", "store-thalaikku-workwear", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThalaikkuWorkwear.png", 2599),
-        ("Meenakari Embroidered Set", "store-meenakari-embroidered-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.png", 3299),
-        ("Thenral Cotton Co-ord", "store-thenral-cotton-co-ord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThenralCottonCoord.png", 2899),
-        ("Pavai Handloom Set", "store-pavai-handloom-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/PavaiHandloomSet.png", 3199),
-        ("Kongu Cotton Coord", "store-kongu-cotton-coord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KonguCottonCoord.png", 1699),
-        ("Kanakavalli Silk Co-ord", "store-kanakavalli-silk-co-ord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KanakavalliSilkCoord.png", 5499),
-        ("Thaai Silk Set", "store-thaai-silk-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThaaiSilkSet.png", 5999),
+        ("Gulmohar Set", "store-gulmohar-set", "Chudidar", "M", "Rust", "/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp", 4850),
+        ("Neelam Set", "store-neelam-set", "Chudidar", "M", "Indigo", "/static/storefront/assets/Chudidar/image-3.webp", 3950),
+        ("Rosa Set", "store-rosa-set", "Chudidar", "M", "Rose", "/static/storefront/assets/Chudidar/image-2.webp", 5250),
+        ("Maragatham Set", "store-maragatham-set", "Chudidar", "M", "Emerald", "/static/storefront/assets/Chudidar/image-3.webp", 6150),
+        ("Manjal Set", "store-manjal-set", "Chudidar", "M", "Marigold", "/static/storefront/assets/Chudidar/image-1.webp", 3650),
+        ("Thamarai Set", "store-thamarai-set", "Chudidar", "M", "Terracotta", "/static/storefront/assets/Chudidar/KalamkariPrintSet.webp", 4450),
+        ("Mayil Set", "store-mayil-set", "Chudidar", "M", "Mulberry", "/static/storefront/assets/Chudidar/ThaaiSilkSet.webp", 5950),
+        ("Vennila Set", "store-vennila-set", "Chudidar", "M", "Ivory", "/static/storefront/assets/Chudidar/PavaiHandloomSet.webp", 5750),
+        ("Sanganeri Block Print Kurta", "store-sanganeri-block-print-kurta", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp", 2499),
+        ("Ajrakh Co-ord Set", "store-ajrakh-co-ord-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/AjrakhCoordSet.webp", 3499),
+        ("Kalamkari Print Set", "store-kalamkari-print-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KalamkariPrintSet.webp", 1999),
+        ("Acharam Block Print Kurta", "store-acharam-block-print-kurta", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/AcharamBlockPrintKurta.webp", 1799),
+        ("Vasantha Embroidery Set", "store-vasantha-embroidery-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.webp", 3999),
+        ("Thalaikku Workwear", "store-thalaikku-workwear", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThalaikkuWorkwear.webp", 2599),
+        ("Meenakari Embroidered Set", "store-meenakari-embroidered-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.webp", 3299),
+        ("Thenral Cotton Co-ord", "store-thenral-cotton-co-ord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThenralCottonCoord.webp", 2899),
+        ("Pavai Handloom Set", "store-pavai-handloom-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/PavaiHandloomSet.webp", 3199),
+        ("Kongu Cotton Coord", "store-kongu-cotton-coord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KonguCottonCoord.webp", 1699),
+        ("Kanakavalli Silk Co-ord", "store-kanakavalli-silk-co-ord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KanakavalliSilkCoord.webp", 5499),
+        ("Thaai Silk Set", "store-thaai-silk-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThaaiSilkSet.webp", 5999),
     ]
     for name, sku, category, size, color, image_url, selling_price in storefront_products:
         conn.execute(
@@ -306,6 +307,7 @@ def init_db():
     if "address_line_2" not in address_columns:
         conn.execute("ALTER TABLE user_addresses ADD COLUMN address_line_2 TEXT")
     
+    migrate_image_urls(conn)
     conn.commit()
     conn.close()
 
