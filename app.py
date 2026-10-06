@@ -453,7 +453,7 @@ def add_storefront_seo(response):
     base_url = app.config["PUBLIC_BASE_URL"]
     canonical_path = "/" if request.path in {"/", "/shop/"} else seo_path
     canonical_url = urljoin(base_url + "/", canonical_path.lstrip("/"))
-    image_url = urljoin(base_url + "/", "static/storefront/assets/thugile-and-threads-logo.png")
+    image_url = urljoin(base_url + "/", "static/storefront/assets/thugile-and-threads-logo.webp")
     html = response.get_data(as_text=True)
     html = re.sub(
         r"<title\b[^>]*>.*?</title>",
