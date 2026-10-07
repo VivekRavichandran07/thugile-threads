@@ -483,6 +483,22 @@ def add_storefront_seo(response):
         f'<meta name="twitter:description" content="{escape(description, quote=True)}">'
         f'<meta name="twitter:image" content="{escape(image_url, quote=True)}">'
     )
+    for env_name, tag_name in (
+        ("GOOGLE_SITE_VERIFICATION", "google-site-verification"),
+        ("BING_SITE_VERIFICATION", "msvalidate.01"),
+    ):
+        verification = os.environ.get(env_name, "").strip()
+        if verification:
+            seo_tags += f'<meta name="{tag_name}" content="{escape(verification, quote=True)}">'
+    if request.path in {"/", "/shop/"}:
+        site_identity = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Thugile & Threads",
+            "alternateName": ["Thugile Threads", "thugilethreads.store"],
+            "url": base_url + "/",
+        }, ensure_ascii=True).replace("<", "\\u003c")
+        seo_tags += f'<script type="application/ld+json">{site_identity}</script>'
     if request.path in {
         "/shop/checkout",
         "/shop/shipping",
@@ -597,6 +613,16 @@ def shop():
     with open(html_path, "r") as f:
         page = f.read()
     return inject_google_client_id(page)
+
+
+@app.route("/googled9f82b121fbf0657.html")
+def google_search_verification_file():
+    response = send_from_directory(
+        os.path.join(app.static_folder, "search-verification"),
+        "googled9f82b121fbf0657.html",
+    )
+    response.direct_passthrough = False
+    return response
 
 
 @app.route("/robots.txt")
