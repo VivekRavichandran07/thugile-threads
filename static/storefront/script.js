@@ -932,23 +932,40 @@ function handleGoogleCredentialResponse(response) {
     });
 }
 
+let googleSignInInitialized = false;
+let googleButtonWidth = 0;
+let googleButtonObserver = null;
+
 function initGoogleSignIn() {
   const gIdOnload = document.getElementById('g_id_onload');
   const gIdSignin = document.getElementById('google-button-container');
-  if (!gIdOnload || !gIdSignin || !google) return;
+  if (!gIdOnload || !gIdSignin || !window.google?.accounts?.id) return;
 
-  google.accounts.id.initialize({
+  if (!googleSignInInitialized) {
+    google.accounts.id.initialize({
     client_id: gIdOnload.getAttribute('data-client_id'),
     callback: handleGoogleCredentialResponse,
     auto_select: false,
     cancel_on_tap_outside: false,
-  });
+    });
+    googleSignInInitialized = true;
+  }
 
-  google.accounts.id.renderButton(
-    gIdSignin,
-    { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' },
-    { type: 'standard' }
-  );
+  const renderGoogleButton = () => {
+    const width = Math.min(400, Math.floor(gIdSignin.getBoundingClientRect().width));
+    if (!width || width === googleButtonWidth) return;
+    googleButtonWidth = width;
+    google.accounts.id.renderButton(gIdSignin, {
+      type: 'standard', theme: 'outline', size: 'large',
+      width: String(width), text: 'signin_with', shape: 'rectangular',
+      logo_alignment: 'left',
+    });
+  };
+  renderGoogleButton();
+  if (!googleButtonObserver) {
+    googleButtonObserver = new ResizeObserver(renderGoogleButton);
+    googleButtonObserver.observe(gIdSignin);
+  }
 }
 
 // Initialize Google sign-in when the GIS library loads
@@ -1083,7 +1100,7 @@ function renderCheckout() {
   if (countEl) countEl.textContent = totalItems;
 
   if (!bag.length) {
-    itemsEl.innerHTML = '<p class="cart-empty" style="padding:40px 0;color:#7a6e62;font-family:var(--mono);font-size:13px">Your bag is empty.</p>';
+    itemsEl.innerHTML = '<p class="cart-empty" style="padding:40px 0;color:#7a6e62;font-family:var(--google-sans);font-size:13px">Your bag is empty.</p>';
     totalEl.textContent = '₹ 0';
     placeBtn.disabled = true;
     return;

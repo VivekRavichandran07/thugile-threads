@@ -1,0 +1,21 @@
+/* Shared login dialog for the storefront and inventory pages. */
+.auth-overlay{padding:14px;background:rgba(0,0,0,.5)}
+.auth-overlay .auth-modal{
+  --sans:'Google Sans Flex',Arial,sans-serif;
+  --ink:#1a1512;--line:#d8cfc2;--terracotta:#9a4d35;
+  box-sizing:border-box;width:100%;max-width:400px;padding:36px 28px;
+  border:1px solid var(--line);border-radius:14px;background:#fff;
+  color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;
+  max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);overflow-y:auto;
+}
+.auth-modal h2{font-family:var(--sans);font-weight:500;line-height:1.15;padding-right:32px}
+.auth-modal .auth-close{top:12px;right:12px;width:44px;height:44px;padding:0;border-radius:50%;color:var(--ink);font-family:var(--sans)}
+.auth-modal input:not([type=checkbox]):not([type=radio]){font-size:16px!important;border-radius:10px;min-height:46px}
+.auth-modal .auth-submit{min-height:44px;margin-top:0;border-radius:10px;background:var(--ink);font:500 13px var(--sans)}
+.auth-modal .google-signin{display:flex;justify-content:center;margin-bottom:16px}
+.auth-modal #google-button-container{width:100%;min-height:44px;display:flex;justify-content:center}
+.auth-modal #google-button-container iframe{display:block}
+.auth-modal .auth-divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:#7a6e62;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.auth-modal .auth-divider::before,.auth-modal .auth-divider::after{content:'';flex:1;height:1px;background:var(--line)}
+.auth-modal .auth-form{gap:0}
+@media(max-width:640px){.auth-overlay .auth-modal{width:100%;padding:28px 20px}}

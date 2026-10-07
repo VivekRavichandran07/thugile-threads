@@ -1,3 +1,4 @@
+:root { --google-sans: 'Google Sans Flex', Arial, sans-serif; }
 * { box-sizing: border-box; }
 
 body {
@@ -323,7 +324,7 @@ body[data-show-login="true"] .container {
   padding: 10px;
   background: none;
   border: 1px solid #ddd0bc;
-  font: 500 11px monospace;
+  font: 500 11px var(--google-sans);
   letter-spacing: .06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -348,7 +349,7 @@ body[data-show-login="true"] .container {
   background: #2c2620;
   color: #fff;
   border: 0;
-  font: 500 12px monospace;
+  font: 500 12px var(--google-sans);
   letter-spacing: .08em;
   text-transform: uppercase;
   cursor: pointer;
