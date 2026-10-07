@@ -581,6 +581,12 @@ main img:hover{transform:scale(1.04)}
 }
 
 /* Responsive storefront: constrain content rather than clipping it off-screen. */
+.packaging-note{display:flex;align-items:flex-start;gap:12px;margin:24px 0 0;padding:18px;background:#f2f7ee;border:1px solid #d7e5cd;border-radius:14px;color:#365332;font:400 14px/1.6 var(--sans)}
+.packaging-note p{margin:0;min-width:0}
+.packaging-note strong{display:block;margin-bottom:3px;font-weight:600}
+.packaging-icon{flex:0 0 auto;font-size:26px;line-height:1.2}
+.packaging-note-compact{margin:0;padding:12px 14px;font-size:12px}
+.packaging-note-compact .packaging-icon{font-size:22px}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .checkout-page .checkout-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .checkout-page .checkout-section{min-width:0}
