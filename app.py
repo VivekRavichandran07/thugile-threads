@@ -625,6 +625,15 @@ def google_search_verification_file():
     return response
 
 
+@app.route("/BingSiteAuth.xml")
+def bing_search_verification_file():
+    return send_from_directory(
+        os.path.join(app.static_folder, "search-verification"),
+        "BingSiteAuth.xml",
+        mimetype="application/xml",
+    )
+
+
 @app.route("/robots.txt")
 def robots_txt():
     sitemap_url = urljoin(app.config["PUBLIC_BASE_URL"] + "/", "sitemap.xml")

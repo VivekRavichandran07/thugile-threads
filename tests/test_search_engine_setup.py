@@ -14,6 +14,14 @@ def test_google_verification_file_is_public_and_unchanged():
     assert b"google-site-verification: googled9f82b121fbf0657.html" in response.data
 
 
+def test_bing_verification_file_is_public_and_unchanged():
+    response = app.test_client().get("/BingSiteAuth.xml")
+    original = Path(app.static_folder) / "search-verification" / "BingSiteAuth.xml"
+    assert response.status_code == 200
+    assert response.data == original.read_bytes()
+    assert response.mimetype == "application/xml"
+
+
 def test_homepage_identifies_the_site_name():
     for path in ("/", "/shop/"):
         page = app.test_client().get(path).get_data(as_text=True)
