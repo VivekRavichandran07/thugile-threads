@@ -844,8 +844,17 @@ if (sizeGuideOverlay) {
 }
 
 const parallax = document.querySelectorAll('.parallax');
-function moveParallax(){ parallax.forEach(el => { const rect = el.parentElement.getBoundingClientRect(); const speed = Number(el.dataset.speed); el.style.transform = `translateY(${(rect.top + rect.height / 2) * speed}px)`; }); }
+function moveParallax(){ parallax.forEach(el => {
+  if (el.classList.contains('quote-image') && window.matchMedia('(max-width:640px)').matches) {
+    el.style.transform = 'none';
+    return;
+  }
+  const rect = el.parentElement.getBoundingClientRect();
+  const speed = Number(el.dataset.speed);
+  el.style.transform = `translateY(${(rect.top + rect.height / 2) * speed}px)`;
+}); }
 moveParallax(); window.addEventListener('scroll', moveParallax, {passive:true});
+window.addEventListener('resize', moveParallax, {passive:true});
 
 document.querySelectorAll('[data-before-after]').forEach(compare => {
   const range = compare.querySelector('.before-after-range');
