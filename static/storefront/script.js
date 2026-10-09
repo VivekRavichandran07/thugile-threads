@@ -427,11 +427,11 @@ function openProductPopup(product) {
   productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
 
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const availableSizes = product.available_sizes || [];
+  const sizes = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes])];
   productSizes.innerHTML = sizes.map(s => {
     const variant = (product.variants || []).find(item => item.size === s);
-    return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${s}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${s}</button>`;
+    return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
   }).join('');
   productSizes.querySelectorAll('.size-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -519,9 +519,9 @@ function renderProducts(products) {
     const action = `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`;
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
     const availableSizes = product.available_sizes || [];
-    const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'].map(s => {
+    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes])].map(s => {
       const variant = (product.variants || []).find(item => item.size === s);
-      return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${s}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${s}</button>`;
+      return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
     }).join('');
     return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
