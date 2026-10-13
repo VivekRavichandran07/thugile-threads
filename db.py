@@ -233,6 +233,8 @@ def init_db():
         conn.execute("DROP TABLE user_carts_legacy")
     # Keep existing inventory databases compatible when the storefront adds image support.
     columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}
+    if "is_archived" not in columns:
+        conn.execute("ALTER TABLE products ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
     if "image_url" not in columns:
         conn.execute("ALTER TABLE products ADD COLUMN image_url TEXT")
     if "discounted_price" not in columns:
@@ -277,12 +279,15 @@ def init_db():
              round(selling_price * 0.9, 2), now_iso(), name),
         )
     
-    # IMPORTANT: Set all storefront products to quantity=10 if they're currently 0
-    # This ensures products show on the storefront after init_db runs
+    # Retired demo products stay available to historical order references.
+    # Never replenish stock during startup.
     conn.execute(
-        "UPDATE products SET quantity = 10 WHERE sku LIKE 'store-%' AND quantity = 0"
+        "UPDATE products SET is_archived = 1, quantity = 0 "
+        "WHERE sku IN (" + ",".join("?" for _ in storefront_products) + ") "
+        "AND EXISTS (SELECT 1 FROM products WHERE sku NOT LIKE 'store-%')",
+        tuple(product[1] for product in storefront_products),
     )
-    
+
     # Add phone column to users if missing
     user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
     if "is_admin" not in user_columns:

@@ -194,3 +194,56 @@ def test_legacy_cart_migration_maps_only_unambiguous_items(tmp_path, monkeypatch
     conn.close()
     assert tuple(migrated["Unique Kurta"]) == (product_id, "Unique Kurta", 5.0, 1)
     assert migrated["Ambiguous Kurta"]["product_id"] is None
+
+
+def test_sold_out_catalog_retains_product_but_not_buyable_sizes(tmp_path, monkeypatch):
+    client, database_path, product_ids = make_cart_client(tmp_path, monkeypatch)
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("UPDATE products SET quantity=0 WHERE id=?", (product_ids[0],))
+        conn.execute("UPDATE products SET is_archived=1 WHERE id=?", (product_ids[1],))
+    products = client.get("/api/store/products").get_json()["products"]
+    variants = [p for p in products if p["name"] == "Same Kurta"]
+    assert len(variants) == 1
+    assert variants[0]["color"] == "Red"
+    assert variants[0]["in_stock"] is False
+    assert variants[0]["available_sizes"] == []
+    assert variants[0]["variants"] == []
+    assert client.post("/api/user/cart", json={"cart": [{"product_id": product_ids[0], "qty": 1}]}).status_code == 400
+
+
+def test_startup_does_not_restock_retired_samples(tmp_path, monkeypatch):
+    _, database_path, _ = make_cart_client(tmp_path, monkeypatch)
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("UPDATE products SET quantity=0 WHERE sku='store-gulmohar-set'")
+    db.init_db()
+    with sqlite3.connect(database_path) as conn:
+        assert conn.execute("SELECT quantity,is_archived FROM products WHERE sku='store-gulmohar-set'").fetchone() == (0, 1)
+    db.init_db()
+    with sqlite3.connect(database_path) as conn:
+        assert conn.execute("SELECT quantity,is_archived FROM products WHERE sku='store-gulmohar-set'").fetchone() == (0, 1)
+
+
+def test_catalog_reports_sold_out_sizes_with_other_sizes_available(tmp_path, monkeypatch):
+    client, database_path, ids = make_cart_client(tmp_path, monkeypatch)
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("UPDATE products SET color='Red',size='XXL',quantity=0 WHERE id=?", (ids[1],))
+    product = next(p for p in client.get('/api/store/products').get_json()['products'] if p['name']=='Same Kurta')
+    assert product['in_stock'] is True
+    assert product['available_sizes'] == ['M']
+    assert product['sold_out_sizes'] == ['XXL']
+
+
+def test_storefront_script_url_changes_when_script_changes(tmp_path, monkeypatch):
+    import re
+    client, _, _ = make_cart_client(tmp_path, monkeypatch)
+    assets = tmp_path / 'assets' / 'storefront'
+    assets.mkdir(parents=True)
+    script = assets / 'script.js'
+    script.write_text('first version')
+    monkeypatch.setattr(app, 'static_folder', str(assets.parent))
+    first = client.get('/shop/collections').get_data(as_text=True)
+    script.write_text('second version')
+    second = client.get('/shop/collections').get_data(as_text=True)
+    pattern = r'/static/storefront/script.js\?v=([a-f0-9]+)'
+    assert re.search(pattern, first)
+    assert re.search(pattern, first).group(1) != re.search(pattern, second).group(1)

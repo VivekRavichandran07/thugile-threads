@@ -445,6 +445,22 @@ def product_item_list_json_ld():
 
 
 @app.after_request
+def version_storefront_script(response):
+    if response.mimetype == "text/html" and not response.direct_passthrough:
+        script_path = os.path.join(app.static_folder, "storefront", "script.js")
+        with open(script_path, "rb") as script_file:
+            version = hashlib.sha256(script_file.read()).hexdigest()[:12]
+        html = response.get_data(as_text=True)
+        html = re.sub(
+            r"(/static/storefront/script\.js)(?:\?[^\"']*)?(?=[\"'])",
+            lambda match: match.group(1) + "?v=" + version,
+            html,
+        )
+        response.set_data(html)
+    return response
+
+
+@app.after_request
 def add_storefront_seo(response):
     seo_path = "/" if request.path in {"/", "/shop/"} else request.path.rstrip("/")
     metadata = page_metadata("/shop/" if request.path == "/shop/" else seo_path)
@@ -680,7 +696,7 @@ def storefront_products():
         SELECT id, name, sku, category, size, color, selling_price, discounted_price,
                quantity, image_url, created_at
         FROM products
-        WHERE quantity > 0
+        WHERE is_archived = 0
         ORDER BY created_at DESC, id DESC
         """
     ).fetchall()
@@ -693,9 +709,11 @@ def storefront_products():
             "category": product["category"] or "Chudidar", "color": product["color"] or "",
             "price": product["selling_price"], "discounted_price": product["discounted_price"] or product["selling_price"],
             "image_url": webp_image_url(product["image_url"] or ""), "created_at": product["created_at"],
-            "available_sizes": [], "variants": [], "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
+            "available_sizes": [], "sizes": [], "variants": [], "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
         })
         size = product["size"] or "M"
+        if size not in item["sizes"]:
+            item["sizes"].append(size)
         if product["quantity"] > 0 and size not in item["available_sizes"]:
             item["available_sizes"].append(size)
             item["variants"].append({
@@ -707,9 +725,11 @@ def storefront_products():
             })
     return jsonify({
         "products": [
-            {**product, "size": ", ".join(product["available_sizes"]), "in_stock": True}
+            {**product, "size": ", ".join(product["available_sizes"]),
+             "in_stock": bool(product["available_sizes"]),
+             "sold_out_sizes": [size for size in product["sizes"]
+                                if size not in product["available_sizes"]]}
             for product in grouped.values()
-            if product["available_sizes"]
         ]
     })
 

@@ -1,3 +1,4 @@
+let unresolvedSavedCartCount = 0;
 let currentCsrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async (input, init = {}) => {
@@ -226,8 +227,10 @@ document.addEventListener('click', event => {
 function renderCartItems() {
   if (!cartItems) return;
   if (!checkoutBtn) return;
+  const savedNotice = unresolvedSavedCartCount
+    ? '<p class="cart-empty">Some older saved items are no longer available. Please choose them again from the catalog.</p>' : '';
   if (!bag.length) {
-    cartItems.innerHTML = '<p class="cart-empty">Your bag is empty.</p>';
+    cartItems.innerHTML = savedNotice + '<p class="cart-empty">Your bag is empty.</p>';
     if (cartTotal) cartTotal.textContent = '₹ 0';
     checkoutBtn.disabled = true;
     return;
@@ -235,7 +238,7 @@ function renderCartItems() {
   checkoutBtn.disabled = false;
   const total = bag.reduce((sum, item) => sum + (item.price * item.qty), 0);
   if (cartTotal) cartTotal.textContent = rupees(total);
-  cartItems.innerHTML = bag.map((item, idx) => `
+  cartItems.innerHTML = savedNotice + bag.map((item, idx) => `
     <div class="cart-item">
       <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
       <div class="cart-item-info">
@@ -428,10 +431,10 @@ function openProductPopup(product) {
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
 
   const availableSizes = product.available_sizes || [];
-  const sizes = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes])];
+  const sizes = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes, ...(product.sold_out_sizes || [])])];
   productSizes.innerHTML = sizes.map(s => {
     const variant = (product.variants || []).find(item => item.size === s);
-    return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
+    return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}${(product.sold_out_sizes || []).includes(s) ? ' — Sold out' : ''}</button>`;
   }).join('');
   productSizes.querySelectorAll('.size-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -516,12 +519,14 @@ function renderProducts(products) {
   }
   grid.innerHTML = products.map((product, index) => {
     const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
-    const action = `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`;
+    const action = product.in_stock
+      ? `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`
+      : '<button disabled>Sold out</button>';
     const tag = product.in_stock ? '' : '<span class="tag">Sold out</span>';
     const availableSizes = product.available_sizes || [];
-    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes])].map(s => {
+    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes, ...(product.sold_out_sizes || [])])].map(s => {
       const variant = (product.variants || []).find(item => item.size === s);
-      return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
+      return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}${(product.sold_out_sizes || []).includes(s) ? ' — Sold out' : ''}</button>`;
     }).join('');
     return `<article class="product reveal"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
@@ -1147,14 +1152,9 @@ async function loadCartFromServer() {
       size: item.size || null,
       image_url: item.image_url || null,
     })));
+    unresolvedSavedCartCount = Number(data.unresolved_count) || 0;
     updateCartUI();
     localStorage.setItem('tnt_cart', JSON.stringify(bag));
-    if (data.unresolved_count) {
-      toast.textContent = 'Some older saved items could not be matched to a current size variant. Please add them again from the catalog.';
-      toast.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
-    }
     if (typeof renderCheckout === 'function') renderCheckout();
   } catch (error) {
     console.error('Failed to load saved cart:', error);
