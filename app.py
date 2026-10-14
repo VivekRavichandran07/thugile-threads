@@ -447,15 +447,16 @@ def product_item_list_json_ld():
 @app.after_request
 def version_storefront_script(response):
     if response.mimetype == "text/html" and not response.direct_passthrough:
-        script_path = os.path.join(app.static_folder, "storefront", "script.js")
-        with open(script_path, "rb") as script_file:
-            version = hashlib.sha256(script_file.read()).hexdigest()[:12]
         html = response.get_data(as_text=True)
-        html = re.sub(
-            r"(/static/storefront/script\.js)(?:\?[^\"']*)?(?=[\"'])",
-            lambda match: match.group(1) + "?v=" + version,
-            html,
-        )
+        for filename in ("script.js", "style.css"):
+            asset_path = os.path.join(app.static_folder, "storefront", filename)
+            with open(asset_path, "rb") as asset_file:
+                version = hashlib.sha256(asset_file.read()).hexdigest()[:12]
+            html = re.sub(
+                r"(/static/storefront/" + re.escape(filename) + r")(?:\?[^\"']*)?(?=[\"'])",
+                lambda match: match.group(1) + "?v=" + version,
+                html,
+            )
         response.set_data(html)
     return response
 

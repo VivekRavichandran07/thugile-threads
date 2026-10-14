@@ -240,6 +240,7 @@ def test_storefront_script_url_changes_when_script_changes(tmp_path, monkeypatch
     assets.mkdir(parents=True)
     script = assets / 'script.js'
     script.write_text('first version')
+    (assets / 'style.css').write_text('/* styles */')
     monkeypatch.setattr(app, 'static_folder', str(assets.parent))
     first = client.get('/shop/collections').get_data(as_text=True)
     script.write_text('second version')

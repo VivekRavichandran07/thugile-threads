@@ -672,3 +672,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .product:hover img,main img:hover,.collection-card:hover img,
   .product-popup-main-image:hover img,.product-popup-image-stack .product-stack-image:hover{transform:none}
 }
+
+/* Full-product availability: keep unavailable sizes quiet and emphasize sold-out dresses. */
+.product.sold-out .product-image{position:relative;isolation:isolate}
+.product.sold-out .product-image img{opacity:.4}
+.sold-out-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(250,247,242,.25);color:rgba(35,30,27,.85);font-family:var(--google-sans);font-size:clamp(26px,3.5vw,48px);font-weight:700;letter-spacing:.08em;line-height:1.15;text-transform:uppercase;text-align:center;pointer-events:none}
+.product.sold-out .buy button:disabled{opacity:.5;cursor:not-allowed}
