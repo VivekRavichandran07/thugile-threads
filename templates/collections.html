@@ -23,7 +23,7 @@
     <div class="header-inner">
       <a class="header-wordmark" href="/shop/">Thugile &amp; Threads</a>
       <nav class="main-nav">
-        <a href="/shop/#collection">Collection</a>
+        <a href="/shop/collections">Collection</a>
         <a href="/shop/our-story">Our story</a>
         <a href="/shop/contact">Visit us</a>
       </nav>
@@ -246,7 +246,9 @@
     const filteredProducts = document.getElementById('filtered-products');
     const filteredTitle = document.getElementById('filtered-title');
     const backToAll = document.getElementById('back-to-all');
+    const collectionsHero = document.querySelector('.collections-hero');
     const allProducts = [];
+    let activeCollection = null;
 
     async function loadAllProducts() {
       try {
@@ -254,6 +256,10 @@
         if (!response.ok) throw new Error('Catalog unavailable');
         const { products } = await response.json();
         allProducts.push(...products);
+        mountSizeFilters(collectionsGrid, allProducts, () => {
+          if (hasCatalogFilters() || activeCollection) showFilteredProducts(activeCollection || 'All collections');
+          else { filteredProducts.style.display = 'none'; collectionsGrid.style.display = ''; collectionsHero.hidden = false; }
+        }, [filteredProducts]);
       } catch (e) {
         console.error('Failed to load products', e);
       }
@@ -269,6 +275,8 @@
 
     backToAll.addEventListener('click', (e) => {
       e.preventDefault();
+      activeCollection = null;
+      collectionsHero.hidden = false;
       filteredProducts.style.display = 'none';
       collectionsGrid.style.display = '';
       const grid = document.getElementById('filtered-products-grid');
@@ -276,6 +284,7 @@
     });
 
     function showFilteredProducts(category) {
+      activeCollection = category;
       const keywords = category.toLowerCase().replace(/ collection| edit| wear/gi).trim().split(/\s+/).filter(Boolean).map(kw => kw.replace(/s$/, ''));
       let filtered = allProducts.filter(p =>
         keywords.some(kw => (p.category && p.category.toLowerCase().includes(kw)) ||
@@ -284,11 +293,12 @@
       if (!filtered.length && allProducts.length) {
         filtered = allProducts;
       }
+      filtered = filterCatalogBySize(filtered);
       const grid = document.getElementById('filtered-products-grid');
       if (!grid) return;
       if (!filtered.length) {
         filteredTitle.textContent = category;
-        grid.innerHTML = '<p class="empty-shop">No products found in this collection yet.</p>';
+        grid.innerHTML = '<p class="empty-shop">No products match these filters. Try another size, color or price range.</p>';
       } else {
         filteredTitle.textContent = category;
         grid.innerHTML = filtered.map((product, index) => {
@@ -302,6 +312,7 @@
         if (window.setupImageHoverSlides) window.setupImageHoverSlides();
       }
       collectionsGrid.style.display = 'none';
+      collectionsHero.hidden = true;
       filteredProducts.style.display = '';
       window.scrollTo({ top: filteredProducts.offsetTop - 100, behavior: 'smooth' });
     }

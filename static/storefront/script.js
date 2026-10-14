@@ -510,11 +510,72 @@ function closeProductPopup() {
   currentProduct = null;
 }
 
+let selectedCatalogSize = '';
+let selectedCatalogColor = '';
+let catalogPriceMin = 0;
+let catalogPriceMax = Infinity;
+let catalogFilterProducts = [];
+const normalizeCatalogSize = size => String(size).trim().toUpperCase().replace(/^XXXL$/, '3XL');
+const catalogPrice = product => Number(product.discounted_price || product.price) || 0;
+function hasCatalogFilters() {
+  return Boolean(selectedCatalogSize || selectedCatalogColor || catalogPriceMin > 0 || Number.isFinite(catalogPriceMax));
+}
+function filterCatalogBySize(products) {
+  return products.filter(product =>
+    (!selectedCatalogSize || (product.available_sizes || []).some(size => normalizeCatalogSize(size) === selectedCatalogSize)) &&
+    (!selectedCatalogColor || (product.color || '').trim().toLowerCase() === selectedCatalogColor) &&
+    catalogPrice(product) >= catalogPriceMin && catalogPrice(product) <= catalogPriceMax
+  );
+}
+function mountSizeFilters(anchor, products, onChange, extraContent = []) {
+  if (!anchor || anchor.closest('.catalog-layout')) return;
+  const layout = document.createElement('div');
+  layout.className = 'catalog-layout';
+  const sidebar = document.createElement('aside');
+  sidebar.className = 'catalog-size-filter';
+  sidebar.setAttribute('aria-label', 'Filter products by size, color and price');
+  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  const ceiling = Math.max(1, ...products.map(catalogPrice).map(Math.ceil));
+  const colors = [...new Map(products.filter(p => p.color?.trim()).map(p => [p.color.trim().toLowerCase(), p.color.trim()])).entries()].sort((a,b) => a[1].localeCompare(b[1]));
+  const option = (group, value, label, count) => `<label class="catalog-size-option"><input type="radio" name="catalog-${group}" value="${escapeHtml(value)}" ${value === '' ? 'checked' : ''}><span>${escapeHtml(label)}</span><small>(${count})</small></label>`;
+  sidebar.innerHTML = `<div class="catalog-filter-heading"><strong>Filters</strong><button type="button" class="catalog-filter-reset">Reset</button></div>
+    <fieldset><legend>Price</legend><input class="catalog-price-slider" type="range" aria-label="Maximum price" min="0" max="${ceiling}" value="${ceiling}" step="1"><div class="catalog-price-inputs"><label>From ₹<input name="catalog-min-price" type="number" aria-label="Minimum price" min="0" max="${ceiling}" value="0" step="1"></label><label>To ₹<input name="catalog-max-price" type="number" aria-label="Maximum price" min="0" max="${ceiling}" value="${ceiling}" step="1"></label></div></fieldset>
+    <fieldset><legend>Size</legend>${option('size', '', 'All sizes', products.length)}${sizes.map(size => option('size', size, size, products.filter(product => (product.available_sizes || []).some(value => normalizeCatalogSize(value) === size)).length)).join('')}</fieldset>
+    <fieldset><legend>Color</legend>${option('color', '', 'All colors', products.length)}${colors.map(([value,label]) => option('color', value, label, products.filter(p => (p.color || '').trim().toLowerCase() === value).length)).join('')}</fieldset>`;
+  const content = document.createElement('div');
+  content.className = 'catalog-content';
+  anchor.before(layout);
+  layout.append(sidebar, content);
+  content.append(anchor, ...extraContent);
+  const slider = sidebar.querySelector('.catalog-price-slider');
+  const minInput = sidebar.querySelector('[name="catalog-min-price"]');
+  const maxInput = sidebar.querySelector('[name="catalog-max-price"]');
+  sidebar.addEventListener('change', event => {
+    if (event.target.name === 'catalog-size') selectedCatalogSize = event.target.value;
+    else if (event.target.name === 'catalog-color') selectedCatalogColor = event.target.value;
+    else if (event.target === minInput || event.target === maxInput || event.target === slider) {
+      if (event.target === slider) maxInput.value = slider.value;
+      let low = Math.max(0, Math.min(ceiling, Number(minInput.value) || 0));
+      let high = Math.max(0, Math.min(ceiling, Number(maxInput.value) || 0));
+      if (low > high) { if (event.target === minInput) high = low; else low = high; }
+      minInput.value = low; maxInput.value = high; slider.value = high;
+      catalogPriceMin = low; catalogPriceMax = high === ceiling ? Infinity : high;
+    } else return;
+    onChange();
+  });
+  sidebar.querySelector('.catalog-filter-reset').addEventListener('click', () => {
+    selectedCatalogSize = ''; selectedCatalogColor = ''; catalogPriceMin = 0; catalogPriceMax = Infinity;
+    sidebar.querySelectorAll('input[type="radio"]').forEach(input => { input.checked = input.value === ''; });
+    minInput.value = 0; maxInput.value = ceiling; slider.value = ceiling;
+    onChange();
+  });
+}
+
 function renderProducts(products) {
   console.log('renderProducts called, products:', products.length);
   if (!grid) return;
   if (!products.length) {
-    grid.innerHTML = '<p class="empty-shop">Our next edit is being prepared. Please return soon.</p>';
+    grid.innerHTML = '<p class="empty-shop">No products are available in this size.</p>';
     return;
   }
   grid.innerHTML = products.map((product, index) => {
@@ -619,7 +680,10 @@ async function loadCatalog(retries = 3) {
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
     searchProducts = products || [];
-    renderProducts(products);
+    catalogFilterProducts = products || [];
+    const refreshProducts = () => renderProducts(sortProducts(filterCatalogBySize(catalogFilterProducts), productSort?.value || 'newest'));
+    if (productSort) productSort.onchange = refreshProducts;
+    refreshProducts();
     renderNewLaunches(products);
   } catch (error) {
     if (retries > 0) {
