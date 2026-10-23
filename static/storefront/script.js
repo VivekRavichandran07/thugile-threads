@@ -1,4 +1,35 @@
 let unresolvedSavedCartCount = 0;
+async function requestAvailability(productId, button) {
+  const showMessage = (message) => {
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+  };
+  if (!currentUser) {
+    openAuthModal();
+    showMessage('Please log in, then click Notify when available to send your request.');
+    return;
+  }
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/store/restock', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId })
+    });
+    const data = await response.json();
+    if (response.status === 401) {
+      currentUser = null;
+      openAuthModal();
+    }
+    if (!response.ok) throw new Error(data.error || 'Please try again later.');
+    button.textContent = 'Request sent';
+    showMessage(data.message);
+  } catch (error) {
+    button.disabled = false;
+    showMessage(error.message || 'Your request could not be sent. Please try again.');
+  }
+}
 let currentCsrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async (input, init = {}) => {
@@ -464,6 +495,18 @@ function openProductPopup(product) {
   };
   productThumbnails.querySelectorAll('.thumb').forEach(thumb => thumb.addEventListener('click', () => selectProductImage(thumb)));
 
+  productAddToBag.disabled = product.in_stock === false;
+  productAddToBag.textContent = product.in_stock === false ? 'Sold out' : 'Add to bag';
+  let notifyButton = document.getElementById('product-notify-available');
+  if (!notifyButton) {
+    notifyButton = document.createElement('button');
+    notifyButton.id = 'product-notify-available';
+    notifyButton.className = 'notify-available-btn';
+    notifyButton.textContent = 'Notify when available';
+    productAddToBag.after(notifyButton);
+  }
+  notifyButton.hidden = product.in_stock !== false;
+  notifyButton.onclick = () => requestAvailability(product.id, notifyButton);
   productAddToBag.onclick = () => {
     const selectedSize = productSizes.querySelector('.size-option.selected');
     if (!selectedSize) {
@@ -582,14 +625,14 @@ function renderProducts(products) {
     const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
     const action = product.in_stock
       ? `<button data-item="${escapeHtml(product.name)}" data-price="${discountedPrice(product.price, product.discounted_price)}">Add to bag</button>`
-      : '<button disabled>Sold out</button>';
+      : '<button class="sold-out-button" disabled>Sold out</button>';
     const tag = product.in_stock ? '' : '<span class="sold-out-overlay">Sold out</span>';
     const availableSizes = product.available_sizes || [];
     const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes, ...(product.sold_out_sizes || [])])].map(s => {
       const variant = (product.variants || []).find(item => item.size === s);
       return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
     }).join('');
-    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button></div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
+    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
   observeReveals();
   setupImageHoverSlides();
@@ -695,6 +738,11 @@ async function loadCatalog(retries = 3) {
 }
 
 function handleProductCardClick(event) {
+    const notifyButton = event.target.closest('.notify-available-btn');
+    if (notifyButton) {
+      requestAvailability(Number(notifyButton.dataset.productId), notifyButton);
+      return;
+    }
     const productImage = event.target.closest('.product-image');
     const productName = event.target.closest('.product-info h3');
     const sizeBtn = event.target.closest('.size-guide-btn');

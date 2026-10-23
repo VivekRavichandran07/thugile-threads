@@ -160,6 +160,7 @@ RATE_LIMITS = {
     "forgot_password": (5, 60 * 60),
     "send_contact_message": (5, 60 * 60),
     "subscribe_newsletter": (5, 60 * 60),
+    "request_restock": (5, 60 * 60),
 }
 
 
@@ -686,6 +687,50 @@ def sitemap_xml():
 @app.route("/shop/contact/")
 def contact_page():
     return render_template("contact.html")
+
+
+@app.route("/api/store/restock", methods=["POST"])
+def request_restock():
+    user_id = session.get("user_id")
+    if user_id is None:
+        return jsonify({"error": "Please log in to request availability updates."}), 401
+    data = request.get_json(silent=True)
+    product_id = data.get("product_id") if isinstance(data, dict) else None
+    if type(product_id) is not int:
+        return jsonify({"error": "Choose a valid product."}), 400
+    conn = get_connection()
+    try:
+        user = conn.execute("SELECT name, email, phone FROM users WHERE id = ?", (user_id,)).fetchone()
+        product = conn.execute("SELECT * FROM products WHERE id = ? AND is_archived = 0", (product_id,)).fetchone()
+        if user is None:
+            return jsonify({"error": "Please log in again."}), 401
+        if product is None:
+            return jsonify({"error": "Product not found."}), 404
+        available = conn.execute(
+            "SELECT 1 FROM products WHERE name = ? AND COALESCE(color, '') = ? AND is_archived = 0 AND quantity > 0",
+            (product["name"], product["color"] or ""),
+        ).fetchone()
+        if available:
+            return jsonify({"error": "This product is available now. Please refresh the catalog."}), 409
+    finally:
+        conn.close()
+    message = EmailMessage()
+    message["To"] = os.environ.get("CONTACT_EMAIL", "thugile.official@gmail.com").strip()
+    message["Reply-To"] = user["email"]
+    message["Subject"] = "Thugile product availability request"
+    message.set_content(
+        f"A customer would like to buy this product when it is available.\n\n"
+        f"Product: {product['name']}\nColor: {product['color'] or '-'}\n"
+        f"Catalog ID: {product['id']}\nSKU: {product['sku']}\n\n"
+        f"Customer: {user['name']}\nEmail: {user['email']}\nPhone: {user['phone'] or '-'}\n\n"
+        "Please contact this customer when the product is back in stock."
+    )
+    try:
+        send_storefront_email(message)
+    except (ValueError, smtplib.SMTPException, OSError):
+        app.logger.exception("Failed to send availability request")
+        return jsonify({"error": "Your request could not be sent. Please try again later."}), 503
+    return jsonify({"message": "Your request has been sent to Thugile. We will contact you when available."})
 
 
 @app.route("/api/store/products")
