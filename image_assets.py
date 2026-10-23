@@ -29,3 +29,13 @@ def migrate_image_urls(conn):
             new_url = webp_image_url(old_url)
             if new_url != old_url:
                 conn.execute(f"UPDATE {table} SET image_url = ? WHERE id = ?", (new_url, row_id))
+    # Replace the spreadsheet import's temporary Sundown Olive cover on startup.
+    cover = ASSET_PREFIX + "SundownOlive1.webp"
+    for table, name_column in (("products", "name"), ("user_wishlists", "product_name")):
+        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if name_column in columns:
+            conn.execute(
+                f"UPDATE {table} SET image_url = ? WHERE {name_column} = ? "
+                "AND (image_url IS NULL OR image_url != ?)",
+                (cover, "Sundown Olive", cover),
+            )

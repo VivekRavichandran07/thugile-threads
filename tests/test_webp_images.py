@@ -22,6 +22,19 @@ def test_gallery_uses_five_unique_webp_images():
         assert response.mimetype == "image/webp"
 
 
+def test_sundown_olive_gallery_uses_its_five_webp_images():
+    images = product_image_variants("Sundown Olive", "/static/storefront/assets/Chudidar/image-3.webp")
+    expected = [
+        f"/static/storefront/assets/Chudidar/SundownOlive{number}.webp"
+        for number in range(1, 6)
+    ]
+    assert images == expected
+    for image in images:
+        response = app.test_client().get(image)
+        assert response.status_code == 200
+        assert response.mimetype == "image/webp"
+
+
 def test_migration_only_changes_matching_urls_and_is_idempotent():
     conn = sqlite3.connect(":memory:")
     for table in ("products", "user_wishlists"):
@@ -39,4 +52,24 @@ def test_migration_only_changes_matching_urls_and_is_idempotent():
             (1, "/static/storefront/assets/Chudidar/image-2.webp", 7),
             (2, "/uploads/custom.png", 3),
         ]
+    conn.close()
+
+
+def test_sundown_cover_migration_preserves_inventory_and_other_products():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, image_url TEXT, quantity INTEGER)")
+    conn.execute("CREATE TABLE user_wishlists (id INTEGER PRIMARY KEY, product_name TEXT, image_url TEXT)")
+    old_cover = "/static/storefront/assets/Chudidar/image-3.webp"
+    conn.executemany("INSERT INTO products VALUES (?, ?, ?, ?)", [
+        (1, "Sundown Olive", old_cover, 3),
+        (2, "PonMayil", old_cover, 7),
+    ])
+    conn.execute("INSERT INTO user_wishlists VALUES (1, 'Sundown Olive', ?)", (old_cover,))
+    migrate_image_urls(conn)
+    changes = conn.total_changes
+    migrate_image_urls(conn)
+    assert conn.total_changes == changes
+    cover = "/static/storefront/assets/Chudidar/SundownOlive1.webp"
+    assert conn.execute("SELECT image_url, quantity FROM products ORDER BY id").fetchall() == [(cover, 3), (old_cover, 7)]
+    assert conn.execute("SELECT image_url FROM user_wishlists").fetchone()[0] == cover
     conn.close()

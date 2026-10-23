@@ -585,6 +585,11 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
+    if re.sub(r"[^a-z0-9]", "", (name or "").lower()) == "sundownolive":
+        return [
+            f"/static/storefront/assets/Chudidar/SundownOlive{number}.webp"
+            for number in range(1, 6)
+        ]
     image_path = unquote((image_url or "").split("?", 1)[0])
     raw_image_stem = os.path.splitext(os.path.basename(image_path))[0].lower()
     if "_" in raw_image_stem:
