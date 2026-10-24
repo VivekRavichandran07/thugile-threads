@@ -306,7 +306,7 @@
       } else {
         filteredTitle.textContent = category;
         grid.innerHTML = filtered.map((product, index) => {
-          const details = [product.color, product.category, product.size].filter(Boolean).join(' · ') || 'Made with care';
+          const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
           const action = product.in_stock ? `<button data-item="${product.name}" data-price="${product.discounted_price || product.price || ''}">Add to bag</button>` : '<button class="sold-out-button" disabled>Sold out</button>';
           const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
           const sizeOptions = sizes.map(size => `<button class="size-option${(product.available_sizes || []).includes(size) ? '' : ' unavailable'}" data-size="${size}" ${(product.available_sizes || []).includes(size) ? '' : 'disabled'}>${size}</button>`).join('');

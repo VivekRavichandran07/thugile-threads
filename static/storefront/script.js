@@ -1722,3 +1722,60 @@ window.addEventListener('pageshow', () => {
     renderCheckout();
   }
 });
+
+// Invite a naming suggestion once per browsing session, after the page loads.
+function initNameSuggestionPopup() {
+  if (!document.querySelector('.product-grid, #products-grid, .collections-page, .hero')) return;
+  try { if (sessionStorage.getItem('thugile-name-suggestion-dismissed')) return; } catch {}
+  const popup = document.createElement('section');
+  popup.className = 'name-suggestion-popup';
+  popup.hidden = true;
+  popup.setAttribute('role', 'region');
+  popup.setAttribute('aria-labelledby', 'name-suggestion-heading');
+  popup.innerHTML = `
+    <button type="button" class="name-suggestion-close" aria-label="Close name suggestion">&times;</button>
+    <h2 id="name-suggestion-heading">Want one of our product to be named as you suggest? Our doors are open</h2>
+    <form>
+      <label for="suggested-product-name">Your suggested product name</label>
+      <div class="name-suggestion-fields">
+        <input id="suggested-product-name" name="name" maxlength="120" required placeholder="Suggest a name" autocomplete="off">
+        <button type="submit">Send suggestion</button>
+      </div>
+      <p class="name-suggestion-status" role="status" aria-live="polite"></p>
+    </form>`;
+  document.body.append(popup);
+  const dismiss = () => {
+    popup.hidden = true;
+    try { sessionStorage.setItem('thugile-name-suggestion-dismissed', '1'); } catch {}
+  };
+  popup.querySelector('.name-suggestion-close').addEventListener('click', dismiss);
+  popup.addEventListener('keydown', event => { if (event.key === 'Escape') dismiss(); });
+  popup.querySelector('form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const input = popup.querySelector('input');
+    const button = popup.querySelector('button[type="submit"]');
+    const status = popup.querySelector('.name-suggestion-status');
+    const name = input.value.trim();
+    if (!name) { status.textContent = 'Please enter a product name.'; input.focus(); return; }
+    button.disabled = true;
+    status.textContent = 'Sending your suggestion…';
+    try {
+      const response = await fetch('/api/store/name-suggestions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Please try again later.');
+      status.textContent = data.message;
+      input.disabled = true;
+      button.textContent = 'Sent';
+      try { sessionStorage.setItem('thugile-name-suggestion-dismissed', '1'); } catch {}
+    } catch (error) {
+      status.textContent = error.message || 'Your suggestion could not be sent. Please try again.';
+      button.disabled = false;
+    }
+  });
+  setTimeout(() => { popup.hidden = false; }, 1800);
+}
+if (document.readyState === 'complete') initNameSuggestionPopup();
+else window.addEventListener('load', initNameSuggestionPopup, { once: true });

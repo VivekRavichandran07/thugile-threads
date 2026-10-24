@@ -161,6 +161,7 @@ RATE_LIMITS = {
     "send_contact_message": (5, 60 * 60),
     "subscribe_newsletter": (5, 60 * 60),
     "request_restock": (5, 60 * 60),
+    "suggest_product_name": (5, 60 * 60),
 }
 
 
@@ -1252,6 +1253,27 @@ def send_contact_message():
         return jsonify({"error": "We couldn't send your message right now. Please try again or email us directly."}), 502
 
     return jsonify({"ok": True, "message": "Thank you — your message is on its way."})
+
+
+@app.route("/api/store/name-suggestions", methods=["POST"])
+def suggest_product_name():
+    data = request.get_json(silent=True)
+    name = data.get("name") if isinstance(data, dict) else None
+    if not isinstance(name, str):
+        return jsonify({"error": "Please enter a product name."}), 400
+    name = name.strip()
+    if not name or len(name) > 120 or any(ord(char) < 32 for char in name):
+        return jsonify({"error": "Enter a name of 1–120 characters, without line breaks."}), 400
+    message = EmailMessage()
+    message["To"] = "thugile.official@gmail.com"
+    message["Subject"] = "Website product name suggestion"
+    message.set_content(f"A visitor suggested this product name:\n\n{name}\n")
+    try:
+        send_storefront_email(message)
+    except (ValueError, smtplib.SMTPException, OSError):
+        app.logger.exception("Failed to send product name suggestion")
+        return jsonify({"error": "We couldn't send your suggestion. Please try again later."}), 503
+    return jsonify({"message": "Thank you! Your name suggestion has been sent to Thugile."})
 
 
 @app.route("/api/newsletter/subscribers")
