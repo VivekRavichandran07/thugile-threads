@@ -149,13 +149,14 @@ const imageFor = (url, index, name) => {
     'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp',
     'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.webp',
     'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.webp',
-    'Sundown Olive': '/static/storefront/assets/Chudidar/SundownOlive1.webp'
+    'Sundown Olive': '/static/storefront/assets/Chudidar/SundownOlive1.webp',
+    'Indigo Arrows': '/static/storefront/assets/Chudidar/IndigoArrows1.webp'
   };
   return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
-  if (/\/SundownOlive[1-5]\.webp$/i.test(String(image))) {
-    const base = String(image).replace(/SundownOlive[1-5]\.webp$/i, 'SundownOlive');
+  if (/\/(?:SundownOlive|IndigoArrows)[1-5]\.webp$/i.test(String(image))) {
+    const base = String(image).replace(/[1-5]\.webp$/i, '');
     return [1, 2, 3, 4, 5].map(number => `${base}${number}.webp`);
   }
   const match = String(image).match(/^(.*)\.([a-z0-9]+)$/i);
@@ -1723,10 +1724,18 @@ window.addEventListener('pageshow', () => {
   }
 });
 
-// Invite a naming suggestion once per browsing session, after the page loads.
+// Start a repeating invitation only after the visitor reaches the page bottom.
 function initNameSuggestionPopup() {
-  if (!document.querySelector('.product-grid, #products-grid, .collections-page, .hero')) return;
-  try { if (sessionStorage.getItem('thugile-name-suggestion-dismissed')) return; } catch {}
+  if (document.querySelector('.name-suggestion-popup')) return;
+  const pagePath = window.location.pathname.replace(/\/+$/, '');
+  const allowedPage = new Set([
+    '/shop/our-story', '/shop/contact', '/shop/privacy-policy',
+    '/shop/shipping-returns', '/shop/terms', '/shop/shipping'
+  ]).has(pagePath);
+  const guideOverlay = document.getElementById('size-guide-overlay');
+  const guidePopup = document.getElementById('size-guide-popup');
+  const guideIsOpen = () => Boolean(guideOverlay?.classList.contains('open'));
+  if (!allowedPage && !guideOverlay) return;
   const popup = document.createElement('section');
   popup.className = 'name-suggestion-popup';
   popup.hidden = true;
@@ -1744,10 +1753,46 @@ function initNameSuggestionPopup() {
       <p class="name-suggestion-status" role="status" aria-live="polite"></p>
     </form>`;
   document.body.append(popup);
-  const dismiss = () => {
-    popup.hidden = true;
-    try { sessionStorage.setItem('thugile-name-suggestion-dismissed', '1'); } catch {}
+  let timer;
+  let started = false;
+  const show = () => {
+    if (!allowedPage && !guideIsOpen()) {
+      popup.hidden = true;
+      timer = setTimeout(show, 15000);
+      return;
+    }
+    popup.hidden = false;
+    timer = setTimeout(dismiss, 5000);
   };
+  const dismiss = () => {
+    clearTimeout(timer);
+    popup.hidden = true;
+    timer = setTimeout(show, 15000);
+  };
+  const checkPageEnd = () => {
+    if (started) return;
+    if (!allowedPage) {
+      if (!guideIsOpen() || !guidePopup) return;
+      if (guidePopup.scrollTop + guidePopup.clientHeight < guidePopup.scrollHeight - 8) return;
+    } else {
+      const pageHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      if (window.scrollY + window.innerHeight < pageHeight - 8) return;
+    }
+    started = true;
+    window.removeEventListener('scroll', checkPageEnd);
+    window.removeEventListener('resize', checkPageEnd);
+    show();
+  };
+  window.addEventListener('scroll', checkPageEnd, { passive: true });
+  window.addEventListener('resize', checkPageEnd);
+  if (!allowedPage && guideOverlay) {
+    guidePopup?.addEventListener('scroll', checkPageEnd, { passive: true });
+    new MutationObserver(() => {
+      if (!guideIsOpen()) popup.hidden = true;
+      else checkPageEnd();
+    }).observe(guideOverlay, { attributes: true, attributeFilter: ['class'] });
+  }
+  checkPageEnd();
   popup.querySelector('.name-suggestion-close').addEventListener('click', dismiss);
   popup.addEventListener('keydown', event => { if (event.key === 'Escape') dismiss(); });
   popup.querySelector('form').addEventListener('submit', async event => {
@@ -1769,13 +1814,13 @@ function initNameSuggestionPopup() {
       status.textContent = data.message;
       input.disabled = true;
       button.textContent = 'Sent';
-      try { sessionStorage.setItem('thugile-name-suggestion-dismissed', '1'); } catch {}
+
     } catch (error) {
       status.textContent = error.message || 'Your suggestion could not be sent. Please try again.';
       button.disabled = false;
     }
   });
-  setTimeout(() => { popup.hidden = false; }, 1800);
+
 }
 if (document.readyState === 'complete') initNameSuggestionPopup();
 else window.addEventListener('load', initNameSuggestionPopup, { once: true });
