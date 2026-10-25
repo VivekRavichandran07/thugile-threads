@@ -464,6 +464,12 @@ function openProductPopup(product) {
   if (quantityOutput) quantityOutput.value = '1';
   if (quantityOutput) quantityOutput.textContent = '1';
   productName.textContent = product.name;
+  const fabricColor = document.getElementById('product-fabric-color');
+  if (fabricColor) {
+    fabricColor.textContent = product.name === 'Indigo Arrows'
+      ? 'Royal Navy Blue with champagne pant with blue gold zari'
+      : (product.color || 'As shown in product images');
+  }
   productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
   productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
 
