@@ -458,6 +458,38 @@ function toggleWishlist(product) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
+// A separate image viewer keeps tap-to-zoom usable on touch screens.
+const productZoom = document.createElement('dialog');
+productZoom.className = 'product-photo-zoom';
+productZoom.setAttribute('aria-label', 'Enlarged product photo');
+productZoom.innerHTML = '<button type="button" class="product-photo-zoom-close" aria-label="Close enlarged photo">×</button><div class="product-photo-zoom-scroll"><img alt=""></div>';
+document.body.appendChild(productZoom);
+const closeProductZoom = () => productZoom.close();
+productZoom.querySelector('button').addEventListener('click', closeProductZoom);
+productZoom.addEventListener('click', event => { if (event.target === productZoom) closeProductZoom(); });
+productZoom.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.stopPropagation(); event.preventDefault(); closeProductZoom(); }
+});
+function openProductZoom(image) {
+  const enlarged = productZoom.querySelector('img');
+  enlarged.src = image.src;
+  enlarged.alt = image.alt;
+  productZoom.showModal();
+  const scroller = productZoom.querySelector('.product-photo-zoom-scroll');
+  scroller.scrollTop = 0;
+  scroller.scrollLeft = 0;
+}
+[productMainImage, productImageStack].filter(Boolean).forEach(gallery => {
+  gallery.addEventListener('click', event => {
+    if (event.target.tagName === 'IMG') openProductZoom(event.target);
+  });
+  gallery.addEventListener('keydown', event => {
+    if (event.target.tagName === 'IMG' && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault(); openProductZoom(event.target);
+    }
+  });
+});
+
 function openProductPopup(product) {
   currentProduct = product;
   trackProductView(product.name);
@@ -490,19 +522,19 @@ function openProductPopup(product) {
 
   const productImage = imageFor(product.image_url, 0, product.name);
   const images = product.image_variants?.length ? product.image_variants : productImageVariants(productImage);
-  productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}">`;
+  productMainImage.innerHTML = `<img src="${images[0]}" alt="${escapeHtml(product.name)}" tabindex="0" role="button" aria-label="Enlarge product photo">`;
   productThumbnails.innerHTML = images.map((img, i) => `
     <button class="thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
       <img src="${img}" alt="View ${i + 1}" loading="lazy">
     </button>
   `).join('');
   productImageStack.innerHTML = images.map((img, i) => `
-    <img class="product-stack-image" src="${img}" alt="${escapeHtml(product.name)} image ${i + 1}" loading="lazy">
+    <img class="product-stack-image" tabindex="0" role="button" aria-label="Enlarge product photo" src="${img}" alt="${escapeHtml(product.name)} image ${i + 1}" loading="lazy">
   `).join('');
 
   const selectProductImage = (imageControl) => {
       currentImageIndex = Number(imageControl.dataset.index);
-      productMainImage.innerHTML = `<img src="${images[currentImageIndex]}" alt="${escapeHtml(product.name)}">`;
+      productMainImage.innerHTML = `<img src="${images[currentImageIndex]}" alt="${escapeHtml(product.name)}" tabindex="0" role="button" aria-label="Enlarge product photo">`;
       productThumbnails.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
       productThumbnails.querySelector(`.thumb[data-index="${currentImageIndex}"]`)?.classList.add('active');
       imageControl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -666,14 +698,27 @@ function setupImageHoverSlides() {
         index = 0;
         image.src = variants[0];
       };
-      image.closest('.collection-card, .product-image')?.addEventListener('mouseenter', () => {
-        clearInterval(timer);
+      const start = () => {
+        if (timer || document.hidden || !image.isConnected) return;
         timer = setInterval(() => {
+          if (!image.isConnected) { stop(); return; }
           index = (index + 1) % variants.length;
           image.src = variants[index];
-        }, 1000);
-      });
-      image.closest('.collection-card, .product-image')?.addEventListener('mouseleave', stop);
+        }, 1800);
+      };
+      const touch = window.matchMedia('(hover: none), (pointer: coarse)');
+      const card = image.closest('.collection-card, .product-image');
+      card?.addEventListener('mouseenter', () => { if (!touch.matches) start(); });
+      card?.addEventListener('mouseleave', () => { if (!touch.matches) stop(); });
+      let visible = false;
+      const sync = () => { if (touch.matches && visible && !document.hidden) start(); else stop(); };
+      const observer = new IntersectionObserver(entries => {
+        visible = entries[0].isIntersecting;
+        sync();
+      }, { threshold: 0.25 });
+      observer.observe(image);
+      document.addEventListener('visibilitychange', sync);
+      touch.addEventListener('change', sync);
     });
   });
 }
@@ -995,6 +1040,29 @@ document.querySelectorAll('[data-before-after]').forEach(compare => {
   };
   range.addEventListener('input', updateCompare);
   updateCompare();
+  const mobile = window.matchMedia('(hover: none), (pointer: coarse)');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let timer = null, visible = false, direction = 1, interacting = false;
+  const stop = () => { clearInterval(timer); timer = null; };
+  const sync = () => {
+    stop();
+    if (!mobile.matches || reducedMotion.matches || !visible || document.hidden || interacting) return;
+    timer = setInterval(() => {
+      let value = Number(range.value) + direction * 2;
+      if (value >= 90 || value <= 10) direction *= -1;
+      range.value = String(Math.max(10, Math.min(90, value)));
+      updateCompare();
+    }, 100);
+  };
+  new IntersectionObserver(entries => { visible = entries[0].isIntersecting; sync(); }, {threshold: 0.25}).observe(compare);
+  range.addEventListener('pointerdown', () => { interacting = true; stop(); });
+  range.addEventListener('focus', () => { interacting = true; stop(); });
+  range.addEventListener('blur', () => { interacting = false; sync(); });
+  range.addEventListener('pointerup', () => { interacting = false; sync(); });
+  range.addEventListener('pointercancel', () => { interacting = false; sync(); });
+  document.addEventListener('visibilitychange', sync);
+  mobile.addEventListener('change', sync);
+  reducedMotion.addEventListener('change', sync);
 });
 
 
