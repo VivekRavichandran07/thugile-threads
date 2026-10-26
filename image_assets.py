@@ -30,7 +30,7 @@ def migrate_image_urls(conn):
             if new_url != old_url:
                 conn.execute(f"UPDATE {table} SET image_url = ? WHERE id = ?", (new_url, row_id))
     # Replace temporary catalog covers with the products' original photos.
-    for name, filename in (("Sundown Olive", "SundownOlive1.webp"), ("Indigo Arrows", "IndigoArrows1.webp")):
+    for name, filename in (("Sundown Olive", "SundownOlive1.webp"), ("Indigo Arrows", "IndigoArrows1.webp"), ("Pista royale", "PistaRoyale1.webp"), ("Pista Royale", "PistaRoyale1.webp")):
         cover = ASSET_PREFIX + filename
         for table, name_column in (("products", "name"), ("user_wishlists", "product_name")):
             columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}

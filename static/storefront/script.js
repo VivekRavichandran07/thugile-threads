@@ -150,12 +150,14 @@ const imageFor = (url, index, name) => {
     'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.webp',
     'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.webp',
     'Sundown Olive': '/static/storefront/assets/Chudidar/SundownOlive1.webp',
-    'Indigo Arrows': '/static/storefront/assets/Chudidar/IndigoArrows1.webp'
+    'Indigo Arrows': '/static/storefront/assets/Chudidar/IndigoArrows1.webp',
+    'Pista royale': '/static/storefront/assets/Chudidar/PistaRoyale1.webp',
+    'Pista Royale': '/static/storefront/assets/Chudidar/PistaRoyale1.webp'
   };
   return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
-  if (/\/(?:SundownOlive|IndigoArrows)[1-5]\.webp$/i.test(String(image))) {
+  if (/\/(?:SundownOlive|IndigoArrows|PistaRoyale)[1-5]\.webp$/i.test(String(image))) {
     const base = String(image).replace(/[1-5]\.webp$/i, '');
     return [1, 2, 3, 4, 5].map(number => `${base}${number}.webp`);
   }
