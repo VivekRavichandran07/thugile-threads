@@ -62,7 +62,7 @@ def test_sundown_cover_migration_preserves_inventory_and_other_products():
     old_cover = "/static/storefront/assets/Chudidar/image-3.webp"
     conn.executemany("INSERT INTO products VALUES (?, ?, ?, ?)", [
         (1, "Sundown Olive", old_cover, 3),
-        (2, "PonMayil", old_cover, 7),
+        (2, "Unchanged Product", old_cover, 7),
     ])
     conn.execute("INSERT INTO user_wishlists VALUES (1, 'Sundown Olive', ?)", (old_cover,))
     migrate_image_urls(conn)
@@ -72,4 +72,24 @@ def test_sundown_cover_migration_preserves_inventory_and_other_products():
     cover = "/static/storefront/assets/Chudidar/SundownOlive1.webp"
     assert conn.execute("SELECT image_url, quantity FROM products ORDER BY id").fetchall() == [(cover, 3), (old_cover, 7)]
     assert conn.execute("SELECT image_url FROM user_wishlists").fetchone()[0] == cover
+    conn.close()
+
+
+def test_orchid_mist_gallery_and_new_cover_migrations():
+    prefix = "/static/storefront/assets/Chudidar/"
+    images = product_image_variants("Orchid Mist", prefix + "image-1.webp")
+    assert images == [prefix + f"OrchidMist{i}.webp" for i in range(1, 6)]
+    for url in images + [prefix + "MeenakariEmbroideredSet.webp"]:
+        response = app.test_client().get(url)
+        assert response.status_code == 200
+        assert response.mimetype == "image/webp"
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, image_url TEXT, quantity INTEGER)")
+    conn.execute("CREATE TABLE user_wishlists (id INTEGER PRIMARY KEY, product_name TEXT, image_url TEXT)")
+    conn.executemany("INSERT INTO products VALUES (?, ?, ?, ?)", [(1, "Orchid Mist", prefix + "image-1.webp", 3), (2, "PonMayil", prefix + "image-3.webp", 7)])
+    migrate_image_urls(conn)
+    assert conn.execute("SELECT image_url, quantity FROM products ORDER BY id").fetchall() == [(images[0], 3), (prefix + "MeenakariEmbroideredSet.webp", 7)]
+    changes = conn.total_changes
+    migrate_image_urls(conn)
+    assert conn.total_changes == changes
     conn.close()

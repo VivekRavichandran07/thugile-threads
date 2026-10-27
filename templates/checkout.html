@@ -139,6 +139,7 @@
       <div class="checkout-section">
         <h2>Your bag</h2>
         <div id="checkout-items"></div>
+        <p id="checkout-discount-summary" class="checkout-discount-summary" hidden></p>
         <div class="cart-total-row">
           <span>Total</span>
           <span id="checkout-total">₹ 0</span>
@@ -159,6 +160,15 @@
             <span>Loading selected address...</span>
           </div>
         </div>
+        <form id="checkout-discount-form" class="checkout-discount-form">
+          <label for="checkout-discount-code">Have a discount code?</label>
+          <div class="checkout-discount-fields">
+            <input id="checkout-discount-code" name="discount_code" placeholder="Enter code" autocomplete="off" maxlength="20">
+            <button type="submit">Apply</button>
+            <button type="button" id="remove-discount" hidden>Remove</button>
+          </div>
+          <p id="checkout-discount-message" role="status" aria-live="polite"></p>
+        </form>
         <h2>Payment method</h2>
         <div class="payment-option">
           <span class="payment-icon" aria-hidden="true">🔒</span>
@@ -234,6 +244,49 @@
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
   <script>
+    let appliedDiscount = null;
+    const discountCartKey = () => JSON.stringify(bag.map(item => [item.product_id, item.qty]));
+    function showDiscountTotal() {
+      const summary = document.getElementById('checkout-discount-summary');
+      if (appliedDiscount && appliedDiscount.cartKey !== discountCartKey()) {
+        appliedDiscount = null;
+        document.getElementById('checkout-discount-message').textContent = 'Your bag changed. Please apply your code again.';
+      }
+      summary.hidden = !appliedDiscount;
+      document.getElementById('remove-discount').hidden = !appliedDiscount;
+      if (appliedDiscount) {
+        summary.textContent = `${appliedDiscount.code}: 10% off — you save ${rupees(appliedDiscount.discount)}`;
+        document.getElementById('checkout-total').textContent = rupees(appliedDiscount.total);
+      }
+    }
+    document.getElementById('checkout-discount-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (paymentInProgress) return;
+      const button = event.currentTarget.querySelector('button[type="submit"]');
+      const message = document.getElementById('checkout-discount-message');
+      button.disabled = true;
+      appliedDiscount = null;
+      const cartKey = discountCartKey();
+      try {
+        const response = await fetch('/api/store/discount/validate', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({code: document.getElementById('checkout-discount-code').value.trim(), items: bag.map(item => ({product_id: item.product_id, qty: item.qty}))})
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not apply this code.');
+        if (cartKey !== discountCartKey()) throw new Error('Your bag changed. Please apply your code again.');
+        appliedDiscount = {...data, cartKey};
+        message.textContent = 'Your first-order discount has been applied.';
+      } catch (error) { message.textContent = error.message; }
+      finally { button.disabled = false; renderCheckout(false); }
+    });
+    document.getElementById('remove-discount').addEventListener('click', () => {
+      if (paymentInProgress) return;
+      appliedDiscount = null;
+      document.getElementById('checkout-discount-message').textContent = '';
+      renderCheckout(false);
+    });
+
     async function renderSelectedAddress() {
       const displayEl = document.getElementById('selected-address-display');
       if (!displayEl) return;
@@ -291,12 +344,15 @@
       if (!bag.length) {
         itemsEl.innerHTML = '<p class="cart-empty">please checkout your cart to see the items here.</p>';
         totalEl.textContent = '₹ 0';
+        appliedDiscount = null;
+        showDiscountTotal();
         placeBtn.disabled = true;
         return;
       }
       placeBtn.disabled = false;
       const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
       totalEl.textContent = rupees(total);
+      showDiscountTotal();
       itemsEl.innerHTML = bag.map((item, idx) => `
         <div class="cart-item">
           <img src="${escapeHtml(imageFor(item.image_url, idx, item.name))}" alt="${escapeHtml(item.name)}" class="cart-item-image">
@@ -334,6 +390,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             address_id: Number(addressId),
+            discount_code: appliedDiscount?.cartKey === discountCartKey() ? appliedDiscount.code : null,
             items: bag.map(item => ({
               product_id: item.product_id,
               qty: item.qty

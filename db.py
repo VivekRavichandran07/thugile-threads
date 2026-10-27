@@ -150,6 +150,8 @@ def init_db():
         ("payment_state", "TEXT NOT NULL DEFAULT 'PENDING'"),
         ("cashfree_order_id", "TEXT"),
         ("shipping_address_json", "TEXT"),
+        ("discount_code", "TEXT"),
+        ("discount_amount", "REAL NOT NULL DEFAULT 0"),
     ):
         if column not in order_columns:
             conn.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")

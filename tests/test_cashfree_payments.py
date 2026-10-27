@@ -235,7 +235,7 @@ def test_checkout_uses_cashfree_hosted_checkout():
 
     assert response.status_code == 200
     assert 'name="payment"' not in page
-    assert "Continue to Cashfree" in page
+    assert "Continue to Pay" in page
     assert "https://sdk.cashfree.com/js/v3/cashfree.js" in page
     assert "phonepe" not in page.lower()
 
@@ -284,3 +284,73 @@ def test_cashfree_order_creation_failure_does_not_leave_pending_order(
     assert state == ("payment_failed", "FAILED")
     assert "customer_phone must contain 10 digits" in caplog.text
     assert "invalid_request" in caplog.text
+
+
+def test_monthly_discount_is_applied_to_payment_and_sale(cashfree_client, monkeypatch):
+    client, database_path = cashfree_client
+    monkeypatch.setattr(app_module, "monthly_discount_code", lambda: "OCT10")
+    charged = {}
+    def fake_post(url, **kwargs):
+        charged.update(kwargs["json"])
+        return FakeResponse({"order_id": charged["order_id"], "payment_session_id": "discount-session"})
+    monkeypatch.setattr(app_module.requests, "post", fake_post)
+    payload = {"code": " oct10 ", "items": [{"product_id": client.product_id, "qty": 2}]}
+    preview = client.post("/api/store/discount/validate", json=payload)
+    assert preview.status_code == 200
+    assert preview.json["total"] == 135
+    assert preview.json["discount"] == 15
+    response = client.post("/api/payments/cashfree", json={
+        "address_id": 1, "discount_code": "OCT10", "items": payload["items"], "total": 1,
+    })
+    assert response.status_code == 200
+    assert charged["order_amount"] == 135
+    # A pending discounted payment reserves eligibility, including simultaneous retries.
+    assert client.post("/api/store/discount/validate", json=payload).status_code == 400
+    monkeypatch.setattr(app_module.requests, "get", lambda *args, **kwargs: FakeResponse({
+        "order_id": response.json["merchant_order_id"], "order_status": "PAID",
+        "order_amount": 135, "order_currency": "INR",
+    }))
+    assert client.get(f"/api/payments/cashfree/{response.json['merchant_order_id']}/status").status_code == 200
+    with sqlite3.connect(database_path) as conn:
+        assert conn.execute("SELECT total_amount, discount_code, discount_amount FROM orders").fetchone() == (135, "OCT10", 15)
+        assert conn.execute("SELECT quantity, selling_price FROM sales").fetchone() == (2, 67.5)
+    assert client.post("/api/store/discount/validate", json=payload).status_code == 400
+
+
+def test_discount_rejects_wrong_month_and_existing_customers(cashfree_client, monkeypatch):
+    client, database_path = cashfree_client
+    monkeypatch.setattr(app_module, "monthly_discount_code", lambda: "OCT10")
+    payload = {"code": "MAR10", "items": [{"product_id": client.product_id, "qty": 1}]}
+    assert client.post("/api/store/discount/validate", json=payload).status_code == 400
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("INSERT INTO orders (user_id, order_number, total_amount, status, payment_state, items, created_at) VALUES (1, 'previous', 75, 'confirmed', 'COMPLETED', '[]', '2026-01-01')")
+    payload["code"] = "OCT10"
+    assert client.post("/api/store/discount/validate", json=payload).status_code == 400
+    assert client.post("/api/payments/cashfree", json={"address_id": 1, "discount_code": "OCT10", "items": payload["items"]}).status_code == 400
+
+
+def test_discount_rounding_matches_paid_total_and_requires_login(cashfree_client, monkeypatch):
+    client, database_path = cashfree_client
+    monkeypatch.setattr(app_module, "monthly_discount_code", lambda: "OCT10")
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("UPDATE products SET discounted_price = 75.05 WHERE id = ?", (client.product_id,))
+    payload = {"code": "OCT10", "items": [{"product_id": client.product_id, "qty": 2}]}
+    response = client.post("/api/store/discount/validate", json=payload)
+    assert response.json["total"] == 135.09
+    with client.session_transaction() as session:
+        session.clear()
+    assert client.post("/api/store/discount/validate", json=payload).status_code == 401
+
+
+def test_offer_hides_for_any_order_history_and_is_not_cached(cashfree_client):
+    client, database_path = cashfree_client
+    response = client.get("/api/store/discount-offer")
+    assert response.json["eligible"] is True
+    assert response.headers["Cache-Control"] == "private, no-store"
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("INSERT INTO orders (user_id, order_number, total_amount, status, payment_state, items, created_at) VALUES (1, 'past-attempt', 75, 'payment_failed', 'FAILED', '[]', '2026-01-01')")
+    response = client.get("/api/store/discount-offer")
+    assert response.json == {"code": None, "eligible": False}
+    with client.session_transaction() as session:
+        session.clear()
+    assert client.get("/api/store/discount-offer").json["eligible"] is True

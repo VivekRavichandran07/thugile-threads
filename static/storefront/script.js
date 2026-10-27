@@ -152,12 +152,14 @@ const imageFor = (url, index, name) => {
     'Sundown Olive': '/static/storefront/assets/Chudidar/SundownOlive1.webp',
     'Indigo Arrows': '/static/storefront/assets/Chudidar/IndigoArrows1.webp',
     'Pista royale': '/static/storefront/assets/Chudidar/PistaRoyale1.webp',
-    'Pista Royale': '/static/storefront/assets/Chudidar/PistaRoyale1.webp'
+    'Pista Royale': '/static/storefront/assets/Chudidar/PistaRoyale1.webp',
+    'Orchid Mist': '/static/storefront/assets/Chudidar/OrchidMist1.webp',
+    'PonMayil': '/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.webp'
   };
   return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
-  if (/\/(?:SundownOlive|IndigoArrows|PistaRoyale)[1-5]\.webp$/i.test(String(image))) {
+  if (/\/(?:SundownOlive|IndigoArrows|PistaRoyale|OrchidMist)[1-5]\.webp$/i.test(String(image))) {
     const base = String(image).replace(/[1-5]\.webp$/i, '');
     return [1, 2, 3, 4, 5].map(number => `${base}${number}.webp`);
   }
@@ -472,6 +474,7 @@ productZoom.addEventListener('keydown', event => {
 });
 function openProductZoom(image) {
   const enlarged = productZoom.querySelector('img');
+  enlarged.style.width = `${Math.round(image.getBoundingClientRect().width * 2)}px`;
   enlarged.src = image.src;
   enlarged.alt = image.alt;
   productZoom.showModal();
@@ -1800,25 +1803,16 @@ window.addEventListener('pageshow', () => {
   }
 });
 
-// Start a repeating invitation only after the visitor reaches the page bottom.
+// Keep the product-name suggestion form available within the footer.
 function initNameSuggestionPopup() {
   if (document.querySelector('.name-suggestion-popup')) return;
-  const pagePath = window.location.pathname.replace(/\/+$/, '');
-  const allowedPage = new Set([
-    '/shop/our-story', '/shop/contact', '/shop/privacy-policy',
-    '/shop/shipping-returns', '/shop/terms', '/shop/shipping'
-  ]).has(pagePath);
-  const guideOverlay = document.getElementById('size-guide-overlay');
-  const guidePopup = document.getElementById('size-guide-popup');
-  const guideIsOpen = () => Boolean(guideOverlay?.classList.contains('open'));
-  if (!allowedPage && !guideOverlay) return;
+  const footer = document.querySelector('.site-footer');
+  if (!footer) return;
   const popup = document.createElement('section');
   popup.className = 'name-suggestion-popup';
-  popup.hidden = true;
   popup.setAttribute('role', 'region');
   popup.setAttribute('aria-labelledby', 'name-suggestion-heading');
   popup.innerHTML = `
-    <button type="button" class="name-suggestion-close" aria-label="Close name suggestion">&times;</button>
     <h2 id="name-suggestion-heading">Want one of our product to be named as you suggest? Our doors are open</h2>
     <form>
       <label for="suggested-product-name">Your suggested product name</label>
@@ -1828,49 +1822,14 @@ function initNameSuggestionPopup() {
       </div>
       <p class="name-suggestion-status" role="status" aria-live="polite"></p>
     </form>`;
-  document.body.append(popup);
-  let timer;
-  let started = false;
-  const show = () => {
-    if (!allowedPage && !guideIsOpen()) {
-      popup.hidden = true;
-      timer = setTimeout(show, 15000);
-      return;
-    }
-    popup.hidden = false;
-    timer = setTimeout(dismiss, 5000);
-  };
-  const dismiss = () => {
-    clearTimeout(timer);
-    popup.hidden = true;
-    timer = setTimeout(show, 15000);
-  };
-  const checkPageEnd = () => {
-    if (started) return;
-    if (!allowedPage) {
-      if (!guideIsOpen() || !guidePopup) return;
-      if (guidePopup.scrollTop + guidePopup.clientHeight < guidePopup.scrollHeight - 8) return;
-    } else {
-      const pageHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-      if (window.scrollY + window.innerHeight < pageHeight - 8) return;
-    }
-    started = true;
-    window.removeEventListener('scroll', checkPageEnd);
-    window.removeEventListener('resize', checkPageEnd);
-    show();
-  };
-  window.addEventListener('scroll', checkPageEnd, { passive: true });
-  window.addEventListener('resize', checkPageEnd);
-  if (!allowedPage && guideOverlay) {
-    guidePopup?.addEventListener('scroll', checkPageEnd, { passive: true });
-    new MutationObserver(() => {
-      if (!guideIsOpen()) popup.hidden = true;
-      else checkPageEnd();
-    }).observe(guideOverlay, { attributes: true, attributeFilter: ['class'] });
-  }
-  checkPageEnd();
-  popup.querySelector('.name-suggestion-close').addEventListener('click', dismiss);
-  popup.addEventListener('keydown', event => { if (event.key === 'Escape') dismiss(); });
+  const row = document.createElement('div');
+  row.className = 'footer-community-row';
+  row.append(popup);
+  const reach = footer.querySelector('.footer-reach');
+  if (reach) row.append(reach);
+  const footerBottom = footer.querySelector('.footer-bottom');
+  if (footerBottom) footerBottom.before(row);
+  else footer.append(row);
   popup.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
     const input = popup.querySelector('input');
@@ -1900,3 +1859,78 @@ function initNameSuggestionPopup() {
 }
 if (document.readyState === 'complete') initNameSuggestionPopup();
 else window.addEventListener('load', initNameSuggestionPopup, { once: true });
+
+// Reveal the server's current monthly first-order offer.
+async function initFirstOrderOffer() {
+  if (window.location.pathname.startsWith('/admin') || document.querySelector('.first-order-offer')) return;
+  let eligibility;
+  try {
+    const response = await fetch('/api/store/discount-offer', {cache: 'no-store'});
+    if (!response.ok) return;
+    eligibility = await response.json();
+    if (!eligibility.eligible) return;
+  } catch { return; }
+  const offer = document.createElement('section');
+  offer.className = 'first-order-offer';
+  offer.setAttribute('role', 'region');
+  offer.setAttribute('aria-labelledby', 'first-order-offer-heading');
+  offer.innerHTML = `<button type="button" class="first-order-offer-close" aria-label="Close discount offer">×</button><h2 id="first-order-offer-heading">Wait, did you see this? 👀</h2>
+    <p>We custom-tuned our fits so you never have to guess your size again. Grab <strong>10% off</strong> your first order while you're exploring!</p>
+    <button type="button" class="unlock-discount">Unlock My Discount</button>
+    <div class="first-order-code" hidden><code></code><button type="button" class="copy-discount" aria-label="Copy discount code"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></div>
+    <p class="discount-offer-status" role="status" aria-live="polite"></p>`;
+  document.body.appendChild(offer);
+  const events = new AbortController();
+  const dismiss = () => { events.abort(); offer.remove(); };
+  offer.querySelector('.first-order-offer-close').addEventListener('click', dismiss);
+  offer.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.stopPropagation(); dismiss(); }
+  });
+  const positionOffer = () => {
+    const base = window.matchMedia('(max-width:640px)').matches ? 80 : 24;
+    const footer = document.querySelector('.site-footer');
+    const bottom = footer ? Math.max(base, window.innerHeight - footer.getBoundingClientRect().top + 20) : base;
+    offer.style.bottom = `${bottom}px`;
+    offer.style.visibility = window.innerHeight - bottom - offer.offsetHeight < 80 ? 'hidden' : 'visible';
+  };
+  let frame = null;
+  const schedulePosition = () => {
+    if (frame !== null) return;
+    frame = requestAnimationFrame(() => { frame = null; positionOffer(); });
+  };
+  window.addEventListener('scroll', schedulePosition, {passive: true, signal: events.signal});
+  window.addEventListener('resize', schedulePosition, {signal: events.signal});
+  document.addEventListener('account-updated', async () => {
+    offer.style.visibility = 'hidden';
+    try {
+      const response = await fetch('/api/store/discount-offer', {cache: 'no-store'});
+      if (!response.ok || !(await response.json()).eligible) { dismiss(); return; }
+      positionOffer();
+    } catch { dismiss(); }
+  }, {signal: events.signal});
+  positionOffer();
+  const unlock = offer.querySelector('.unlock-discount');
+  unlock.addEventListener('click', async () => {
+    unlock.disabled = true;
+    try {
+      const response = await fetch('/api/store/discount-offer', {cache: 'no-store'});
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      if (!data.eligible) { dismiss(); return; }
+      offer.querySelector('code').textContent = data.code;
+      offer.querySelector('.first-order-code').hidden = false;
+      offer.querySelector('.discount-offer-status').textContent = 'Use this month’s code at checkout. First orders only.';
+      unlock.hidden = true;
+      positionOffer();
+    } catch { offer.querySelector('.discount-offer-status').textContent = 'Could not load your code. Please try again.'; }
+    finally { unlock.disabled = false; }
+  });
+  offer.querySelector('.copy-discount').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(offer.querySelector('code').textContent);
+      offer.querySelector('.discount-offer-status').textContent = 'Code copied! Apply it at checkout.';
+    } catch { offer.querySelector('.discount-offer-status').textContent = 'Select the code and copy it to use at checkout.'; }
+  });
+}
+const offerDelay = Math.max(0, 10000 - performance.now());
+setTimeout(initFirstOrderOffer, offerDelay);

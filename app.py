@@ -586,7 +586,7 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
-    original_gallery = {"sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale"}.get(
+    original_gallery = {"sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist"}.get(
         re.sub(r"[^a-z0-9]", "", (name or "").lower())
     )
     if original_gallery:
@@ -1557,6 +1557,63 @@ def build_order_items(raw_items):
     return order_items, total
 
 
+def monthly_discount_code():
+    month = datetime.now(timezone(timedelta(hours=5, minutes=30))).month
+    return ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")[month - 1] + "10"
+
+
+def apply_first_order_discount(conn, user_id, code, items, subtotal):
+    if not code:
+        return items, subtotal, Decimal("0"), None
+    if not isinstance(code, str) or code.strip().upper() != monthly_discount_code():
+        raise ValueError("This discount code is invalid or has expired.")
+    if conn.execute(
+        "SELECT 1 FROM orders WHERE user_id = ? AND "
+        "(payment_state = 'COMPLETED' OR (discount_code IS NOT NULL AND payment_state = 'PENDING')) LIMIT 1",
+        (user_id,),
+    ).fetchone():
+        raise ValueError("This offer is for your first order only. A completed order or discounted payment already exists.")
+    # Keep precise unit prices so multiple quantities reconcile with the rounded paid total.
+    discounted = [{**item, "unit_price": float(Decimal(str(item["unit_price"])) * Decimal("0.90"))} for item in items]
+    total = (subtotal * Decimal("0.90")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if total < Decimal("1.00"):
+        raise ValueError("The discounted order total must be at least ₹1.")
+    return discounted, total, subtotal - total, monthly_discount_code()
+
+
+@app.route("/api/store/discount-offer")
+def discount_offer():
+    eligible = True
+    if "user_id" in session:
+        conn = get_connection()
+        try:
+            eligible = conn.execute("SELECT 1 FROM orders WHERE user_id = ? LIMIT 1", (session["user_id"],)).fetchone() is None
+        finally:
+            conn.close()
+    response = jsonify({"code": monthly_discount_code() if eligible else None, "eligible": eligible})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.route("/api/store/discount/validate", methods=["POST"])
+def validate_discount():
+    if "user_id" not in session:
+        return jsonify({"error": "Please sign in to apply your first-order discount."}), 401
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data.get("code"):
+        return jsonify({"error": "Enter a discount code."}), 400
+    try:
+        items, subtotal = build_order_items(data.get("items"))
+        conn = get_connection()
+        try:
+            _, total, discount, code = apply_first_order_discount(conn, session["user_id"], data["code"], items, subtotal)
+        finally:
+            conn.close()
+        return jsonify({"code": code, "subtotal": float(subtotal), "discount": float(discount), "total": float(total)})
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
 @app.route("/api/orders", methods=["GET"])
 def orders_get():
     if "user_id" not in session:
@@ -1596,23 +1653,28 @@ def cashfree_create_payment():
         finally:
             conn.close()
 
-        order_number = f"TNT-{uuid.uuid4().hex}"
-        return_url = cashfree_return_url(order_number)
         conn = get_connection()
-        conn.execute(
-            """
-            INSERT INTO orders
-                (user_id, order_number, cashfree_order_id, total_amount, status,
-                 payment_state, shipping_address_json, items, created_at)
-            VALUES (?, ?, ?, ?, 'pending', 'PENDING', ?, ?, ?)
-            """,
-            (
-                session["user_id"], order_number, order_number, float(total),
-                json.dumps(dict(address)), json.dumps(items), now_iso(),
-            ),
-        )
-        conn.commit()
-        conn.close()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            items, total, discount, discount_code = apply_first_order_discount(
+                conn, session["user_id"], data.get("discount_code"), items, total
+            )
+            order_number = f"TNT-{uuid.uuid4().hex}"
+            return_url = cashfree_return_url(order_number)
+            conn.execute(
+                """INSERT INTO orders
+                    (user_id, order_number, cashfree_order_id, total_amount, status,
+                     payment_state, shipping_address_json, items, created_at, discount_code, discount_amount)
+                VALUES (?, ?, ?, ?, 'pending', 'PENDING', ?, ?, ?, ?, ?)""",
+                (session["user_id"], order_number, order_number, float(total),
+                 json.dumps(dict(address)), json.dumps(items), now_iso(), discount_code, float(discount)),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
         response = requests.post(
             f"{api_base}/orders",
             json={
