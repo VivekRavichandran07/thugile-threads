@@ -93,3 +93,26 @@ def test_orchid_mist_gallery_and_new_cover_migrations():
     migrate_image_urls(conn)
     assert conn.total_changes == changes
     conn.close()
+
+
+def test_purple_peacock_original_gallery_and_cover_migration():
+    prefix = "/static/storefront/assets/Chudidar/"
+    images = product_image_variants("Purple Peacock", prefix + "image-1.webp")
+    assert images == [prefix + f"PurplePeacock{i}.webp" for i in range(1, 6)]
+    for image in images:
+        response = app.test_client().get(image)
+        assert response.status_code == 200
+        assert response.mimetype == "image/webp"
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, image_url TEXT, quantity INTEGER)")
+    conn.execute("CREATE TABLE user_wishlists (id INTEGER PRIMARY KEY, product_name TEXT, image_url TEXT)")
+    conn.execute("INSERT INTO products VALUES (1, 'Purple Peacock', ?, 3)", (prefix + "image-1.webp",))
+    conn.execute("INSERT INTO products VALUES (2, 'Other Product', ?, 7)", (prefix + "image-1.webp",))
+    conn.execute("INSERT INTO user_wishlists VALUES (1, 'Purple Peacock', ?)", (prefix + "image-1.webp",))
+    migrate_image_urls(conn)
+    assert conn.execute("SELECT image_url, quantity FROM products ORDER BY id").fetchall() == [(images[0], 3), (prefix + "image-1.webp", 7)]
+    assert conn.execute("SELECT image_url FROM user_wishlists").fetchone()[0] == images[0]
+    changes = conn.total_changes
+    migrate_image_urls(conn)
+    assert conn.total_changes == changes
+    conn.close()
