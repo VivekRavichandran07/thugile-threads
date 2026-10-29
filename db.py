@@ -268,19 +268,8 @@ def init_db():
         ("Kanakavalli Silk Co-ord", "store-kanakavalli-silk-co-ord", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/KanakavalliSilkCoord.webp", 5499),
         ("Thaai Silk Set", "store-thaai-silk-set", "Chudidar", "M", "Multi", "/static/storefront/assets/Chudidar/ThaaiSilkSet.webp", 5999),
     ]
-    for name, sku, category, size, color, image_url, selling_price in storefront_products:
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO products
-                (name, sku, category, size, color, image_url, cost_price, selling_price,
-                 discounted_price, quantity, reorder_level, created_at)
-            SELECT ?, ?, ?, ?, ?, ?, 0, ?, ?, 10, 5, ?
-            WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)
-            """,
-            (name, sku, category, size, color, image_url, selling_price,
-             round(selling_price * 0.9, 2), now_iso(), name),
-        )
-    
+    # Catalog entries are managed by admins. Never recreate deleted products at startup.
+
     # Retired demo products stay available to historical order references.
     # Never replenish stock during startup.
     conn.execute(
