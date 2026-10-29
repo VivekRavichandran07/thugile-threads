@@ -30,7 +30,7 @@ def migrate_image_urls(conn):
             if new_url != old_url:
                 conn.execute(f"UPDATE {table} SET image_url = ? WHERE id = ?", (new_url, row_id))
     # Replace temporary catalog covers with the products' original photos.
-    for name, filename in (("Sundown Olive", "SundownOlive1.webp"), ("Indigo Arrows", "IndigoArrows1.webp"), ("Pista royale", "PistaRoyale1.webp"), ("Pista Royale", "PistaRoyale1.webp"), ("Orchid Mist", "OrchidMist1.webp"), ("PonMayil", "MeenakariEmbroideredSet.webp"), ("Purple Peacock", "PurplePeacock1.webp"), ("Pista Aura", "PistaAura1.webp"), ("Royal Teal", "RoyalTeal1.webp")):
+    for name, filename in (("Sundown Olive", "SundownOlive1.webp"), ("Indigo Arrows", "IndigoArrows1.webp"), ("Pista royale", "PistaRoyale1.webp"), ("Pista Royale", "PistaRoyale1.webp"), ("Orchid Mist", "OrchidMist1.webp"), ("PonMayil", "MeenakariEmbroideredSet.webp"), ("Purple Peacock", "PurplePeacock1.webp"), ("Thalir", "Thalir1.webp"), ("Royal Teal", "RoyalTeal1.webp")):
         cover = ASSET_PREFIX + filename
         for table, name_column in (("products", "name"), ("user_wishlists", "product_name")):
             columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
@@ -40,3 +40,12 @@ def migrate_image_urls(conn):
                     "AND (image_url IS NULL OR image_url != ?)",
                     (cover, name, cover),
                 )
+
+    # Undo only the mistaken Pista Aura assignment, preserving other admin images.
+    for table, name_column in (("products", "name"), ("user_wishlists", "product_name")):
+        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if name_column in columns:
+            conn.execute(
+                f"UPDATE {table} SET image_url = ? WHERE {name_column} = ? AND image_url = ?",
+                (ASSET_PREFIX + "image-2.webp", "Pista Aura", ASSET_PREFIX + "PistaAura1.webp"),
+            )
