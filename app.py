@@ -586,7 +586,7 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
-    original_gallery = {"sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal"}.get(
+    original_gallery = {"sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm"}.get(
         re.sub(r"[^a-z0-9]", "", (name or "").lower())
     )
     if original_gallery:
