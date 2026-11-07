@@ -757,15 +757,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .product.sold-out .product-info .size-guide-btn{align-self:center;margin:12px 0 0}
  .product-info>.buy>.sold-out-button{grid-column:2;grid-row:3;justify-self:end;align-self:center;margin:12px 0 0}
 }
-@media(max-width:640px){
- .product.sold-out .product-info{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;row-gap:8px}
+@media(max-width:900px){
+ .product.sold-out .product-info{display:grid;grid-template-columns:minmax(0,1fr);column-gap:0;row-gap:8px}
  .product.sold-out .product-info>div:first-child,.product.sold-out .product-info>.buy{display:contents}
- .product.sold-out .product-info h3,.product.sold-out .product-info p{grid-column:1 / -1}
+ .product.sold-out .product-info h3,.product.sold-out .product-info p{grid-column:1}
  .product.sold-out .product-card-sizes{grid-column:1;grid-row:3;align-self:center;margin:0}
- .product.sold-out .product-card-price{grid-column:1 / -1;grid-row:4}
- .product.sold-out .buy .sold-out-button{grid-column:2;grid-row:3;justify-self:end;align-self:center;margin:0;min-height:28px;padding:4px 10px;font-size:11px}
- .product.sold-out .product-info .size-guide-btn{grid-column:1;grid-row:5;justify-self:start;align-self:center;margin:0;min-height:28px;padding:4px 10px;font-size:11px}
- .product.sold-out .notify-available-btn{grid-column:2;grid-row:5;justify-self:end;align-self:center;margin:0;min-height:28px;padding:4px 10px;font-size:11px}
+ .product.sold-out .buy .sold-out-button{grid-column:1;grid-row:4;justify-self:start;align-self:center;margin:0;min-height:32px;padding:5px 12px;font-size:12px}
+ .product.sold-out .product-card-price{grid-column:1;grid-row:5}
+ .product.sold-out .product-info .size-guide-btn{grid-column:1;grid-row:6;justify-self:start;align-self:center;margin:0;min-height:40px;padding:7px 12px;font-size:12px}
+ .product.sold-out .notify-available-btn{grid-column:1;grid-row:7;justify-self:stretch;align-self:center;width:100%;max-width:100%;margin:0;min-height:40px;padding:7px 12px;font-size:12px;line-height:1.25;white-space:normal;text-align:center}
 }
 /* Product photos open the product details. */
 .product-image,.product-image img{cursor:pointer}
