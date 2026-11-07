@@ -768,7 +768,7 @@ function renderNewLaunches(products) {
   const firstSet = newLaunchesTrack.querySelector('.new-launch-set');
   if (firstSet) {
     // Keep the marquee speed consistent as catalog items are archived or restored.
-    newLaunchesTrack.style.setProperty('--new-launch-duration', `${Math.max(24, firstSet.scrollWidth / 50)}s`);
+    newLaunchesTrack.style.setProperty('--new-launch-duration', `${Math.max(18, firstSet.scrollWidth / 90)}s`);
   }
 
   newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
