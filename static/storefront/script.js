@@ -744,7 +744,14 @@ function sortProducts(products, sort) {
 function renderNewLaunches(products) {
   if (!newLaunchesTrack) return;
 
-  const launches = products;
+  const launches = Array.isArray(products) ? products : [];
+  const section = newLaunchesTrack.closest('.new-launches-section');
+  if (!launches.length) {
+    newLaunchesTrack.replaceChildren();
+    if (section) section.hidden = true;
+    return;
+  }
+  if (section) section.hidden = false;
 
   const renderLaunchSet = (setIndex) => `
     <div class="new-launch-set">
@@ -758,21 +765,11 @@ function renderNewLaunches(products) {
   `;
 
   newLaunchesTrack.innerHTML = `${renderLaunchSet(0)}${renderLaunchSet(1)}`;
-
-  // ← Add this: sync both sets to have identical width
-  setTimeout(() => {
-    const sets = newLaunchesTrack.querySelectorAll('.new-launch-set');
-    if (sets.length >= 2) {
-      const set1Width = sets[0].offsetWidth;
-      const set2Width = sets[1].offsetWidth;
-      const maxWidth = Math.max(set1Width, set2Width);
-
-      sets.forEach(set => {
-        set.style.minWidth = maxWidth + 'px';
-        set.style.width = maxWidth + 'px';
-      });
-    }
-  }, 100);
+  const firstSet = newLaunchesTrack.querySelector('.new-launch-set');
+  if (firstSet) {
+    // Keep the marquee speed consistent as catalog items are archived or restored.
+    newLaunchesTrack.style.setProperty('--new-launch-duration', `${Math.max(24, firstSet.scrollWidth / 50)}s`);
+  }
 
   newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
     card.addEventListener('click', () => {

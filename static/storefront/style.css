@@ -235,7 +235,7 @@ input,textarea,select,button{border-radius:10px}
     backface-visibility: hidden;
     perspective: 1000px;
     animation: marquee linear infinite;
-    animation-duration: 15s;
+    animation-duration: var(--new-launch-duration, 32s);
 }
 .new-launches-track:has(.new-launch-card:hover),
 .new-launches-track:has(.new-launch-card:focus-visible) {
@@ -255,13 +255,19 @@ input,textarea,select,button{border-radius:10px}
 .new-launch-set {
     display: flex;
     flex: 0 0 auto;
+    width: max-content;
     gap: 18px;
     margin: 0;      /* ← Add this */
     padding: 0;     /* ← Add this */
     backface-visibility: hidden;
 }
 .new-launch-card {
+    display: flex;
     flex: 0 0 clamp(190px, 22vw, 280px);
+    flex-direction: column;
+    align-items: stretch;
+    width: clamp(190px, 22vw, 280px);
+    min-width: 0;
     border: 0;
     background: none;
     padding: 0;
@@ -271,6 +277,7 @@ input,textarea,select,button{border-radius:10px}
 }
 .new-launch-image {
     display: block;
+    width: 100%;
     aspect-ratio: 3/4;
     overflow: hidden;
     background: var(--sand);
@@ -290,10 +297,13 @@ input,textarea,select,button{border-radius:10px}
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 0;
     padding-top: 10px;
 }
 .new-launch-copy strong {
     font: 500 16px var(--serif);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 .new-launch-copy small {
     font: 11px var(--google-sans);
