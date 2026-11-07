@@ -1878,10 +1878,12 @@ async function initFirstOrderOffer() {
   offer.className = 'first-order-offer';
   offer.setAttribute('role', 'region');
   offer.setAttribute('aria-labelledby', 'first-order-offer-heading');
-  offer.innerHTML = `<button type="button" class="first-order-offer-close" aria-label="Close discount offer">×</button><h2 id="first-order-offer-heading">Wait, did you see this? 👀</h2>
-    <p>We custom-tuned our fits so you never have to guess your size again. Grab <strong>10% off</strong> your first order while you're exploring!</p>
-    <button type="button" class="unlock-discount">Unlock My Discount</button>
-    <div class="first-order-code" hidden><code></code><button type="button" class="copy-discount" aria-label="Copy discount code"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></div>
+  offer.innerHTML = `<button type="button" class="first-order-offer-close" aria-label="Close discount offer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="first-order-eyebrow">First Order Privilege</div>
+    <h2 id="first-order-offer-heading">Enjoy <em>10% off</em> your first order</h2>
+    <p>Tailored silhouettes designed for comfort. Unlock your exclusive inaugural discount code.</p>
+    <button type="button" class="unlock-discount"><span>Claim 10% Off</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+    <div class="first-order-code" hidden><code></code><button type="button" class="copy-discount" aria-label="Copy discount code"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copy</span></button></div>
     <p class="discount-offer-status" role="status" aria-live="polite"></p>`;
   document.body.appendChild(offer);
   const events = new AbortController();
