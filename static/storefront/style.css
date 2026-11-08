@@ -369,13 +369,17 @@ main img:hover{transform:scale(1.04)}
 @media(max-width:640px){.product-popup{max-height:calc(100svh - 20px)}}
 
 /* Keep the hero photo clear; give its copy a warm, readable surface. */
+.hero{perspective:1200px;perspective-origin:50% 45%;transform-style:preserve-3d}
+.hero-image{transform-style:preserve-3d;transform-origin:center 52%;backface-visibility:hidden}
 .hero-copy{left:6vw;bottom:7vh;max-width:520px;padding:24px 28px;background:rgba(254,246,231,.28);color:#fff;border:1px solid rgba(255,255,255,.65);border-radius:16px}
+.hero-copy{transform:translateZ(44px)}
 .hero-copy h1{font-size:clamp(2.2rem,4vw,3.8rem);line-height:1.08}
 .hero-copy .eyebrow{opacity:1;color:#fff;margin-bottom:12px}
 .hero-copy .arrow-link{color:#fff;border-color:rgba(255,255,255,.7);margin-top:22px;font-size:12px}
 /* Show the whole hero photo instead of cropping it to the hero box. */
 .hero{border-radius:10px}
 .hero-image{background-size:contain;border-radius:10px}
+@media(prefers-reduced-motion:reduce){.hero-copy{transform:none}}
 /* Prominent prices and rounded product actions. */
 .product-info{flex-wrap:wrap}
 .buy{gap:10px}

@@ -1024,17 +1024,37 @@ if (sizeGuideOverlay) {
 }
 
 const parallax = document.querySelectorAll('.parallax');
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function moveParallax(){ parallax.forEach(el => {
-  if (el.classList.contains('quote-image') && window.matchMedia('(max-width:640px)').matches) {
+  const isHero = el.classList.contains('hero-image');
+  if (prefersReducedMotion.matches || (el.classList.contains('quote-image') && window.matchMedia('(max-width:640px)').matches)) {
     el.style.transform = 'none';
     return;
   }
   const rect = el.parentElement.getBoundingClientRect();
   const speed = Number(el.dataset.speed);
-  el.style.transform = `translateY(${(rect.top + rect.height / 2) * speed}px)`;
+  const translateY = (rect.top + rect.height / 2) * speed;
+  if (isHero) {
+    const progress = Math.min(1, Math.max(0, -rect.top / Math.max(rect.height, 1)));
+    const rotateX = 1.2 - progress * 2.4;
+    const rotateY = -3 + progress * 6;
+    const zoom = 1.06 + progress * 0.1;
+    el.style.transform = `translate3d(0, ${translateY}px, 0) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${zoom})`;
+    return;
+  }
+  el.style.transform = `translateY(${translateY}px)`;
 }); }
-moveParallax(); window.addEventListener('scroll', moveParallax, {passive:true});
-window.addEventListener('resize', moveParallax, {passive:true});
+let parallaxFrame = 0;
+function scheduleParallax(){
+  if (parallaxFrame) return;
+  parallaxFrame = requestAnimationFrame(() => {
+    parallaxFrame = 0;
+    moveParallax();
+  });
+}
+moveParallax(); window.addEventListener('scroll', scheduleParallax, {passive:true});
+window.addEventListener('resize', scheduleParallax, {passive:true});
+prefersReducedMotion.addEventListener('change', scheduleParallax);
 
 document.querySelectorAll('[data-before-after]').forEach(compare => {
   const range = compare.querySelector('.before-after-range');
