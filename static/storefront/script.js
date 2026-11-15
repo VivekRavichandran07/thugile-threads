@@ -1969,13 +1969,14 @@ async function initFirstOrderOffer() {
 const offerDelay = Math.max(0, 10000 - performance.now());
 setTimeout(initFirstOrderOffer, offerDelay);
 
-// Timeless Classic lookbook: layered scroll parallax with a light pointer tilt on desktop.
+// Hero (Timeless Classic): layered scroll parallax with a light pointer tilt on desktop.
 (function setupLookbook3d() {
   const stage = document.querySelector('[data-lookbook3d]');
   if (!stage) return;
   const layers = {};
   stage.querySelectorAll('[data-depth]').forEach(layer => { layers[layer.dataset.depth] = layer; });
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const host = stage.closest('.hero') || stage.parentElement;
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
   let visible = false;
@@ -1998,14 +1999,14 @@ setTimeout(initFirstOrderOffer, offerDelay);
     pointer.y += (pointer.targetY - pointer.y) * 0.12;
     const px = pointer.x, py = pointer.y;
 
-    stage.style.transform = `perspective(1400px) rotateX(${(progress * 3 - py * 1.5).toFixed(3)}deg) rotateY(${(px * 2).toFixed(3)}deg)`;
-    if (layers.garden) layers.garden.style.transform = `translate3d(${(px * -8).toFixed(2)}px, ${(-progress * h * 0.07 - py * 5).toFixed(2)}px, 0) scale(1.18)`;
+    stage.style.transform = `perspective(1400px) rotateX(${(progress * 2 - py * 1.2).toFixed(3)}deg) rotateY(${(px * 1.6).toFixed(3)}deg) scale(1.04)`;
+    if (layers.garden) layers.garden.style.transform = `translate3d(${(px * -8).toFixed(2)}px, ${(-progress * h * 0.1 - py * 5).toFixed(2)}px, 0) scale(1.18)`;
     if (layers.title) {
-      layers.title.style.transform = `translate3d(${(px * -4).toFixed(2)}px, ${(-progress * h * 0.05).toFixed(2)}px, 0)`;
-      layers.title.style.opacity = String(Math.max(0.35, 1 - Math.abs(progress) * 0.7).toFixed(3));
+      layers.title.style.transform = `translate3d(${(px * -4).toFixed(2)}px, ${(-progress * h * 0.16).toFixed(2)}px, 0)`;
+      layers.title.style.opacity = String(Math.max(0.2, 1 - Math.abs(progress) * 1.1).toFixed(3));
     }
-    if (layers.models) layers.models.style.transform = `translate3d(${(px * 6).toFixed(2)}px, ${(progress * h * 0.015).toFixed(2)}px, 0) scale(1.02)`;
-    if (layers.flowers) layers.flowers.style.transform = `translate3d(${(px * 16).toFixed(2)}px, ${(progress * h * 0.05 + py * 6).toFixed(2)}px, 0)`;
+    if (layers.models) layers.models.style.transform = `translate3d(${(px * 6).toFixed(2)}px, ${(progress * h * 0.02).toFixed(2)}px, 0) scale(1.02)`;
+    if (layers.flowers) layers.flowers.style.transform = `translate3d(${(px * 16).toFixed(2)}px, ${(progress * h * 0.08 + py * 6).toFixed(2)}px, 0)`;
 
     if (Math.abs(pointer.targetX - pointer.x) > 0.002 || Math.abs(pointer.targetY - pointer.y) > 0.002) schedule();
   };
@@ -2024,14 +2025,14 @@ setTimeout(initFirstOrderOffer, offerDelay);
   window.addEventListener('resize', schedule, { passive: true });
   reducedMotion.addEventListener('change', () => { reset(); schedule(); });
 
-  stage.parentElement.addEventListener('pointermove', event => {
+  host.addEventListener('pointermove', event => {
     if (!finePointer.matches || reducedMotion.matches) return;
     const rect = stage.getBoundingClientRect();
     pointer.targetX = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width) * 2 - 1));
     pointer.targetY = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height) * 2 - 1));
     schedule();
   });
-  stage.parentElement.addEventListener('pointerleave', () => {
+  host.addEventListener('pointerleave', () => {
     pointer.targetX = 0;
     pointer.targetY = 0;
     schedule();
