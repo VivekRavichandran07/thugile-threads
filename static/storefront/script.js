@@ -694,7 +694,18 @@ function renderProducts(products) {
 function setupImageHoverSlides() {
   document.querySelectorAll('.collection-card img, .product-image img').forEach(image => {
     if (image.dataset.hoverSlidesReady === 'true') return;
-    availableImageVariants(image.currentSrc || image.src).then(variants => {
+    const customHoverImages = (image.dataset.hoverImages || '').split(',').map(src => src.trim()).filter(Boolean);
+    const variantsPromise = customHoverImages.length
+      ? Promise.all(customHoverImages.map(async src => {
+          try {
+            const response = await fetch(src, { method: 'HEAD' });
+            return response.ok ? src : null;
+          } catch {
+            return null;
+          }
+        })).then(results => results.filter(Boolean))
+      : availableImageVariants(image.currentSrc || image.src);
+    variantsPromise.then(variants => {
       if (variants.length < 2) return;
       image.dataset.hoverSlidesReady = 'true';
       let index = 0;
