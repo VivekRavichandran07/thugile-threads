@@ -18,3 +18,5 @@ vene/
 *.sqlite-*
 *.sqlite3
 *.sqlite3-*
+# Windows download metadata created when copying files into WSL
+*:Zone.Identifier
