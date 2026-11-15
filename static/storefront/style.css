@@ -861,3 +861,20 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .site-footer .footer-inner{padding-bottom:24px}
 .site-footer .footer-bottom{padding-top:16px}
 @media(max-width:640px){.footer-community-row{gap:16px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}.footer-community-row .name-suggestion-popup h2{font-size:16px}.footer-community-row .name-suggestion-fields{flex-direction:column}}
+
+/* Timeless Classic layered lookbook (scroll parallax) */
+.lookbook3d{padding:0 5vw 140px}
+.lookbook3d-stage{position:relative;width:min(100%,calc(86vh * 1.5));aspect-ratio:3/2;margin:0 auto;overflow:hidden;border-radius:10px;background:#f1e4cc;isolation:isolate;transform-origin:center 60%;will-change:transform}
+.lookbook3d-layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;will-change:transform;backface-visibility:hidden}
+.lookbook3d-garden{object-fit:cover;transform:scale(1.18)}
+.lookbook3d-models{object-fit:cover;object-position:center bottom;transform:scale(1.02);transform-origin:center bottom}
+.lookbook3d-flowers{top:auto;bottom:-15%;left:-2%;width:104%;height:auto;object-fit:contain}
+.lookbook3d-title{height:auto;top:4%;display:flex;flex-direction:column;align-items:center;text-align:center;color:#6e1a35}
+.lookbook3d-title h2{font:500 clamp(1.5rem,4.6vw,4.4rem)/1 'Cormorant Garamond','Playfair Display',serif;font-variant:small-caps;letter-spacing:.05em;margin:0}
+.lookbook3d-divider{display:block;width:clamp(120px,22vw,320px);height:12px;margin-top:clamp(4px,.8vw,12px);background:linear-gradient(90deg,transparent,#b08a3e 18%,#b08a3e 44%,transparent 44%,transparent 56%,#b08a3e 56%,#b08a3e 82%,transparent) center/100% 1px no-repeat;position:relative}
+.lookbook3d-divider::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border:1px solid #b08a3e;transform:translate(-50%,-50%) rotate(45deg)}
+.lookbook3d-copy{max-width:min(100%,calc(86vh * 1.5));margin:28px auto 0;display:flex;justify-content:space-between;align-items:end;gap:24px}
+.lookbook3d-copy p{margin:0;max-width:520px;font-size:17px;line-height:1.6;color:#5c5248}
+.lookbook3d-copy .shop-all{flex-shrink:0}
+@media(max-width:640px){.lookbook3d{padding:0 0 96px}.lookbook3d-stage{border-radius:0}.lookbook3d-copy{flex-direction:column;align-items:start;padding:0 5vw;gap:16px}.lookbook3d-copy p{font-size:15px}}
+@media(prefers-reduced-motion:reduce){.lookbook3d-stage,.lookbook3d-layer{will-change:auto}}
