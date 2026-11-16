@@ -404,7 +404,7 @@ def product_item_list_json_ld():
     rows = conn.execute(
         """
         SELECT name, category, color, selling_price, discounted_price, image_url
-        FROM products WHERE quantity > 0 ORDER BY name, color, id
+        FROM products WHERE quantity > 0 AND COALESCE(is_archived, 0) = 0 ORDER BY name, color, id
         """
     ).fetchall()
     conn.close()

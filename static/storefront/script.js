@@ -83,6 +83,32 @@ if (document.querySelector('.site-header')) {
   document.body.append(socialRail);
 }
 
+// Mobile: collapse the main navigation behind a menu button so the header stays one row.
+(function initMobileNav() {
+  const header = document.querySelector('.site-header');
+  const inner = header?.querySelector('.header-inner');
+  const nav = inner?.querySelector('.main-nav');
+  if (!inner || !nav || inner.querySelector('.menu-toggle')) return;
+  if (!nav.id) nav.id = 'main-nav';
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'menu-toggle';
+  toggle.setAttribute('aria-label', 'Open menu');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', nav.id);
+  toggle.innerHTML = '<span></span><span></span><span></span>';
+  inner.prepend(toggle);
+  const setOpen = open => {
+    header.classList.toggle('nav-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  };
+  toggle.addEventListener('click', () => setOpen(!header.classList.contains('nav-open')));
+  nav.addEventListener('click', event => { if (event.target.closest('a')) setOpen(false); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') setOpen(false); });
+  document.addEventListener('click', event => { if (!header.contains(event.target)) setOpen(false); });
+})();
+
 const count = document.querySelector('#bag-count');
 const wishlistCount = document.querySelector('#wishlist-count');
 const toast = document.querySelector('#toast');
@@ -146,7 +172,6 @@ const imageFor = (url, index, name) => {
     'Maragatham Set': '/static/storefront/assets/Chudidar/image-2.webp',
     'Rosa Set': '/static/storefront/assets/Chudidar/Rosaset.webp',
     'Neelam Set': '/static/storefront/assets/Chudidar/image-3.webp',
-    'Gulmohar Set': '/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp',
     'KotaSet': '/static/storefront/assets/Chudidar/Kotaset1.webp',
     'Mul Chanderi': '/static/storefront/assets/Chudidar/mul chanderi.webp',
     'Sundown Olive': '/static/storefront/assets/Chudidar/SundownOlive1.webp',
@@ -769,7 +794,7 @@ function renderNewLaunches(products) {
       ${launches.map((product, index) => `
         <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
           <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
-          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small>${rupees(product.price)}</small></span>
+          <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small class="new-launch-price">${priceMarkup(product.price, product.discounted_price)}</small></span>
         </button>
       `).join('')}
     </div>
@@ -1180,7 +1205,7 @@ let googleButtonWidth = 0;
 let googleButtonObserver = null;
 
 function initGoogleSignIn() {
-  const gIdOnload = document.getElementById('g_id_onload');
+  const gIdOnload = document.getElementById('google-signin-config');
   const gIdSignin = document.getElementById('google-button-container');
   if (!gIdOnload || !gIdSignin || !window.google?.accounts?.id) return;
 
@@ -1845,7 +1870,7 @@ function initNameSuggestionPopup() {
   popup.setAttribute('role', 'region');
   popup.setAttribute('aria-labelledby', 'name-suggestion-heading');
   popup.innerHTML = `
-    <h2 id="name-suggestion-heading">Want one of our product to be named as you suggest? Our doors are open</h2>
+    <h2 id="name-suggestion-heading">Want one of our products named after your suggestion? Our doors are open.</h2>
     <form>
       <label for="suggested-product-name">Your suggested product name</label>
       <div class="name-suggestion-fields">
@@ -1857,8 +1882,18 @@ function initNameSuggestionPopup() {
   const row = document.createElement('div');
   row.className = 'footer-community-row';
   row.append(popup);
+  // "Reach us" becomes a regular footer column so it lines up with Shop / About / Information.
   const reach = footer.querySelector('.footer-reach');
-  if (reach) row.append(reach);
+  const footerLinks = footer.querySelector('.footer-links');
+  if (reach && footerLinks) {
+    const column = document.createElement('div');
+    column.className = 'footer-col footer-col-reach';
+    if (reach.id) { column.id = reach.id; reach.removeAttribute('id'); }
+    column.innerHTML = '<h4>Reach us</h4>';
+    reach.querySelectorAll('.footer-reach-links a').forEach(link => column.append(link));
+    footerLinks.append(column);
+    reach.remove();
+  }
   const footerBottom = footer.querySelector('.footer-bottom');
   if (footerBottom) footerBottom.before(row);
   else footer.append(row);
