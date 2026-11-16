@@ -217,6 +217,10 @@ const priceMarkup = (value, discounted) => {
     ? `<del>${rupees(original)}</del><strong>${rupees(sale)}</strong>`
     : `<strong>${rupees(original)}</strong>`;
 };
+// Every product has its own shareable page, e.g. /shop/p/citrus-charm.
+const productSlug = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'product';
+const productUrl = product => product?.url || `/shop/p/${productSlug(product?.name)}`;
+const isProductPage = Boolean(document.querySelector('.product-page[data-product-slug]'));
 const viewCounts = () => {
   try { return JSON.parse(localStorage.getItem('tnt_product_views') || '{}'); } catch { return {}; }
 };
@@ -532,15 +536,15 @@ function openProductPopup(product) {
   productName.textContent = product.name;
   const fabricColor = document.getElementById('product-fabric-color');
   if (fabricColor) {
-    fabricColor.textContent = product.name === 'Indigo Arrows'
-      ? 'Royal Navy Blue with champagne pant with blue gold zari'
-      : (product.color || 'As shown in product images');
+    fabricColor.textContent = product.color_note
+      || (product.name === 'Indigo Arrows' ? 'Royal Navy Blue with champagne pant with blue gold zari' : '')
+      || product.color || 'As shown in product images';
   }
   productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
-  productDesc.textContent = product.details || 'Handcrafted with care. A timeless piece from our collection.';
+  productDesc.textContent = product.details || `${product.name} – a ${product.color ? String(product.color).toLowerCase() + ' ' : ''}kurta set from Thugile & Threads, tailored with care.`;
 
   const availableSizes = product.available_sizes || [];
-  const sizes = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes, ...(product.sold_out_sizes || [])])];
+  const sizes = [...new Set(['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])])];
   productSizes.innerHTML = sizes.map(s => {
     const variant = (product.variants || []).find(item => item.size === s);
     return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
@@ -610,6 +614,7 @@ function openProductPopup(product) {
   productWishlistBtn.onclick = () => toggleWishlist(product);
   updateWishlistUI();
 
+  if (isProductPage) return;
   productOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -626,6 +631,7 @@ if (productQuantityDecrease) productQuantityDecrease.addEventListener('click', (
 if (productQuantityIncrease) productQuantityIncrease.addEventListener('click', () => updateProductQuantity(1));
 
 function closeProductPopup() {
+  if (isProductPage) return;
   if (productOverlay) productOverlay.classList.remove('open');
   document.body.style.overflow = '';
   currentProduct = null;
@@ -636,7 +642,7 @@ let selectedCatalogColor = '';
 let catalogPriceMin = 0;
 let catalogPriceMax = Infinity;
 let catalogFilterProducts = [];
-const normalizeCatalogSize = size => String(size).trim().toUpperCase().replace(/^XXXL$/, '3XL');
+const normalizeCatalogSize = size => String(size).trim().toUpperCase().replace(/^XXXL$/, '3XL').replace(/^XXXXL$/, '4XL');
 const catalogPrice = product => Number(product.discounted_price || product.price) || 0;
 function hasCatalogFilters() {
   return Boolean(selectedCatalogSize || selectedCatalogColor || catalogPriceMin > 0 || Number.isFinite(catalogPriceMax));
@@ -655,7 +661,7 @@ function mountSizeFilters(anchor, products, onChange, extraContent = []) {
   const sidebar = document.createElement('aside');
   sidebar.className = 'catalog-size-filter';
   sidebar.setAttribute('aria-label', 'Filter products by size, color and price');
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
   const ceiling = Math.max(1, ...products.map(catalogPrice).map(Math.ceil));
   const colors = [...new Map(products.filter(p => p.color?.trim()).map(p => [p.color.trim().toLowerCase(), p.color.trim()])).entries()].sort((a,b) => a[1].localeCompare(b[1]));
   const option = (group, value, label, count) => `<label class="catalog-size-option"><input type="radio" name="catalog-${group}" value="${escapeHtml(value)}" ${value === '' ? 'checked' : ''}><span>${escapeHtml(label)}</span><small>(${count})</small></label>`;
@@ -706,11 +712,11 @@ function renderProducts(products) {
       : '<button class="sold-out-button" disabled>Sold out</button>';
     const tag = product.in_stock ? '' : '<span class="sold-out-overlay">Sold out</span>';
     const availableSizes = product.available_sizes || [];
-    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', ...availableSizes, ...(product.sold_out_sizes || [])])].map(s => {
+    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])])].map(s => {
       const variant = (product.variants || []).find(item => item.size === s);
       return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
     }).join('');
-    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
+    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}">${escapeHtml(product.name)}</a></h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
   observeReveals();
   setupImageHoverSlides();
@@ -810,7 +816,7 @@ function renderNewLaunches(products) {
   newLaunchesTrack.querySelectorAll('.new-launch-card').forEach(card => {
     card.addEventListener('click', () => {
       const product = launches[Number(card.dataset.productIndex)];
-      if (product) openProductPopup(product);
+      if (product) window.location.href = productUrl(product);
     });
   });
 }
@@ -879,6 +885,11 @@ function handleProductCardClick(event) {
       return;
     }
 
+    if (productImage || productName) {
+      if (event.target.closest('a.product-link')) return;
+      const link = (productImage || productName).closest('.product')?.querySelector('a.product-link');
+      if (link) { window.location.href = link.href; return; }
+    }
     let product = null;
     if (productImage || productName) {
       const article = (productImage || productName).closest('.product');
@@ -1816,11 +1827,7 @@ function setupSearch() {
     const product = searchProducts[Number(result.dataset.productIndex)];
     if (!product) return;
     closeSearch();
-    if (productOverlay && productPopup) {
-      openProductPopup(product);
-    } else {
-      window.location.href = `/shop/collections?product=${encodeURIComponent(product.name)}`;
-    }
+    window.location.href = productUrl(product);
   });
 
   document.addEventListener('click', event => {
@@ -1860,43 +1867,11 @@ window.addEventListener('pageshow', () => {
   }
 });
 
-// Keep the product-name suggestion form available within the footer.
+// Product-name suggestions live as a section on the Contact page.
 function initNameSuggestionPopup() {
-  if (document.querySelector('.name-suggestion-popup')) return;
-  const footer = document.querySelector('.site-footer');
-  if (!footer) return;
-  const popup = document.createElement('section');
-  popup.className = 'name-suggestion-popup';
-  popup.setAttribute('role', 'region');
-  popup.setAttribute('aria-labelledby', 'name-suggestion-heading');
-  popup.innerHTML = `
-    <h2 id="name-suggestion-heading">Want one of our products named after your suggestion? Our doors are open.</h2>
-    <form>
-      <label for="suggested-product-name">Your suggested product name</label>
-      <div class="name-suggestion-fields">
-        <input id="suggested-product-name" name="name" maxlength="120" required placeholder="Suggest a name" autocomplete="off">
-        <button type="submit">Send suggestion</button>
-      </div>
-      <p class="name-suggestion-status" role="status" aria-live="polite"></p>
-    </form>`;
-  const row = document.createElement('div');
-  row.className = 'footer-community-row';
-  row.append(popup);
-  // "Reach us" becomes a regular footer column so it lines up with Shop / About / Information.
-  const reach = footer.querySelector('.footer-reach');
-  const footerLinks = footer.querySelector('.footer-links');
-  if (reach && footerLinks) {
-    const column = document.createElement('div');
-    column.className = 'footer-col footer-col-reach';
-    if (reach.id) { column.id = reach.id; reach.removeAttribute('id'); }
-    column.innerHTML = '<h4>Reach us</h4>';
-    reach.querySelectorAll('.footer-reach-links a').forEach(link => column.append(link));
-    footerLinks.append(column);
-    reach.remove();
-  }
-  const footerBottom = footer.querySelector('.footer-bottom');
-  if (footerBottom) footerBottom.before(row);
-  else footer.append(row);
+  const popup = document.querySelector('.name-suggestion-section');
+  if (!popup || popup.dataset.ready) return;
+  popup.dataset.ready = 'true';
   popup.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
     const input = popup.querySelector('input');
@@ -2072,4 +2047,20 @@ setTimeout(initFirstOrderOffer, offerDelay);
     pointer.targetY = 0;
     schedule();
   });
+})();
+
+// Product page: load the live product (sizes, stock, price) into the page.
+(async function initProductPage() {
+  const page = document.querySelector('.product-page[data-product-slug]');
+  if (!page) return;
+  try {
+    const response = await fetch('/api/store/products');
+    if (!response.ok) throw new Error('Catalog unavailable');
+    const products = (await response.json()).products || [];
+    if (!searchProducts.length) searchProducts = products;
+    const product = products.find(item => item.slug === page.dataset.productSlug);
+    if (product) openProductPopup(product);
+  } catch (error) {
+    console.error('Could not load this product', error);
+  }
 })();

@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 import time
 from xml.sax.saxutils import escape as xml_escape
 import requests
-from flask import Flask, Response, abort, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
+from flask import Flask, Response, abort, g, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -400,21 +400,14 @@ def page_metadata(path):
 def product_item_list_json_ld():
     base_url = app.config["PUBLIC_BASE_URL"]
     page_url = urljoin(base_url + "/", "shop/collections")
-    conn = get_connection()
-    rows = conn.execute(
-        """
-        SELECT name, category, color, selling_price, discounted_price, image_url
-        FROM products WHERE quantity > 0 AND COALESCE(is_archived, 0) = 0 ORDER BY name, color, id
-        """
-    ).fetchall()
-    conn.close()
-    products = {}
-    for row in rows:
-        key = (row["name"], row["color"] or "")
-        products.setdefault(key, row)
+    products = sorted(
+        (item for item in store_catalog() if item["in_stock"]),
+        key=lambda item: (item["name"], item["color"] or "", item["id"]),
+    )
     items = []
-    for index, product in enumerate(products.values(), start=1):
+    for index, product in enumerate(products, start=1):
         image = product["image_url"] or ""
+        product_url = urljoin(base_url + "/", product["url"].lstrip("/"))
         structured_product = {
             "@type": "Product",
             "name": product["name"],
@@ -423,13 +416,13 @@ def product_item_list_json_ld():
                 if product["color"]
                 else f"{product['category'] or 'Indian wear'} from Thugile & Threads."
             ),
-            "url": page_url,
+            "url": product_url,
             "offers": {
                 "@type": "Offer",
                 "priceCurrency": "INR",
-                "price": f"{product['discounted_price'] or product['selling_price']:.2f}",
+                "price": f"{product['discounted_price'] or product['price']:.2f}",
                 "availability": "https://schema.org/InStock",
-                "url": page_url,
+                "url": product_url,
             },
         }
         if image:
@@ -467,13 +460,17 @@ def version_storefront_script(response):
 def add_storefront_seo(response):
     seo_path = "/" if request.path in {"/", "/shop/"} else request.path.rstrip("/")
     metadata = page_metadata("/shop/" if request.path == "/shop/" else seo_path)
+    override = g.get("seo_override")
+    if override and response.status_code == 200:
+        metadata = (override["title"], override["description"])
     if metadata is None or response.mimetype != "text/html":
         return response
     title, description = metadata
     base_url = app.config["PUBLIC_BASE_URL"]
     canonical_path = "/" if request.path in {"/", "/shop/"} else seo_path
     canonical_url = urljoin(base_url + "/", canonical_path.lstrip("/"))
-    image_url = urljoin(base_url + "/", "static/storefront/assets/thugile-and-threads-logo.webp")
+    image_url = (override or {}).get("image") or urljoin(base_url + "/", "static/storefront/assets/thugile-and-threads-logo.webp")
+    og_type = (override or {}).get("type", "website")
     html = response.get_data(as_text=True)
     html = re.sub(
         r"<title\b[^>]*>.*?</title>",
@@ -492,7 +489,7 @@ def add_storefront_seo(response):
     seo_tags = (
         f'<meta name="description" content="{escape(description, quote=True)}">'
         f'<link rel="canonical" href="{escape(canonical_url, quote=True)}">'
-        f'<meta property="og:type" content="website">'
+        f'<meta property="og:type" content="{og_type}">'
         f'<meta property="og:title" content="{escape(title, quote=True)}">'
         f'<meta property="og:description" content="{escape(description, quote=True)}">'
         f'<meta property="og:url" content="{escape(canonical_url, quote=True)}">'
@@ -601,7 +598,8 @@ def product_image_variants(name, image_url):
     image_stem = re.sub(r"[^a-z0-9]", "", raw_image_stem)
     normalized_name = re.sub(r"[^a-z0-9]", "", (name or "").lower())
     variants = []
-    for filename in os.listdir(assets_dir):
+    filenames = os.listdir(assets_dir) if os.path.isdir(assets_dir) else []
+    for filename in filenames:
         stem, extension = os.path.splitext(filename)
         if ":" in filename or extension.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
             continue
@@ -679,7 +677,7 @@ def sitemap_xml():
     paths = (
         "/", "/shop/collections", "/shop/contact", "/shop/our-story",
         "/shop/shipping-returns", "/shop/terms", "/shop/privacy-policy",
-    )
+    ) + tuple(item["url"] for item in store_catalog())
     locations = "".join(
         f"<url><loc>{xml_escape(urljoin(base_url + '/', path.lstrip('/')))}</loc></url>"
         for path in paths
@@ -742,9 +740,13 @@ def request_restock():
     return jsonify({"message": "Your request has been sent to Thugile. We will contact you when available."})
 
 
-@app.route("/api/store/products")
-def storefront_products():
-    """Public catalog endpoint. Cost prices and raw stock totals stay private."""
+def product_slug(value):
+    """URL-friendly product name, e.g. "Citrus Charm" -> "citrus-charm"."""
+    return re.sub(r"[^a-z0-9]+", "-", (value or "").lower()).strip("-") or "product"
+
+
+def store_catalog():
+    """Public catalog grouped by product name and colour, with a stable page slug."""
     conn = get_connection()
     rows = conn.execute(
         """
@@ -778,15 +780,151 @@ def storefront_products():
                 "price": product["selling_price"],
                 "discounted_price": product["discounted_price"] or product["selling_price"],
             })
-    return jsonify({
-        "products": [
-            {**product, "size": ", ".join(product["available_sizes"]),
-             "in_stock": bool(product["available_sizes"]),
-             "sold_out_sizes": [size for size in product["sizes"]
-                                if size not in product["available_sizes"]]}
-            for product in grouped.values()
-        ]
-    })
+    # Oldest listing keeps the plain name slug so existing links never move.
+    used_slugs = set()
+    for item in sorted(grouped.values(), key=lambda entry: entry["id"]):
+        slug = product_slug(item["name"])
+        if slug in used_slugs:
+            slug = product_slug(f'{item["name"]} {item["color"]}')
+        base_slug, counter = slug, 2
+        while slug in used_slugs:
+            slug, counter = f"{base_slug}-{counter}", counter + 1
+        used_slugs.add(slug)
+        item["slug"] = slug
+        item["url"] = f"/shop/p/{slug}"
+    for item in grouped.values():
+        copy = product_copy(item["name"])
+        item["details"] = copy.get("details", "")
+        item["color_note"] = copy.get("color_note", "")
+    return [
+        {**product, "size": ", ".join(product["available_sizes"]),
+         "in_stock": bool(product["available_sizes"]),
+         "sold_out_sizes": [size for size in product["sizes"]
+                            if size not in product["available_sizes"]]}
+        for product in grouped.values()
+    ]
+
+
+@app.route("/api/store/products")
+def storefront_products():
+    """Public catalog endpoint. Cost prices and raw stock totals stay private."""
+    return jsonify({"products": store_catalog()})
+
+
+# Hand-written copy per product (keyed by lower-case name). Products added later
+# from the admin panel fall back to the generated description below.
+PRODUCT_COPY = {
+    "citrus charm": {
+        "details": "A deep navy kurta woven with fine ivory buttis, paired with bright orange pants and a checked orange dupatta finished with tassels. The navy keeps it calm for the office; the orange brings the festival.",
+        "color_note": "Navy kurta with orange pant and dupatta",
+    },
+    "orchid mist": {
+        "details": "Soft lavender from top to toe. The textured kurta and matching pants are finished with a sheer dupatta painted with delicate floral sprays and a gold-touched border – quiet, graceful and easy to wear all day.",
+        "color_note": "Lavender kurta and pant with floral-printed lavender dupatta",
+    },
+    "sundown olive": {
+        "details": "A light olive kurta with a subtle woven check, set against a sunset-orange pant and a rich orange dupatta with a fine zari stripe and tasselled ends. Bold colour blocking that still feels traditional.",
+        "color_note": "Light olive green kurta with orange pant and dupatta",
+    },
+    "indigo arrows": {
+        "details": "A royal navy kurta with a woven arrow motif, paired with champagne pants and a champagne dupatta edged in a deep blue and gold zari border. Polished enough for meetings, festive enough for functions.",
+        "color_note": "Royal Navy Blue with champagne pant with blue gold zari",
+    },
+    "royal teal": {
+        "details": "A teal kurta with woven buttis, worn with sandal pants and a statement ivory-and-teal dupatta in a bold printed pattern with a contrast border. A confident pick for celebrations and family gatherings.",
+        "color_note": "Teal kurta with sandal pant and printed teal-ivory dupatta",
+    },
+    "pista royale": {
+        "details": "A fresh pista-green collared kurta with tonal embroidery, paired with pink pants and an ivory dupatta covered in hand-painted-style blossoms and a pink border. Light, cheerful and made for daytime events.",
+        "color_note": "Pista green kurta with pink pant and floral dupatta",
+    },
+    "thalir": {
+        "details": "Named after a tender new leaf, this lime-green kurta comes with ivory pants and an olive dupatta printed with a Kalamkari-style lotus pattern. Bright, breezy and perfect for everyday occasions.",
+        "color_note": "Lime green kurta with ivory pant and olive Kalamkari-style dupatta",
+    },
+    "purple peacock": {
+        "details": "A royal purple kurta with woven kolam-inspired motifs, set with green pants and a green dupatta finished with a wide purple pallu and gold border. Classic temple-town colours for festive days.",
+        "color_note": "Purple (kolam) kurta with green pant and green-purple dupatta",
+    },
+}
+
+
+def product_copy(name):
+    return PRODUCT_COPY.get((name or "").strip().lower(), {})
+
+
+def product_page_description(product):
+    if product.get("details"):
+        return product["details"]
+    colour = (product.get("color") or "").strip()
+    category = (product.get("category") or "Chudidar").strip()
+    lead = f"{product['name']} – a {colour.lower()} {category.lower()} set" if colour and colour.lower() != "multi" else f"{product['name']} – a {category.lower()} set"
+    return f"{lead} from Thugile & Threads, thoughtfully tailored and packed with care. Shop sizes, fabric details and the size guide."
+
+
+def product_page_images(product):
+    images = product.get("image_variants") or []
+    if product.get("image_url") and product["image_url"] not in images:
+        images = [product["image_url"], *images]
+    return list(dict.fromkeys(images)) or ["/static/storefront/assets/thugile-and-threads-logo.webp"]
+
+
+@app.route("/shop/p/<slug>")
+@app.route("/shop/p/<slug>/")
+def product_page(slug):
+    product = next((item for item in store_catalog() if item["slug"] == slug), None)
+    if product is None:
+        abort(404)
+    base_url = app.config["PUBLIC_BASE_URL"]
+    page_url = urljoin(base_url + "/", f"shop/p/{slug}")
+    images = product_page_images(product)
+    absolute_images = [urljoin(base_url + "/", image.lstrip("/")) for image in images]
+    description = product_page_description(product)
+    price = product["discounted_price"] or product["price"]
+    title = f"{product['name']} | Thugile & Threads"
+    g.seo_override = {"title": title, "description": description, "image": absolute_images[0], "type": "product"}
+    structured = [
+        {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": product["name"],
+            "sku": product.get("sku") or slug,
+            "description": description,
+            "image": absolute_images,
+            "color": product.get("color") or None,
+            "category": product.get("category") or "Chudidar",
+            "brand": {"@type": "Brand", "name": "Thugile & Threads"},
+            "url": page_url,
+            "offers": {
+                "@type": "Offer",
+                "url": page_url,
+                "priceCurrency": "INR",
+                "price": f"{price:.2f}",
+                "availability": "https://schema.org/InStock" if product["in_stock"] else "https://schema.org/OutOfStock",
+                "itemCondition": "https://schema.org/NewCondition",
+            },
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url + "/"},
+                {"@type": "ListItem", "position": 2, "name": "Collections", "item": urljoin(base_url + "/", "shop/collections")},
+                {"@type": "ListItem", "position": 3, "name": product["name"], "item": page_url},
+            ],
+        },
+    ]
+    structured[0] = {key: value for key, value in structured[0].items() if value is not None}
+    json_ld = json.dumps(structured, ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
+    related = [item for item in store_catalog() if item["slug"] != slug and item["in_stock"]][:4]
+    return render_template(
+        "product.html",
+        product=product,
+        images=images,
+        description=description,
+        product_json_ld=json_ld,
+        related=related,
+    )
 
 
 # ---------------------------------------------------------------
