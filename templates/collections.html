@@ -328,6 +328,23 @@
       }
     }
     loadAllProducts();
+    window.setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const response = await fetch('/api/store/products', { cache: 'no-store' });
+        if (!response.ok) return;
+        const products = (await response.json()).products || [];
+        allProducts.splice(0, allProducts.length, ...products);
+        searchProducts = products;
+        if (activeCollection || hasCatalogFilters()) showFilteredProducts(activeCollection || 'All collections');
+        if (currentProduct && productOverlay?.classList.contains('open')) {
+          const refreshedProduct = products.find(item => item.name === currentProduct.name && item.color === currentProduct.color);
+          if (refreshedProduct) openProductPopup(refreshedProduct, false);
+        }
+      } catch (error) {
+        console.error('Could not refresh live stock', error);
+      }
+    }, 30000);
 
     collectionsGrid.addEventListener('click', event => {
       const card = event.target.closest('.collection-card');

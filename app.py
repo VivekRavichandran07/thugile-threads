@@ -809,7 +809,9 @@ def store_catalog():
 @app.route("/api/store/products")
 def storefront_products():
     """Public catalog endpoint. Cost prices and raw stock totals stay private."""
-    return jsonify({"products": store_catalog()})
+    response = jsonify({"products": store_catalog()})
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 # Hand-written copy per product (keyed by lower-case name). Products added later
@@ -1891,8 +1893,8 @@ def cashfree_create_payment():
         return jsonify({"error": "We could not start Cashfree checkout. Please try again."}), 502
 
 
-def record_order_sales(conn, order_id):
-    """Import paid order snapshots once; never infer a sale from a pending payment."""
+def record_order_sales(conn, order_id, deduct_inventory=False):
+    """Import paid order snapshots once; optionally decrement sold stock once."""
     order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
     if not order or order["payment_state"] != "COMPLETED":
         return 0
@@ -1936,6 +1938,16 @@ def record_order_sales(conn, order_id):
             "ON CONFLICT(order_id, order_item_index) DO NOTHING", values,
         )
         count += cursor.rowcount
+        if deduct_inventory and cursor.rowcount and values[0] is not None:
+            stock_cursor = conn.execute(
+                "UPDATE products SET quantity = MAX(0, quantity - ?) WHERE id = ?",
+                (values[1], values[0]),
+            )
+            if stock_cursor.rowcount == 0:
+                app.logger.warning(
+                    "Could not decrement inventory for product %s from completed order %s",
+                    values[0], order_id,
+                )
     return count
 
 
@@ -2043,7 +2055,7 @@ def cashfree_payment_status(merchant_order_id):
                     (payment_state, order_status, merchant_order_id, order["id"], session["user_id"]),
                 )
                 if payment_state == "COMPLETED":
-                    record_order_sales(conn, order["id"])
+                    record_order_sales(conn, order["id"], deduct_inventory=True)
                     conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
                 stored_state = conn.execute(
                     "SELECT payment_state FROM orders WHERE id = ? AND user_id = ?",

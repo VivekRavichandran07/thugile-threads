@@ -527,9 +527,9 @@ function openProductZoom(image) {
   });
 });
 
-function openProductPopup(product) {
+function openProductPopup(product, recordView = true) {
   currentProduct = product;
-  trackProductView(product.name);
+  if (recordView) trackProductView(product.name);
   currentImageIndex = 0;
   const quantityOutput = document.getElementById('product-quantity');
   if (quantityOutput) quantityOutput.value = '1';
@@ -825,11 +825,15 @@ function renderNewLaunches(products) {
 async function loadCatalog(retries = 3) {
   if (!grid) return;
   try {
-    const response = await fetch('/api/store/products');
+    const response = await fetch('/api/store/products', { cache: 'no-store' });
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
     searchProducts = products || [];
     catalogFilterProducts = products || [];
+    if (currentProduct && productOverlay?.classList.contains('open')) {
+      const refreshedProduct = searchProducts.find(item => item.name === currentProduct.name && item.color === currentProduct.color);
+      if (refreshedProduct) openProductPopup(refreshedProduct, false);
+    }
     const refreshProducts = () => renderProducts(sortProducts(filterCatalogBySize(catalogFilterProducts), productSort?.value || 'newest'));
     if (productSort) productSort.onchange = refreshProducts;
     refreshProducts();
@@ -1754,6 +1758,11 @@ async function init() {
   if (document.querySelector('.collection-section') || document.querySelector('.collections-page')) {
     loadCatalog();
   }
+  if (document.querySelector('.collection-section')) {
+    window.setInterval(() => {
+      if (document.visibilityState === 'visible') loadCatalog(0);
+    }, 30000);
+  }
   if (!document.querySelector('.account-page') && typeof loadOrdersPage === 'function') {
     loadOrdersPage();
   }
@@ -2061,6 +2070,17 @@ setTimeout(initFirstOrderOffer, offerDelay);
     if (!searchProducts.length) searchProducts = products;
     const product = products.find(item => item.slug === page.dataset.productSlug);
     if (product) openProductPopup(product);
+    window.setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const refresh = await fetch('/api/store/products', { cache: 'no-store' });
+        if (!refresh.ok) return;
+        const latestProducts = (await refresh.json()).products || [];
+        searchProducts = latestProducts;
+        const latestProduct = latestProducts.find(item => item.slug === page.dataset.productSlug);
+        if (latestProduct) openProductPopup(latestProduct, false);
+      } catch {}
+    }, 30000);
   } catch (error) {
     console.error('Could not load this product', error);
   }
