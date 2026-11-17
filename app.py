@@ -583,7 +583,7 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
-    original_gallery = {"sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm"}.get(
+    original_gallery = {"twilightlilac": "TwilightLilac", "sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm"}.get(
         re.sub(r"[^a-z0-9]", "", (name or "").lower())
     )
     if original_gallery:
@@ -761,12 +761,13 @@ def store_catalog():
     grouped = {}
     for product in rows:
         key = (product["name"], product["color"] or "")
+        image_variants = product_image_variants(product["name"], product["image_url"] or "")
         item = grouped.setdefault(key, {
             "id": product["id"], "name": product["name"], "sku": product["sku"],
             "category": product["category"] or "Chudidar", "color": product["color"] or "",
             "price": product["selling_price"], "discounted_price": product["discounted_price"] or product["selling_price"],
-            "image_url": webp_image_url(product["image_url"] or ""), "created_at": product["created_at"],
-            "available_sizes": [], "sizes": [], "variants": [], "image_variants": product_image_variants(product["name"], product["image_url"] or ""),
+            "image_url": image_variants[0] if image_variants else webp_image_url(product["image_url"] or ""), "created_at": product["created_at"],
+            "available_sizes": [], "sizes": [], "variants": [], "image_variants": image_variants,
         })
         size = product["size"] or "M"
         if size not in item["sizes"]:
