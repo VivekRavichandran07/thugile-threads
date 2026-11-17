@@ -815,6 +815,10 @@ def storefront_products():
 # Hand-written copy per product (keyed by lower-case name). Products added later
 # from the admin panel fall back to the generated description below.
 PRODUCT_COPY = {
+    "pista aura": {
+        "details": "A green raw silk kurta set in sizes S through 4XL, with a soft sheen and an easy festive feel.",
+        "color_note": "Green raw silk kurta set",
+    },
     "pista aura - scallop": {
         "details": "A pista-green raw silk kurta shot with fine gold zari stripes, finished with a scalloped keyhole collar and champagne cuffs. It comes with champagne pants and a matching green dupatta painted with soft floral sprays and a woven gold border. Light, festive and easy to wear from morning functions to evening celebrations.",
         "color_note": "Pista green raw silk kurta with champagne pant and floral green dupatta",

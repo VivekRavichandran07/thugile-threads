@@ -1,8 +1,8 @@
 # Catalog replacement preview
 
-Source: Inventory- Dress price sheet.xlsx, Sheet1, rows 2–43.
+Source: Inventory- Dress price sheet.xlsx, Sheet1, rows 2–50.
 
-42 unique garment SKUs across 20 product names will replace the 20 current sample products on the storefront; sample records will remain at stock 0 to preserve references.
+49 unique garment SKUs across 21 product names will replace the 20 current sample products on the storefront; sample records will remain at stock 0 to preserve references.
 
 ## Field mapping
 
@@ -38,7 +38,8 @@ Source: Inventory- Dress price sheet.xlsx, Sheet1, rows 2–43.
 | Indigo Arrows | M, L, XL | 1900 | 1520 |
 | Rani Varnam | M, L, XL | 1900 | 1520 |
 | Sundown Olive | M, L, XL | 1900 | 1520 |
-| Pista Aura | M, L, XL | 1900 | 1520 |
+| Pista Aura - Scallop | M, L, XL | 1900 | 1499 |
+| Pista Aura | S, M, L, XL, 2XL, 3XL, 4XL | 1900 | 1499 |
 | Orchid Mist | M, L, XL | 1900 | 1520 |
 | Citrus Charm | M, L, XL | 1900 | 1520 |
 

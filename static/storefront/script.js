@@ -545,9 +545,9 @@ function openProductPopup(product) {
   productDesc.textContent = product.details || `${product.name} – a ${product.color ? String(product.color).toLowerCase() + ' ' : ''}kurta set from Thugile & Threads, tailored with care.`;
 
   const availableSizes = product.available_sizes || [];
-  const sizes = [...new Set(['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])])];
+  const sizes = [...new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])].map(normalizeCatalogSize))];
   productSizes.innerHTML = sizes.map(s => {
-    const variant = (product.variants || []).find(item => item.size === s);
+    const variant = (product.variants || []).find(item => normalizeCatalogSize(item.size) === s);
     return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
   }).join('');
   productSizes.querySelectorAll('.size-option').forEach(btn => {
@@ -643,7 +643,7 @@ let selectedCatalogColor = '';
 let catalogPriceMin = 0;
 let catalogPriceMax = Infinity;
 let catalogFilterProducts = [];
-const normalizeCatalogSize = size => String(size).trim().toUpperCase().replace(/^XXXL$/, '3XL').replace(/^XXXXL$/, '4XL');
+const normalizeCatalogSize = size => String(size).trim().toUpperCase().replace(/^XXL$/, '2XL').replace(/^XXXL$/, '3XL').replace(/^XXXXL$/, '4XL');
 const catalogPrice = product => Number(product.discounted_price || product.price) || 0;
 function hasCatalogFilters() {
   return Boolean(selectedCatalogSize || selectedCatalogColor || catalogPriceMin > 0 || Number.isFinite(catalogPriceMax));
@@ -713,8 +713,8 @@ function renderProducts(products) {
       : '<button class="sold-out-button" disabled>Sold out</button>';
     const tag = product.in_stock ? '' : '<span class="sold-out-overlay">Sold out</span>';
     const availableSizes = product.available_sizes || [];
-    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])])].map(s => {
-      const variant = (product.variants || []).find(item => item.size === s);
+    const sizeOptions = [...new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])].map(normalizeCatalogSize))].map(s => {
+      const variant = (product.variants || []).find(item => normalizeCatalogSize(item.size) === s);
       return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
     }).join('');
     return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
