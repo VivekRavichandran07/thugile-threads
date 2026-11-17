@@ -583,7 +583,7 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
-    original_gallery = {"twilightlilac": "TwilightLilac", "sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm"}.get(
+    original_gallery = {"twilightlilac": "TwilightLilac", "sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm", "pistaaurascallop": "PistaAura-Scallop"}.get(
         re.sub(r"[^a-z0-9]", "", (name or "").lower())
     )
     if original_gallery:
@@ -815,6 +815,10 @@ def storefront_products():
 # Hand-written copy per product (keyed by lower-case name). Products added later
 # from the admin panel fall back to the generated description below.
 PRODUCT_COPY = {
+    "pista aura - scallop": {
+        "details": "A pista-green raw silk kurta shot with fine gold zari stripes, finished with a scalloped keyhole collar and champagne cuffs. It comes with champagne pants and a matching green dupatta painted with soft floral sprays and a woven gold border. Light, festive and easy to wear from morning functions to evening celebrations.",
+        "color_note": "Pista green raw silk kurta with champagne pant and floral green dupatta",
+    },
     "citrus charm": {
         "details": "A deep navy kurta woven with fine ivory buttis, paired with bright orange pants and a checked orange dupatta finished with tassels. The navy keeps it calm for the office; the orange brings the festival.",
         "color_note": "Navy kurta with orange pant and dupatta",
