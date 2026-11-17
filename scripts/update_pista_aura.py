@@ -32,7 +32,7 @@ from db import DB_PATH, get_connection, now_iso  # noqa: E402
 
 NAME = "Pista Aura"
 SCALLOP_NAME = "Pista Aura - Scallop"
-CATEGORY = "Chudidar"
+CATEGORY = "Ethnic Wear"
 COLOR = "green"
 IMAGE_URL = "/static/storefront/assets/Chudidar/PistaAura1.webp"
 SCALLOP_IMAGE_URL = ""
@@ -48,6 +48,7 @@ SCALLOP_VARIANTS = [
     ("M", "TTRSGEM00034"), ("L", "TTRSGEL00035"), ("XL", "TTRSGEXL00036"),
 ]
 QUANTITY = 1
+SOLD_OUT_SKUS = {"TTRSGE4XL00043"}
 
 
 def main():
@@ -71,7 +72,9 @@ def main():
                     sold = conn.execute(
                         "SELECT 1 FROM sales WHERE product_id = ? LIMIT 1", (row["id"],)
                     ).fetchone()
-                    quantity = row["quantity"] if (row["quantity"] > 0 or sold) else QUANTITY
+                    quantity = 0 if sku in SOLD_OUT_SKUS else (
+                        row["quantity"] if (row["quantity"] > 0 or sold) else QUANTITY
+                    )
                     conn.execute(
                         """
                         UPDATE products
@@ -84,7 +87,7 @@ def main():
                          SELLING_PRICE, DISCOUNTED_PRICE, quantity, created_at, row["id"]),
                     )
                 else:
-                    quantity = QUANTITY
+                    quantity = 0 if sku in SOLD_OUT_SKUS else QUANTITY
                     conn.execute(
                         """
                         INSERT INTO products
