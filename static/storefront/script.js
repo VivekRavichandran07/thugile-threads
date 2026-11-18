@@ -727,7 +727,7 @@ function setupImageHoverSlides() {
     const customHoverImages = (image.dataset.hoverImages || '').split(',').map(src => src.trim()).filter(Boolean);
     const variantsPromise = customHoverImages.length
       ? Promise.resolve(customHoverImages)
-      : knownImageVariants(image.currentSrc || image.src);
+      : Promise.resolve(knownImageVariants(image.currentSrc || image.src));
     variantsPromise.then(variants => {
       if (variants.length < 2) return;
       image.dataset.hoverSlidesReady = 'true';
@@ -782,10 +782,16 @@ function renderNewLaunches(products) {
   const section = newLaunchesTrack.closest('.new-launches-section');
   if (!launches.length) {
     newLaunchesTrack.replaceChildren();
-    if (section) section.hidden = true;
+    if (section) {
+      section.hidden = false;
+      section.classList.add('visible');
+    }
     return;
   }
-  if (section) section.hidden = false;
+  if (section) {
+    section.hidden = false;
+    section.classList.add('visible');
+  }
 
   const renderLaunchSet = (setIndex) => `
     <div class="new-launch-set">
