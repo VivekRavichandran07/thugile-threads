@@ -741,7 +741,7 @@ def request_restock():
 
 
 def product_slug(value):
-    """URL-friendly product name, e.g. "Citrus Charm" -> "citrus-charm"."""
+    """URL-friendly product name, e.g. "Karmughil" -> "karmughil"."""
     return re.sub(r"[^a-z0-9]+", "-", (value or "").lower()).strip("-") or "product"
 
 
@@ -825,9 +825,9 @@ PRODUCT_COPY = {
         "details": "A pista-green raw silk kurta shot with fine gold zari stripes, finished with a scalloped keyhole collar and champagne cuffs. It comes with champagne pants and a matching green dupatta painted with soft floral sprays and a woven gold border. Light, festive and easy to wear from morning functions to evening celebrations.",
         "color_note": "Pista green raw silk kurta with champagne pant and floral green dupatta",
     },
-    "citrus charm": {
-        "details": "A deep navy kurta woven with fine ivory buttis, paired with bright orange pants and a checked orange dupatta finished with tassels. The navy keeps it calm for the office; the orange brings the festival.",
-        "color_note": "Navy kurta with orange pant and dupatta",
+    "karmughil": {
+        "details": "A pure cotton kurta set in warm brown and orange tones, made for easy everyday wear.",
+        "color_note": "Brown and orange pure cotton set",
     },
     "orchid mist": {
         "details": "Soft lavender from top to toe. The textured kurta and matching pants are finished with a sheer dupatta painted with delicate floral sprays and a gold-touched border – quiet, graceful and easy to wear all day.",

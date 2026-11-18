@@ -1035,3 +1035,33 @@ em,i,cite,.first-order-offer h2 em{font-style:normal}
 /* Product names always reserve two lines (longer names end with an ellipsis),
    so sizes, Add to bag and Size Guide line up across every card in a row. */
 .product-info h3{line-height:1.2;min-height:2.4em;max-height:2.4em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;align-self:start}
+
+.site-header .header-actions .whatsapp-order-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 13px;border:0;border-radius:999px;background:#25d366;color:#fff;font:600 12px/1 var(--google-sans);letter-spacing:.02em;text-decoration:none;text-transform:none;white-space:nowrap;transition:background .2s ease,transform .2s ease,box-shadow .2s ease}
+.site-header .header-actions .whatsapp-order-link svg{width:17px;height:17px;flex:0 0 17px}
+.site-header .header-actions .whatsapp-order-link:hover{background:#128c4a;color:#fff;opacity:1;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,211,102,.28)}
+.site-header .header-actions .whatsapp-order-link:focus-visible{outline:3px solid #128c4a;outline-offset:3px}
+.seasonal-announcement-banner{display:block;width:min(1600px,96vw);aspect-ratio:1680/900;margin:30px auto 18px;border-radius:16px;background:#5d1d24 url('/static/storefront/assets/ChristmasCelebration.webp') center/100% 100% no-repeat;transition:filter .2s ease,transform .2s ease}
+.seasonal-announcement-banner:hover{filter:brightness(1.04);transform:translateY(-2px)}
+.seasonal-announcement-banner:focus-visible{outline:3px solid var(--terracotta);outline-offset:4px}
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:640px){.seasonal-announcement-banner{width:96vw;aspect-ratio:1680/900;margin:20px auto 12px;border-radius:12px}.site-header .header-actions .whatsapp-order-link{width:34px;height:34px;min-width:34px;min-height:34px;padding:8px;border-radius:50%}.site-header .header-actions .whatsapp-order-link span{display:none}.site-header .header-actions .whatsapp-order-link svg{width:18px;height:18px;flex-basis:18px}}
+.testimonials{padding:56px 5vw 84px;background:#fff}
+.testimonial-carousel{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:16px}
+.testimonial-grid{display:flex;gap:18px;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding:8px 2px 22px;touch-action:pan-x}
+.testimonial-grid::-webkit-scrollbar{display:none}
+.testimonial{display:flex;flex:0 0 clamp(270px,29vw,370px);flex-direction:column;min-height:250px;padding:26px;border:1px solid rgba(26,21,18,.1);border-radius:16px;background:#fff;box-shadow:0 8px 24px rgba(26,21,18,.06);scroll-snap-align:start}
+.testimonial-visuals{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.review-product-images{width:52px;height:52px;margin:0}
+.review-product-images img{display:block;width:52px;height:52px;margin:0;border:0;border-radius:50%;object-fit:cover}
+.testimonial-user-card{display:grid;width:52px;height:52px;place-items:center;overflow:hidden;border:1px solid rgba(80,67,55,.12);border-radius:50%;background:linear-gradient(145deg,#f1e6d7,#e2d6c8);color:#7e7165}
+.testimonial-user-card svg{width:31px;height:31px;fill:currentColor}
+.testimonial-text{flex:1;margin:0 0 20px;color:#51463e;font-size:15px;line-height:1.7}
+.testimonial-author{margin:0;padding-top:14px;border-top:1px solid var(--line);font:600 11px var(--google-sans);letter-spacing:.06em;text-transform:uppercase;color:#75695d}
+.testimonial-placeholder-label{align-self:flex-start;margin:0 0 10px;padding:5px 9px;border-radius:999px;background:#f4eee6;color:#75695d;font:600 9px var(--google-sans);letter-spacing:.08em;text-transform:uppercase}
+.testimonial-placeholder .testimonial-text{color:#75695d}
+.testimonial-carousel-button{display:grid;width:44px;height:44px;place-items:center;border:1px solid var(--line);border-radius:50%;background:#fff;color:var(--ink);cursor:pointer;transition:background .2s ease,color .2s ease,opacity .2s ease,transform .2s ease}
+.testimonial-carousel-button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.testimonial-carousel-button:hover:not(:disabled){transform:scale(1.06);background:var(--ink);color:#fff}
+.testimonial-carousel-button:disabled{opacity:.38;cursor:default}
+.testimonial-carousel-button:focus-visible,.testimonial-grid:focus-visible{outline:3px solid var(--terracotta);outline-offset:3px}
+@media(max-width:640px){.testimonials{padding:44px 4vw 64px}.testimonial-carousel{grid-template-columns:34px minmax(0,1fr) 34px;gap:8px}.testimonial-carousel-button{width:34px;height:34px}.testimonial-carousel-button svg{width:18px;height:18px}.testimonial-grid{gap:12px;padding-bottom:16px}.testimonial{flex-basis:100%;min-height:230px;padding:20px 16px}}

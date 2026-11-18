@@ -48,6 +48,16 @@ window.fetch = async (input, init = {}) => {
 };
 
 if (document.querySelector('.site-header')) {
+  const headerActions = document.querySelector('.site-header .header-actions');
+  const searchButton = headerActions?.querySelector('.search-btn');
+  if (headerActions && searchButton && !headerActions.querySelector('.whatsapp-order-link')) {
+    const orderLink = document.createElement('a');
+    orderLink.className = 'whatsapp-order-link';
+    orderLink.href = 'https://wa.me/919789726376';
+    orderLink.setAttribute('aria-label', 'WhatsApp Orders');
+    orderLink.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 11.8a8.1 8.1 0 0 1-12 7.1L4 20l1.1-4a8.1 8.1 0 1 1 15.1-4.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8.5c.2-.4.4-.4.7-.4h.4c.2 0 .3.1.4.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.2.2-.2.3 0 .6.5.8 1.1 1.4 1.9 1.8.3.2.4.2.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.5.7c.2.1.3.2.3.4 0 .3-.2 1.1-.7 1.5-.4.4-1 .6-1.6.5-1-.2-2.2-.7-3.4-1.8-1-.9-1.7-2.1-1.9-3.1-.2-.7 0-1.4.4-1.9Z" fill="currentColor"/></svg><span>WhatsApp Orders</span>';
+    searchButton.before(orderLink);
+  }
   const socialLinks = [
     {
       label: 'Instagram',
@@ -63,7 +73,7 @@ if (document.querySelector('.site-header')) {
     },
     {
       label: 'WhatsApp',
-      href: 'https://wa.me/c/230554632978683',
+      href: 'https://wa.me/919789726376',
       icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 11.8a8.1 8.1 0 0 1-12 7.1L4 20l1.1-4a8.1 8.1 0 1 1 15.1-4.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8.5c.2-.4.4-.4.7-.4h.4c.2 0 .3.1.4.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.2.2-.2.3 0 .6.5.8 1.1 1.4 1.9 1.8.3.2.4.2.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.5.7c.2.1.3.2.3.4 0 .3-.2 1.1-.7 1.5-.4.4-1 .6-1.6.5-1-.2-2.2-.7-3.4-1.8-1-.9-1.7-2.1-1.9-3.1-.2-.7 0-1.4.4-1.9Z" fill="currentColor"/></svg>',
       external: true
     },
@@ -184,31 +194,18 @@ const imageFor = (url, index, name) => {
     'Purple Peacock': '/static/storefront/assets/Chudidar/PurplePeacock1.webp',
     'Thalir': '/static/storefront/assets/Chudidar/Thalir1.webp',
     'Royal Teal': '/static/storefront/assets/Chudidar/RoyalTeal1.webp',
-    'Citrus Charm': '/static/storefront/assets/Chudidar/CitrusCharm1.webp'
+    'Karmughil': '/static/storefront/assets/Chudidar/CitrusCharm1.webp'
   };
   return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
-  if (/\/(?:SundownOlive|IndigoArrows|PistaAura|PistaRoyale|OrchidMist|PurplePeacock|Thalir|RoyalTeal|CitrusCharm)[1-5]\.webp$/i.test(String(image))) {
+  if (/\/(?:SundownOlive|IndigoArrows|PistaAura|PistaRoyale|OrchidMist|PurplePeacock|Thalir|RoyalTeal|CitrusCharm|TwilightLilac)[1-5]\.webp$/i.test(String(image))) {
     const base = String(image).replace(/[1-5]\.webp$/i, '');
     return [1, 2, 3, 4, 5].map(number => `${base}${number}.webp`);
   }
-  const match = String(image).match(/^(.*)\.([a-z0-9]+)$/i);
-  if (!match || !match[1].includes('/static/storefront/assets/Chudidar/')) return [image];
-  return [image, `${match[1]}-1.webp`, `${match[1]}-2.webp`, `${match[1]}-3.webp`, `${match[1]}-4.webp`];
+  return [image];
 };
-const availableImageVariants = async image => {
-  const candidates = productImageVariants(image);
-  const results = await Promise.all(candidates.map(async candidate => {
-    try {
-      const response = await fetch(candidate, { method: 'HEAD' });
-      return response.ok ? candidate : null;
-    } catch {
-      return null;
-    }
-  }));
-  return results.filter(Boolean);
-};
+const knownImageVariants = image => productImageVariants(image);
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
 const discountedPrice = (value, discounted) => Number(discounted || value || 0);
 const priceMarkup = (value, discounted) => {
@@ -218,7 +215,7 @@ const priceMarkup = (value, discounted) => {
     ? `<del>${rupees(original)}</del><strong>${rupees(sale)}</strong>`
     : `<strong>${rupees(original)}</strong>`;
 };
-// Every product has its own shareable page, e.g. /shop/p/citrus-charm.
+// Every product has its own shareable page, e.g. /shop/p/karmughil.
 const productSlug = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'product';
 const productUrl = product => product?.url || `/shop/p/${productSlug(product?.name)}`;
 const isProductPage = Boolean(document.querySelector('.product-page[data-product-slug]'));
@@ -643,6 +640,7 @@ let selectedCatalogColor = '';
 let catalogPriceMin = 0;
 let catalogPriceMax = Infinity;
 let catalogFilterProducts = [];
+let lastCatalogSignature = null;
 const normalizeCatalogSize = size => String(size).trim().toUpperCase().replace(/^XXL$/, '2XL').replace(/^XXXL$/, '3XL').replace(/^XXXXL$/, '4XL');
 const catalogPrice = product => Number(product.discounted_price || product.price) || 0;
 function hasCatalogFilters() {
@@ -700,7 +698,6 @@ function mountSizeFilters(anchor, products, onChange, extraContent = []) {
 }
 
 function renderProducts(products) {
-  console.log('renderProducts called, products:', products.length);
   if (!grid) return;
   if (!products.length) {
     grid.innerHTML = '<p class="empty-shop">No products are available in this size.</p>';
@@ -717,7 +714,8 @@ function renderProducts(products) {
       const variant = (product.variants || []).find(item => normalizeCatalogSize(item.size) === s);
       return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
     }).join('');
-    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
+    const hoverImages = Array.isArray(product.image_variants) ? product.image_variants.join(',') : '';
+    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" data-hover-images="${escapeHtml(hoverImages)}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
   observeReveals();
   setupImageHoverSlides();
@@ -728,15 +726,8 @@ function setupImageHoverSlides() {
     if (image.dataset.hoverSlidesReady === 'true') return;
     const customHoverImages = (image.dataset.hoverImages || '').split(',').map(src => src.trim()).filter(Boolean);
     const variantsPromise = customHoverImages.length
-      ? Promise.all(customHoverImages.map(async src => {
-          try {
-            const response = await fetch(src, { method: 'HEAD' });
-            return response.ok ? src : null;
-          } catch {
-            return null;
-          }
-        })).then(results => results.filter(Boolean))
-      : availableImageVariants(image.currentSrc || image.src);
+      ? Promise.resolve(customHoverImages)
+      : knownImageVariants(image.currentSrc || image.src);
     variantsPromise.then(variants => {
       if (variants.length < 2) return;
       image.dataset.hoverSlidesReady = 'true';
@@ -828,16 +819,22 @@ async function loadCatalog(retries = 3) {
     const response = await fetch('/api/store/products', { cache: 'no-store' });
     if (!response.ok) throw new Error('Catalog unavailable');
     const { products } = await response.json();
-    searchProducts = products || [];
-    catalogFilterProducts = products || [];
+    const latestProducts = products || [];
+    const catalogSignature = JSON.stringify(latestProducts);
+    const catalogChanged = catalogSignature !== lastCatalogSignature;
+    searchProducts = latestProducts;
+    catalogFilterProducts = latestProducts;
     if (currentProduct && productOverlay?.classList.contains('open')) {
       const refreshedProduct = searchProducts.find(item => item.name === currentProduct.name && item.color === currentProduct.color);
       if (refreshedProduct) openProductPopup(refreshedProduct, false);
     }
-    const refreshProducts = () => renderProducts(sortProducts(filterCatalogBySize(catalogFilterProducts), productSort?.value || 'newest'));
-    if (productSort) productSort.onchange = refreshProducts;
-    refreshProducts();
-    renderNewLaunches(products);
+    if (catalogChanged) {
+      lastCatalogSignature = catalogSignature;
+      const refreshProducts = () => renderProducts(sortProducts(filterCatalogBySize(catalogFilterProducts), productSort?.value || 'newest'));
+      if (productSort) productSort.onchange = refreshProducts;
+      refreshProducts();
+      renderNewLaunches(latestProducts);
+    }
   } catch (error) {
     if (retries > 0) {
       await new Promise(r => setTimeout(r, 1000));
@@ -1144,7 +1141,6 @@ document.querySelectorAll('[data-before-after]').forEach(compare => {
 
 function observeReveals() {
   const revealElements = document.querySelectorAll('.reveal:not(.visible)');
-  console.log('observeReveals found', revealElements.length, 'elements');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -1747,8 +1743,30 @@ async function syncWishlistToServer() {
   } catch {}
 }
 
+function setupTestimonialCarousels() {
+  document.querySelectorAll('[data-testimonial-carousel]').forEach(carousel => {
+    const track = carousel.querySelector('.testimonial-grid');
+    const previous = carousel.querySelector('.testimonial-carousel-prev');
+    const next = carousel.querySelector('.testimonial-carousel-next');
+    if (!track || !previous || !next) return;
+    const updateControls = () => {
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      previous.disabled = track.scrollLeft <= 2;
+      next.disabled = maxScroll <= 2 || track.scrollLeft >= maxScroll - 2;
+    };
+    previous.addEventListener('click', () => {
+      track.scrollBy({ left: -track.clientWidth * 0.85, behavior: 'smooth' });
+    });
+    next.addEventListener('click', () => {
+      track.scrollBy({ left: track.clientWidth * 0.85, behavior: 'smooth' });
+    });
+    track.addEventListener('scroll', () => window.requestAnimationFrame(updateControls), { passive: true });
+    window.addEventListener('resize', updateControls);
+    updateControls();
+  });
+}
+
 async function init() {
-  console.log('init() called');
   document.querySelectorAll('img:not([loading])').forEach(image => {
     if (!image.closest('.site-header')) image.loading = 'lazy';
     image.decoding = 'async';
@@ -1774,6 +1792,7 @@ async function init() {
   }
   setupSearch();
   setupImageHoverSlides();
+  setupTestimonialCarousels();
 }
 
 function setupSearch() {

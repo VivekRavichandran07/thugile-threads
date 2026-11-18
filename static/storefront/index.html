@@ -161,6 +161,10 @@
       <div class="new-launches-track" id="new-launches-track" aria-label="New launches"></div>
     </section>
 
+    <a class="seasonal-announcement-banner" href="/shop/collections" aria-label="Explore our seasonal collections">
+      <span class="visually-hidden">Seasonal collections and festive announcements — explore collections</span>
+    </a>
+
     <section class="collection-section reveal" id="collection">
       <div class="section-header">
         <div>
@@ -236,34 +240,123 @@
           <h2>What our <em>community</em> says</h2>
         </div>
       </div>
-      <div class="testimonial-grid">
-        <div class="testimonial">
-          <div class="review-product-images">
-            <img src="/static/storefront/assets/Chudidar/SundownOlive1.webp" alt="Sundown Olive chudidar set in olive green" width="52" height="52" loading="lazy">
-            <img src="/static/storefront/assets/Chudidar/OrchidMist1.webp" alt="Orchid Mist chudidar set in soft orchid purple" width="52" height="52" loading="lazy">
-            <img src="/static/storefront/assets/Chudidar/CitrusCharm1.webp" alt="Citrus Charm chudidar set in citrus yellow" width="52" height="52" loading="lazy">
-          </div>
-          <p class="testimonial-text">“The fabric quality is unmatched. I wore my set to a wedding and received so many compliments. It feels like it was made just for me.”</p>
-          <p class="testimonial-author">Priya R.</p>
+      <div class="testimonial-carousel" data-testimonial-carousel>
+        <button class="testimonial-carousel-button testimonial-carousel-prev" type="button" aria-label="Show previous testimonials">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div class="testimonial-grid" tabindex="0" aria-label="Customer testimonials">
+          <article class="testimonial">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/SundownOlive1.webp" alt="Sundown Olive chudidar set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-text">“The fabric quality is unmatched. I wore my set to a wedding and received so many compliments. It feels like it was made just for me.”</p>
+            <p class="testimonial-author">Priya R.</p>
+          </article>
+          <article class="testimonial">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/IndigoArrows1.webp" alt="Indigo Arrows chudidar set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-text">“Finally, chudidars that are comfortable and elegant. The attention to detail is beautiful. I’m already ordering another.”</p>
+            <p class="testimonial-author">Ananya S.</p>
+          </article>
+          <article class="testimonial">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/PurplePeacock1.webp" alt="Purple Peacock raw silk chudidar set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-text">“The colors are so rich and the fit is perfect. It’s rare to find clothing that feels this special. Thugile &amp; Threads is now my go-to for every celebration.”</p>
+            <p class="testimonial-author">Meera K.</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/OrchidMist1.webp" alt="Orchid Mist chudidar set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Orchid Mist.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/CitrusCharm1.webp" alt="Karmughil pure cotton set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Karmughil.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/RoyalTeal1.webp" alt="Royal Teal raw silk set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Royal Teal.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/PistaRoyale1.webp" alt="Pista Royale chudidar set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Pista Royale.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/Thalir1.webp" alt="Thalir chudidar set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Thalir.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/PistaAura1.webp" alt="Pista Aura raw silk set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Pista Aura.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/TwilightLilac1.webp" alt="Twilight Lilac set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about Twilight Lilac.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/MeenakariEmbroideredSet.webp" alt="Meenakari embroidered set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about this embroidered set.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/VasanthaEmbroiderySet.webp" alt="Vasantha embroidered set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about this embroidered set.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/Kotaset1.webp" alt="Kota checks kurta set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about our Kota checks collection.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp" alt="Sanganeri block print kurta" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about this block print kurta.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
+          <article class="testimonial testimonial-placeholder">
+            <div class="testimonial-visuals">
+              <div class="review-product-images"><img src="/static/storefront/assets/Chudidar/AjrakhCoordSet.webp" alt="Ajrakh co-ord set" width="52" height="52" loading="lazy"></div>
+              <div class="testimonial-user-card" aria-label="Faceless customer profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></div>
+            </div>
+            <p class="testimonial-placeholder-label">Review placeholder</p><p class="testimonial-text">We’d love to hear what you think about our Ajrakh co-ord set.</p><p class="testimonial-author">Customer review coming soon</p>
+          </article>
         </div>
-        <div class="testimonial">
-          <div class="review-product-images">
-            <img src="/static/storefront/assets/Chudidar/IndigoArrows1.webp" alt="Indigo Arrows chudidar set with indigo arrow print" width="52" height="52" loading="lazy">
-            <img src="/static/storefront/assets/Chudidar/RoyalTeal1.webp" alt="Royal Teal raw silk chudidar set" width="52" height="52" loading="lazy">
-            <img src="/static/storefront/assets/Chudidar/PistaRoyale1.webp" alt="Pista Royale chudidar set in pista green" width="52" height="52" loading="lazy">
-          </div>
-          <p class="testimonial-text">“Finally, chudidars that are comfortable and elegant. The attention to detail is beautiful. I’m already ordering another.”</p>
-          <p class="testimonial-author">Ananya S.</p>
-        </div>
-        <div class="testimonial">
-          <div class="review-product-images">
-            <img src="/static/storefront/assets/Chudidar/PurplePeacock1.webp" alt="Purple Peacock raw silk chudidar set" width="52" height="52" loading="lazy">
-            <img src="/static/storefront/assets/Chudidar/Thalir1.webp" alt="Thalir chudidar set" width="52" height="52" loading="lazy">
-            <img src="/static/storefront/assets/Chudidar/SundownOlive1.webp" alt="Sundown Olive chudidar set in olive green" width="52" height="52" loading="lazy">
-          </div>
-          <p class="testimonial-text">“The colors are so rich and the fit is perfect. It’s rare to find clothing that feels this special. Thugile &amp; Threads is now my go-to for every celebration.”</p>
-          <p class="testimonial-author">Meera K.</p>
-        </div>
+        <button class="testimonial-carousel-button testimonial-carousel-next" type="button" aria-label="Show next testimonials">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
       </div>
     </section>
   </main>
