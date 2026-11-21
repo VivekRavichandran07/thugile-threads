@@ -208,6 +208,89 @@ const productImageVariants = image => {
   return [image];
 };
 const knownImageVariants = image => productImageVariants(image);
+function buildThugileSizeCharts() {
+  const addOneInch = value => {
+    const compact = String(value || '').trim().replace(/\s+/g, '');
+    const match = compact.match(/^(\d+(?:\.\d+)?)(½|¼|¾)?$/);
+    if (!match) return value;
+    const fractions = {'½': 0.5, '¼': 0.25, '¾': 0.75};
+    const total = Number(match[1]) + (fractions[match[2]] || 0) + 1;
+    const whole = Math.floor(total);
+    const remainder = Number((total - whole).toFixed(2));
+    const fraction = remainder === 0.5 ? '½' : remainder === 0.25 ? '¼' : remainder === 0.75 ? '¾' : '';
+    return fraction ? `${whole}${fraction}` : String(total);
+  };
+  document.querySelectorAll('.size-table:not([data-thugile-generated])').forEach(standardTable => {
+    const wrapper = standardTable.closest('.size-table-wrap');
+    if (!wrapper || wrapper.dataset.thugileExpanded === 'true') return;
+    const standardCaption = standardTable.caption?.textContent.trim() || 'Size chart';
+    const thugileWrap = wrapper.cloneNode(true);
+    thugileWrap.dataset.thugileGenerated = 'true';
+    const thugileTable = thugileWrap.querySelector('.size-table');
+    thugileTable.dataset.thugileGenerated = 'true';
+    thugileTable.querySelectorAll('tbody td').forEach(cell => {
+      cell.textContent = addOneInch(cell.textContent);
+    });
+    wrapper.dataset.thugileExpanded = 'true';
+    if (/outfit/i.test(standardCaption)) {
+      const standardRows = [...standardTable.querySelectorAll('tbody tr')];
+      const thugileRows = [...thugileTable.querySelectorAll('tbody tr')];
+      const mergedTable = document.createElement('table');
+      mergedTable.className = standardTable.className;
+      mergedTable.classList.add('size-table--brand-paired');
+      mergedTable.innerHTML = `<caption>Outfit size chart · all measurements in inches</caption>`;
+      const sourceHead = standardTable.querySelector('thead');
+      const head = sourceHead ? sourceHead.cloneNode(true) : document.createElement('thead');
+      let headerRow = head.querySelector('tr');
+      if (!headerRow) {
+        headerRow = standardTable.querySelector('tr')?.cloneNode(false) || document.createElement('tr');
+        head.appendChild(headerRow);
+        const sourceCells = [...(standardTable.querySelector('tr')?.children || [])];
+        sourceCells.forEach(cell => headerRow.appendChild(cell.cloneNode(true)));
+      }
+      const brandHeader = document.createElement('th');
+      brandHeader.scope = 'col';
+      brandHeader.textContent = 'Brand';
+      headerRow.insertBefore(brandHeader, headerRow.firstChild);
+      mergedTable.appendChild(head);
+      const body = document.createElement('tbody');
+      standardRows.forEach((standardRow, index) => {
+        [[standardRow, 'Standard Size'], [thugileRows[index], 'Thugile Size']].forEach(([sourceRow, brand]) => {
+          if (!sourceRow) return;
+          const row = sourceRow.cloneNode(true);
+          const brandCell = document.createElement('td');
+          brandCell.textContent = brand;
+          row.insertBefore(brandCell, row.firstChild);
+          body.appendChild(row);
+        });
+      });
+      mergedTable.appendChild(body);
+      const lengthNote = wrapper.nextElementSibling?.classList.contains('size-length-note') ? wrapper.nextElementSibling : null;
+      const mergedWrap = document.createElement('div');
+      mergedWrap.className = 'size-table-wrap';
+      mergedWrap.appendChild(mergedTable);
+      wrapper.replaceWith(mergedWrap);
+      thugileWrap.remove();
+      if (lengthNote) lengthNote.textContent = `${lengthNote.textContent.trim()} · Thugile size adds 1 inch to each listed measurement.`;
+      return;
+    }
+    standardTable.caption.textContent = `Standard size · ${standardCaption}`;
+    thugileTable.caption.textContent = `Thugile size · ${standardCaption} (Standard size +1 inch)`;
+    const lengthNote = wrapper.nextElementSibling?.classList.contains('size-length-note') ? wrapper.nextElementSibling : null;
+    if (lengthNote) {
+      const thugileLengthNote = lengthNote.cloneNode(true);
+      thugileLengthNote.classList.add('size-length-note-thugile');
+      thugileLengthNote.querySelectorAll('span').forEach(span => {
+        span.textContent = span.textContent.replace(/(\d+(?:\.\d+)?)(½|¼|¾)?(?=\s*inches?)/i, (_, whole, fraction) => addOneInch(`${whole}${fraction || ''}`));
+      });
+      lengthNote.after(thugileWrap);
+      thugileWrap.after(thugileLengthNote);
+    } else {
+      wrapper.after(thugileWrap);
+    }
+  });
+}
+buildThugileSizeCharts();
 const rupees = value => `₹ ${Number(value).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
 const discountedPrice = (value, discounted) => Number(discounted || value || 0);
 const priceMarkup = (value, discounted) => {
