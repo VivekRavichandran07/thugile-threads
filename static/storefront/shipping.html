@@ -312,6 +312,7 @@
       if (data.addresses && data.addresses.length) {
         addressesList.innerHTML = data.addresses.map(addr => `
           <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" aria-pressed="false">
+            <span class="address-select-indicator" aria-hidden="true"></span>
             <strong>${escapeHtml(addr.name)}</strong>
             <p>${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
           </button>
@@ -410,9 +411,14 @@
         return;
       }
       try {
-        const res = await fetch('/api/orders');
+        const [res, catalogRes] = await Promise.all([
+          fetch('/api/orders'),
+          fetch('/api/store/products'),
+        ]);
         if (!res.ok) throw new Error('Could not load orders');
         const data = await res.json();
+        const catalogData = catalogRes.ok ? await catalogRes.json() : { products: [] };
+        const catalog = catalogData.products || [];
         if (!data.orders || !data.orders.length) {
           list.innerHTML = '<p class="no-orders">Please make an order to see your past orders.</p>';
           return;
@@ -423,6 +429,10 @@
           try { items = JSON.parse(order.items); } catch {}
           const date = new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
           const itemsList = items.map(i => `${escapeHtml(i.name)} × ${escapeHtml(i.qty)}`).join(', ');
+          const reviewLinks = order.payment_state === 'COMPLETED' ? items.map(item => {
+            const product = catalog.find(entry => entry.name === item.name && String(entry.color || '') === String(item.color || ''));
+            return product ? `<a href="${escapeHtml(product.url)}#product-reviews">Review ${escapeHtml(item.name)}</a>` : '';
+          }).filter(Boolean) : [];
           return `<div class="order-item">
             <div class="order-header">
               <span class="order-number">${escapeHtml(order.order_number)}</span>
@@ -431,6 +441,7 @@
             <p class="order-date">${date}</p>
             <p class="order-items">${itemsList}</p>
             <p class="order-total">Total: ${rupees(order.total_amount)}</p>
+            ${reviewLinks.length ? `<div class="order-review-invitation"><p>Liked our product? Care to review? It will just take a few seconds.</p>${reviewLinks.join('')}</div>` : ''}
           </div>`;
         }).join('');
       } catch {

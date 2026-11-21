@@ -89,6 +89,7 @@
         <p class="product-page-meta">{{ [product.color, product.category]|select|join(" · ") }}</p>
         <p class="product-popup-price" id="product-popup-price">{% if product.discounted_price < product.price %}<del>₹ {{ "{:,.0f}".format(product.price) }}</del><strong>₹ {{ "{:,.0f}".format(product.discounted_price) }}</strong>{% else %}<strong>₹ {{ "{:,.0f}".format(product.price) }}</strong>{% endif %}</p>
         <p class="product-popup-desc" id="product-popup-desc">{{ description }}</p>
+        <section class="product-reviews-section" id="product-reviews" aria-label="Customer ratings"></section>
          <div class="product-popup-sizes" id="product-popup-sizes"></div>
         <div class="product-popup-quantity">
           <span>Quantity</span>

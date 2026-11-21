@@ -103,6 +103,19 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS product_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            product_name TEXT NOT NULL,
+            product_color TEXT NOT NULL DEFAULT '',
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            review_text TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, product_name, product_color),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS subscribers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL UNIQUE,
@@ -244,6 +257,33 @@ def init_db():
     conn.execute(
         "UPDATE products SET discounted_price = ROUND(selling_price * 0.9, 2) "
         "WHERE discounted_price IS NULL OR discounted_price <= 0"
+    )
+
+    # Correct the catalog typo in every database on the next application start.
+    conn.execute(
+        "UPDATE products SET name = 'Kungumam', "
+        "image_url = '/static/storefront/assets/Chudidar/Kungumam1.webp' "
+        "WHERE lower(name) = 'regal bloom'"
+    )
+    conn.execute(
+        "UPDATE products SET cost_price = 1233, selling_price = 1850, discounted_price = 1499 "
+        "WHERE lower(name) = 'kungumam'"
+    )
+    conn.execute("UPDATE sales SET product_name = 'Kungumam' WHERE lower(product_name) = 'regal bloom'")
+    conn.execute("UPDATE orders SET items = replace(items, 'Regal Bloom', 'Kungumam') WHERE items LIKE '%Regal Bloom%'")
+    conn.execute(
+        "DELETE FROM user_wishlists WHERE lower(product_name) = 'regal bloom' "
+        "AND user_id IN (SELECT user_id FROM user_wishlists WHERE lower(product_name) = 'kungumam')"
+    )
+    conn.execute(
+        "UPDATE user_wishlists SET product_name = 'Kungumam', price = 1499, "
+        "image_url = '/static/storefront/assets/Chudidar/Kungumam1.webp' "
+        "WHERE lower(product_name) = 'regal bloom'"
+    )
+    conn.execute(
+        "UPDATE user_wishlists SET price = 1499, "
+        "image_url = '/static/storefront/assets/Chudidar/Kungumam1.webp' "
+        "WHERE lower(product_name) = 'kungumam'"
     )
 
     storefront_products = [

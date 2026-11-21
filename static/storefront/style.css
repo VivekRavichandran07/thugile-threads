@@ -393,7 +393,10 @@ main img:hover{transform:scale(1.04)}
 .buy button.size-guide-btn{background:#fff;color:#670e10;box-shadow:inset 0 0 0 1px #670e10}
 .buy button.size-guide-btn:hover{background:#f8eeee}
 .saved-address-card:focus-visible{outline:3px solid #670e10;outline-offset:3px}.buy button[data-item]:focus-visible{outline:3px solid #800020;outline-offset:3px}
-.saved-address-card{padding:18px;background:#fff;color:#30271f;border:1px solid #c9beb0;border-radius:12px;text-align:left;cursor:pointer;font:inherit;transition:background .2s ease,border-color .2s ease;overflow-wrap:anywhere}
+.saved-address-card{position:relative;padding:18px 48px 18px 18px;background:#fff;color:#30271f;border:1px solid #c9beb0;border-radius:12px;text-align:left;cursor:pointer;font:inherit;transition:background .2s ease,border-color .2s ease;overflow-wrap:anywhere}
+.address-select-indicator{position:absolute;top:16px;right:16px;width:20px;height:20px;border:1px solid #9a8d7e;border-radius:4px;background:#fff;box-sizing:border-box}
+.saved-address-card.selected .address-select-indicator{background:#725035;border-color:#725035}
+.saved-address-card.selected .address-select-indicator::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .saved-address-card p{margin:6px 0 0;font-size:14px;line-height:1.6;color:#625649}
 .saved-address-card:hover{background:#faf5ec;border-color:#947957}
 .saved-address-card.selected{background:#f4eadb;border-color:#725035;box-shadow:inset 0 0 0 1px #725035}
@@ -1060,6 +1063,25 @@ em,i,cite,.first-order-offer h2 em{font-style:normal}
 .testimonial-author{margin:0;padding-top:14px;border-top:1px solid var(--line);font:600 11px var(--google-sans);letter-spacing:.06em;text-transform:uppercase;color:#75695d}
 .testimonial-placeholder-label{align-self:flex-start;margin:0 0 10px;padding:5px 9px;border-radius:999px;background:#f4eee6;color:#75695d;font:600 9px var(--google-sans);letter-spacing:.08em;text-transform:uppercase}
 .testimonial-placeholder .testimonial-text{color:#75695d}
+.product-reviews-section{margin:24px 0;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.product-reviews-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.product-reviews-heading h2{margin:0;font-size:18px}
+.product-reviews-heading p{margin:0;color:#55483d;font-size:13px}
+.customer-review-stars{color:#a66b21;letter-spacing:.08em;white-space:nowrap}
+.product-review-form{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:16px 0}
+.product-review-form label{font-size:12px;color:#55483d}
+.product-review-form select,.product-review-form textarea{grid-column:1/-1;width:100%;padding:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;box-sizing:border-box}
+.product-review-form button{grid-column:1/-1;justify-self:start;padding:10px 16px;background:var(--ink);border:0;color:#fff;font:500 11px var(--google-sans);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.product-review-form button:disabled{opacity:.55;cursor:wait}
+.review-form-message,.review-eligibility-note,.reviews-loading,.reviews-empty{grid-column:1/-1;margin:4px 0;color:#716458;font-size:13px;line-height:1.5}
+.review-invitation{grid-column:1/-1;margin:4px 0 8px;color:#51463e;font-size:14px;line-height:1.5}
+.customer-reviews-list{display:grid;gap:12px;margin-top:14px;max-height:300px;overflow:auto}
+.customer-review{padding:12px;background:#faf8f5;border-radius:8px}
+.customer-review p{margin:5px 0;color:#51463e;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.customer-review small{color:#75695d;font-size:11px}
+.order-review-invitation{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.order-review-invitation p{flex-basis:100%;margin:0;color:#625649;font-size:13px;line-height:1.5}
+.order-review-invitation a{color:var(--terracotta);font:600 11px var(--google-sans);letter-spacing:.04em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px}
 .testimonial-carousel-button{display:grid;width:44px;height:44px;place-items:center;border:1px solid var(--line);border-radius:50%;background:#fff;color:var(--ink);cursor:pointer;transition:background .2s ease,color .2s ease,opacity .2s ease,transform .2s ease}
 .testimonial-carousel-button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .testimonial-carousel-button:hover:not(:disabled){transform:scale(1.06);background:var(--ink);color:#fff}

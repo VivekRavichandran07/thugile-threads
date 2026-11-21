@@ -583,7 +583,7 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
-    original_gallery = {"twilightlilac": "TwilightLilac", "sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "pistaaura": "PistaAura", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm", "regalbloom": "RegalBloom", "karmughil": "Karmughil"}.get(
+    original_gallery = {"twilightlilac": "TwilightLilac", "sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "pistaaura": "PistaAura", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm", "kungumam": "Kungumam", "karmughil": "Karmughil"}.get(
         re.sub(r"[^a-z0-9]", "", (name or "").lower())
     )
     if original_gallery:
@@ -812,6 +812,120 @@ def storefront_products():
     response = jsonify({"products": store_catalog()})
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@app.route("/api/store/products/<slug>/reviews", methods=["GET", "POST"])
+def storefront_product_reviews(slug):
+    product = next((item for item in store_catalog() if item["slug"] == slug), None)
+    if not product:
+        return jsonify({"error": "Product not found."}), 404
+
+    conn = get_connection()
+    try:
+        variants = conn.execute(
+            "SELECT id FROM products WHERE name = ? AND COALESCE(color, '') = ? AND is_archived = 0",
+            (product["name"], product["color"] or ""),
+        ).fetchall()
+        product_ids = {row["id"] for row in variants}
+        product_key = (product["name"], product["color"] or "")
+
+        if request.method == "POST":
+            user_id = session.get("user_id")
+            if not user_id:
+                return jsonify({"error": "Please log in to review a product."}), 401
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                return jsonify({"error": "Invalid review."}), 400
+            rating = data.get("rating")
+            if isinstance(rating, bool) or not isinstance(rating, int) or not 1 <= rating <= 5:
+                return jsonify({"error": "Choose a rating from 1 to 5 stars."}), 400
+            raw_review_text = data.get("review", "")
+            if not isinstance(raw_review_text, str):
+                return jsonify({"error": "Review text must be plain text."}), 400
+            review_text = raw_review_text.strip()
+            if len(review_text) > 800:
+                return jsonify({"error": "Reviews must be 800 characters or fewer."}), 400
+
+            completed_orders = conn.execute(
+                "SELECT items FROM orders WHERE user_id = ? AND payment_state = 'COMPLETED'",
+                (user_id,),
+            ).fetchall()
+            purchased = False
+            for order in completed_orders:
+                try:
+                    items = json.loads(order["items"] or "[]")
+                except (TypeError, ValueError):
+                    continue
+                if isinstance(items, list) and any(
+                    isinstance(item, dict)
+                    and isinstance(item.get("product_id"), int)
+                    and item.get("product_id") in product_ids
+                    for item in items
+                ):
+                    purchased = True
+                    break
+            if not purchased:
+                return jsonify({"error": "Only customers with a successfully paid order for this product can review it."}), 403
+
+            now = now_iso()
+            conn.execute(
+                """INSERT INTO product_reviews
+                    (user_id, product_name, product_color, rating, review_text, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, product_name, product_color) DO UPDATE SET
+                        rating = excluded.rating, review_text = excluded.review_text, updated_at = excluded.updated_at""",
+                (user_id, product_key[0], product_key[1], rating, review_text, now, now),
+            )
+            conn.commit()
+
+        rows = conn.execute(
+            """SELECT r.rating, r.review_text, r.created_at, u.name AS customer_name
+               FROM product_reviews r JOIN users u ON u.id = r.user_id
+               WHERE r.product_name = ? AND r.product_color = ?
+               ORDER BY r.created_at DESC LIMIT 100""",
+            product_key,
+        ).fetchall()
+        can_review = False
+        my_review = None
+        user_id = session.get("user_id")
+        if user_id:
+            existing = conn.execute(
+                "SELECT rating, review_text FROM product_reviews WHERE user_id = ? AND product_name = ? AND product_color = ?",
+                (user_id, *product_key),
+            ).fetchone()
+            my_review = dict(existing) if existing else None
+            if not my_review:
+                orders = conn.execute(
+                    "SELECT items FROM orders WHERE user_id = ? AND payment_state = 'COMPLETED'",
+                    (user_id,),
+                ).fetchall()
+                for order in orders:
+                    try:
+                        items = json.loads(order["items"] or "[]")
+                    except (TypeError, ValueError):
+                        continue
+                    if isinstance(items, list) and any(
+                        isinstance(item, dict)
+                        and isinstance(item.get("product_id"), int)
+                        and item.get("product_id") in product_ids for item in items
+                    ):
+                        can_review = True
+                        break
+
+        review_list = [dict(row) for row in rows]
+        average = round(sum(row["rating"] for row in review_list) / len(review_list), 1) if review_list else 0
+        response = jsonify({
+            "average": average,
+            "count": len(review_list),
+            "reviews": review_list,
+            "can_review": can_review,
+            "my_review": my_review,
+            "logged_in": bool(user_id),
+        })
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    finally:
+        conn.close()
 
 
 # Hand-written copy per product (keyed by lower-case name). Products added later

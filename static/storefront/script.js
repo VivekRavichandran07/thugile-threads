@@ -195,13 +195,13 @@ const imageFor = (url, index, name) => {
     'Thalir': '/static/storefront/assets/Chudidar/Thalir1.webp',
     'Royal Teal': '/static/storefront/assets/Chudidar/RoyalTeal1.webp',
     'Citrus Charm': '/static/storefront/assets/Chudidar/CitrusCharm1.webp',
-    'Regal Bloom': '/static/storefront/assets/Chudidar/RegalBloom1.webp',
+    'Kungumam': '/static/storefront/assets/Chudidar/Kungumam1.webp',
     'Karmughil': '/static/storefront/assets/Chudidar/Karmughil1.webp'
   };
   return imageMap[name] || (url && /^(?:https?:\/\/|\/)/i.test(url) ? url : fallbackImages[index % fallbackImages.length]);
 };
 const productImageVariants = image => {
-  if (/\/(?:SundownOlive|IndigoArrows|PistaAura|PistaRoyale|OrchidMist|PurplePeacock|Thalir|RoyalTeal|CitrusCharm|RegalBloom|Karmughil|TwilightLilac)[1-5]\.webp$/i.test(String(image))) {
+  if (/\/(?:SundownOlive|IndigoArrows|PistaAura|PistaRoyale|OrchidMist|PurplePeacock|Thalir|RoyalTeal|CitrusCharm|Kungumam|Karmughil|TwilightLilac)[1-5]\.webp$/i.test(String(image))) {
     const base = String(image).replace(/[1-5]\.webp$/i, '');
     return [1, 2, 3, 4, 5].map(number => `${base}${number}.webp`);
   }
@@ -526,6 +526,75 @@ function openProductZoom(image) {
   });
 });
 
+async function loadProductReviews(product) {
+  const section = document.getElementById('product-reviews');
+  if (!section || !product?.slug) return;
+  const slug = product.slug;
+  section.innerHTML = '<p class="reviews-loading">Loading customer ratings…</p>';
+  try {
+    const response = await fetch(`/api/store/products/${encodeURIComponent(slug)}/reviews`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Ratings could not be loaded.');
+    if (currentProduct?.slug !== slug) return;
+    const stars = value => '★'.repeat(Number(value) || 0) + '☆'.repeat(5 - (Number(value) || 0));
+    const reviewCards = (data.reviews || []).map(review => `
+      <article class="customer-review">
+        <div class="customer-review-stars" aria-label="${escapeHtml(review.rating)} out of 5 stars">${stars(review.rating)}</div>
+        ${review.review_text ? `<p>${escapeHtml(review.review_text)}</p>` : ''}
+        <small>${escapeHtml(review.customer_name)} · ${new Date(review.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</small>
+      </article>`).join('');
+    let form = '';
+    if (data.logged_in && (data.can_review || data.my_review)) {
+      form = `<form class="product-review-form" id="product-review-form">
+        <p class="review-invitation">Liked our product? Care to review? It will just take a few seconds.</p>
+        <label for="review-rating">Your rating</label>
+        <select id="review-rating" name="rating" required>
+          <option value="">Choose stars</option>
+          ${[5, 4, 3, 2, 1].map(value => `<option value="${value}" ${Number(data.my_review?.rating) === value ? 'selected' : ''}>${value} star${value === 1 ? '' : 's'}</option>`).join('')}
+        </select>
+        <label for="review-text">Review (optional)</label>
+        <textarea id="review-text" name="review" maxlength="800" rows="3" placeholder="Share a few words about your purchase">${escapeHtml(data.my_review?.review_text || '')}</textarea>
+        <button type="submit">${data.my_review ? 'Update your rating' : 'Submit rating'}</button>
+        <p class="review-form-message" aria-live="polite"></p>
+      </form>`;
+    }
+    const summary = data.count
+      ? `<div class="product-reviews-heading"><h2>Customer ratings</h2><p><strong>${data.average} / 5</strong> <span class="customer-review-stars" aria-hidden="true">${stars(Math.round(data.average))}</span> <small>(${data.count})</small></p></div>`
+      : '';
+    section.innerHTML = `${summary}${form}${reviewCards ? `<div class="customer-reviews-list">${reviewCards}</div>` : ''}`;
+    if (!section.dataset.bound) {
+      section.addEventListener('submit', async event => {
+        if (event.target.id !== 'product-review-form') return;
+        event.preventDefault();
+        const formElement = event.target;
+        const message = formElement.querySelector('.review-form-message');
+        const submitButton = formElement.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        message.textContent = 'Submitting…';
+        try {
+          const result = await fetch(`/api/store/products/${encodeURIComponent(currentProduct.slug)}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              rating: Number(formElement.elements.rating.value),
+              review: formElement.elements.review.value,
+            }),
+          });
+          const resultData = await result.json();
+          if (!result.ok) throw new Error(resultData.error || 'Your rating could not be submitted.');
+          await loadProductReviews(currentProduct);
+        } catch (error) {
+          message.textContent = error.message;
+          submitButton.disabled = false;
+        }
+      });
+      section.dataset.bound = 'true';
+    }
+  } catch (error) {
+    if (currentProduct?.slug === slug) section.innerHTML = '<p class="reviews-empty">Customer ratings are temporarily unavailable.</p>';
+  }
+}
+
 function openProductPopup(product, recordView = true) {
   currentProduct = product;
   if (recordView) trackProductView(product.name);
@@ -542,6 +611,7 @@ function openProductPopup(product, recordView = true) {
   }
   productPrice.innerHTML = `${priceMarkup(product.price, product.discounted_price)}${Number(product.discounted_price) < Number(product.price) ? '<span class="discount-label">Discounted</span>' : ''}`;
   productDesc.textContent = product.details || `${product.name} – a ${product.color ? String(product.color).toLowerCase() + ' ' : ''}kurta set from Thugile & Threads, tailored with care.`;
+  loadProductReviews(product);
 
   const availableSizes = product.available_sizes || [];
   const sizes = [...new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', ...availableSizes, ...(product.sold_out_sizes || [])].map(normalizeCatalogSize))];
@@ -618,6 +688,10 @@ function openProductPopup(product, recordView = true) {
   productOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+document.addEventListener('account-updated', () => {
+  if (currentProduct) loadProductReviews(currentProduct);
+});
 
 const productQuantity = document.getElementById('product-quantity');
 const productQuantityDecrease = document.getElementById('product-quantity-decrease');

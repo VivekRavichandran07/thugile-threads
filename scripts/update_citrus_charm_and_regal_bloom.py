@@ -1,4 +1,4 @@
-"""Apply the workbook prices and covers for Citrus Charm and Regal Bloom."""
+"""Apply the workbook prices and covers for Citrus Charm and Kungumam."""
 
 from pathlib import Path
 import sys
@@ -13,7 +13,7 @@ VARIANTS = (
     ("Citrus Charm", "TTRSORM00047", "M", "Orange", "CitrusCharm", 1271, 1900, 1499),
     ("Citrus Charm", "TTRSORL00048", "L", "Orange", "CitrusCharm", 1271, 1900, 1499),
     ("Citrus Charm", "TTRSORXL00049", "XL", "Orange", "CitrusCharm", 1271, 1900, 1499),
-    ("Regal Bloom", "TTSCREM00006", "M", "Red", "RegalBloom", 1400, 2100, 1680),
+    ("Kungumam", "TTSCREM00006", "M", "Red", "Kungumam", 1233, 1850, 1499),
 )
 
 
@@ -33,8 +33,8 @@ def main():
                 if existing and (existing["name"].casefold(), existing["size"]) != (name.casefold(), size):
                     raise ValueError(f"SKU {sku} already belongs to {existing['name']} ({existing['size']})")
                 if conn.execute(
-                    "SELECT 1 FROM products WHERE name = ? COLLATE NOCASE AND size = ? AND sku != ?",
-                    (name, size, sku),
+                    "SELECT 1 FROM products WHERE name = ? COLLATE NOCASE AND size = ? AND color = ? AND sku != ?",
+                    (name, size, color, sku),
                 ).fetchone():
                     raise ValueError(f"{name} ({size}) already exists under a different SKU")
 
