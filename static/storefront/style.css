@@ -1040,6 +1040,7 @@ em,i,cite,.first-order-offer h2 em{font-style:normal}
 .site-header .header-actions .whatsapp-order-link svg{width:17px;height:17px;flex:0 0 17px}
 .site-header .header-actions .whatsapp-order-link:hover{background:#128c4a;color:#fff;opacity:1;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,211,102,.28)}
 .site-header .header-actions .whatsapp-order-link:focus-visible{outline:3px solid #128c4a;outline-offset:3px}
+.seasonal-announcement-banner{display:block;width:min(1600px,96vw);aspect-ratio:1680/900;margin:30px auto 18px;border-radius:16px;background:#5d1d24 url('/static/storefront/assets/ChristmasCelebration.webp') center/100% 100% no-repeat;box-shadow:0 14px 36px rgba(34,24,20,.12);transition:filter .2s ease,transform .2s ease}
 .seasonal-announcement-banner{display:block;width:min(1600px,96vw);aspect-ratio:1680/900;margin:30px auto 18px;border-radius:16px;background:#5d1d24 url('/static/storefront/assets/ChristmasCelebration.webp') center/100% 100% no-repeat;transition:filter .2s ease,transform .2s ease}
 .seasonal-announcement-banner:hover{filter:brightness(1.04);transform:translateY(-2px)}
 .seasonal-announcement-banner:focus-visible{outline:3px solid var(--terracotta);outline-offset:4px}
