@@ -58,6 +58,15 @@ if (document.querySelector('.site-header')) {
     orderLink.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 11.8a8.1 8.1 0 0 1-12 7.1L4 20l1.1-4a8.1 8.1 0 1 1 15.1-4.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8.5c.2-.4.4-.4.7-.4h.4c.2 0 .3.1.4.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.2.2-.2.3 0 .6.5.8 1.1 1.4 1.9 1.8.3.2.4.2.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.5.7c.2.1.3.2.3.4 0 .3-.2 1.1-.7 1.5-.4.4-1 .6-1.6.5-1-.2-2.2-.7-3.4-1.8-1-.9-1.7-2.1-1.9-3.1-.2-.7 0-1.4.4-1.9Z" fill="currentColor"/></svg><span>WhatsApp Orders</span>';
     searchButton.before(orderLink);
   }
+  const wishlistButton = headerActions?.querySelector('.wishlist-btn-header');
+  const wishlistIcon = wishlistButton?.querySelector('svg');
+  headerActions?.querySelectorAll('#wishlist-count, #bag-count').forEach(badge => badge.classList.add('header-count-badge'));
+  if (wishlistButton && wishlistIcon && !wishlistButton.querySelector('.wishlist-icon-wrap')) {
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'wishlist-icon-wrap';
+    wishlistIcon.replaceWith(iconWrap);
+    iconWrap.appendChild(wishlistIcon);
+  }
   const socialLinks = [
     {
       label: 'Instagram',
