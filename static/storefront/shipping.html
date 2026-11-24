@@ -121,7 +121,8 @@
           <input type="text" id="shipping-pincode" placeholder="Pincode" required style="width:100%;padding:12px;border:1px solid var(--line);font:400 14px var(--sans);box-sizing:border-box;">
         </div>
         <button type="button" id="save-address-btn" onclick="saveAddress()" style="width:100%;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--google-sans);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Add to address</button>
-        <p id="shipping-error" style="margin:0;font-size:13px;color:#c0392b;min-height:18px;"></p>
+        <p id="shipping-error" role="alert" style="margin:0;font-size:13px;color:#c0392b;min-height:18px;"></p>
+        <button type="button" id="delete-address-btn" class="address-delete-btn" hidden>Delete address</button>
         <button type="button" id="cancel-form-btn" onclick="hideAddForm()" style="width:100%;padding:10px;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:500 11px var(--google-sans);letter-spacing:.06em;text-transform:uppercase;">Cancel</button>
       </form>
       
@@ -266,6 +267,38 @@
   const shippingError = document.getElementById('shipping-error');
   const addressSelectionError = document.getElementById('address-selection-error');
   let selectedAddressId = null;
+  let editingAddressId = null;
+  let savedAddresses = [];
+  const saveButton = document.getElementById('save-address-btn');
+  const deleteButton = document.getElementById('delete-address-btn');
+  const cancelButton = document.getElementById('cancel-form-btn');
+
+  function setAddressBusy(busy) {
+    saveButton.disabled = deleteButton.disabled = cancelButton.disabled = busy;
+  }
+
+  function showAddressForm(address = null) {
+    if (saveButton.disabled) return;
+    editingAddressId = address?.id ?? null;
+    shippingError.textContent = '';
+    addressSelectionError.textContent = '';
+    shippingForm.reset();
+    for (const field of ['name', 'email', 'phone', 'address', 'address_line_2', 'city', 'pincode']) {
+      document.getElementById('shipping-' + field.replaceAll('_', '-')).value = address?.[field] ?? '';
+    }
+    saveButton.textContent = address ? 'Save changes' : 'Add to address';
+    deleteButton.hidden = !address;
+    shippingForm.style.display = 'flex';
+    addAddressWrapper.style.display = 'none';
+    document.getElementById('shipping-name').focus();
+  }
+
+  addressesList.addEventListener('click', event => {
+    const button = event.target.closest('[data-edit-address]');
+    if (!button) return;
+    const address = savedAddresses.find(item => String(item.id) === button.dataset.editAddress);
+    if (address) showAddressForm(address);
+  });
 
   shippingForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -274,18 +307,16 @@
 
   // Make these global so onclick works
   window.showAddForm = function() {
-    addressSelectionError.textContent = '';
-    if (shippingForm) {
-      shippingForm.style.display = 'flex';
-      shippingForm.querySelectorAll('input, textarea').forEach(i => i.value = '');
-    }
-    if (addAddressWrapper) addAddressWrapper.style.display = 'none';
+    showAddressForm();
   }
 
   window.hideAddForm = function() {
+    const editedId = editingAddressId;
+    editingAddressId = null;
     if (shippingForm) shippingForm.style.display = 'none';
     if (addAddressWrapper) addAddressWrapper.style.display = 'block';
     if (shippingError) shippingError.textContent = '';
+    if (editedId !== null) addressesList.querySelector(`[data-edit-address="${editedId}"]`)?.focus();
   }
 
   // Add event listener for add address button
@@ -311,13 +342,19 @@
       const res = await fetch('/api/user/addresses');
       const data = await res.json();
       if (!res.ok) throw new Error('Could not load addresses');
-      if (data.addresses && data.addresses.length) {
-        addressesList.innerHTML = data.addresses.map(addr => `
+      savedAddresses = data.addresses || [];
+      if (savedAddresses.length) {
+        addressesList.innerHTML = savedAddresses.map(addr => `
+          <div class="saved-address-block">
           <button type="button" class="saved-address-card" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})" aria-pressed="false">
             <span class="address-select-indicator" aria-hidden="true"></span>
             <strong>${escapeHtml(addr.name)}</strong>
             <p>${escapeHtml(addr.email)}<br>${escapeHtml(addr.phone)}<br>${escapeHtml(addr.address)}${addr.address_line_2 ? '<br>' + escapeHtml(addr.address_line_2) : ''}<br>${escapeHtml(addr.city)} - ${escapeHtml(addr.pincode)}</p>
           </button>
+          <button type="button" class="saved-address-edit" data-edit-address="${addr.id}" aria-label="Edit address for ${escapeHtml(addr.name)}" title="Edit address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l1-5L16 4a2 2 0 0 1 3 0l1 1a2 2 0 0 1 0 3L9 19l-5 1Z"/></svg>
+          </button>
+          </div>
         `).join('');
         addressesList.insertAdjacentHTML('afterend', '<button type="button" id="continue-to-payment-btn" aria-describedby="address-selection-error" onclick="continueToPayment()" style="width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:0;font:500 12px var(--google-sans);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Proceed to pay</button>');
       } else {
@@ -334,6 +371,12 @@
           card.setAttribute('aria-pressed', String(selected));
         });
       };
+      const previousSelection = sessionStorage.getItem('selected_address_id');
+      if (savedAddresses.some(address => String(address.id) === previousSelection)) {
+        selectAddress(previousSelection);
+      } else {
+        sessionStorage.removeItem('selected_address_id');
+      }
 
       window.continueToPayment = function() {
         if (!selectedAddressId) {
@@ -348,7 +391,6 @@
   }
 
   window.saveAddress = async function() {
-    const saveButton = document.getElementById('save-address-btn');
     if (saveButton.disabled) return;
     shippingError.textContent = '';
     const nameInput = document.getElementById('shipping-name');
@@ -378,11 +420,12 @@
 
     if (!shippingForm.reportValidity()) return;
     const shippingData = { name, email, phone, address, address_line_2, city, pincode };
-    saveButton.disabled = true;
+    const addressId = editingAddressId;
+    setAddressBusy(true);
     saveButton.textContent = 'Saving...';
     try {
-      const res = await fetch('/api/user/addresses', {
-        method: 'POST',
+      const res = await fetch(addressId === null ? '/api/user/addresses' : `/api/user/addresses/${addressId}`, {
+        method: addressId === null ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(shippingData),
       });
@@ -392,19 +435,39 @@
         return;
       }
       sessionStorage.removeItem('shipping_form_data');
-      sessionStorage.removeItem('selected_address_id');
+      if (addressId === null) sessionStorage.removeItem('selected_address_id');
       await loadAddresses();
-      toast.textContent = 'Address added. Choose an address to proceed to pay.';
+      toast.textContent = addressId === null ? 'Address added. Choose an address to proceed to pay.' : 'Address updated.';
       toast.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
     } catch (e) {
       shippingError.textContent = 'Network error. Please try again.';
     } finally {
-      saveButton.disabled = false;
-      saveButton.textContent = 'Add to address';
+      setAddressBusy(false);
+      saveButton.textContent = editingAddressId === null ? 'Add to address' : 'Save changes';
     }
   };
+
+  deleteButton.addEventListener('click', async () => {
+    const addressId = editingAddressId;
+    if (addressId === null || deleteButton.disabled || !window.confirm('Delete this saved address?')) return;
+    setAddressBusy(true);
+    shippingError.textContent = '';
+    try {
+      const response = await fetch(`/api/user/addresses/${addressId}`, {method: 'DELETE'});
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Could not delete the address.');
+      }
+      await loadAddresses();
+      document.getElementById('add-address-btn').focus();
+    } catch (error) {
+      shippingError.textContent = error.message;
+    } finally {
+      setAddressBusy(false);
+    }
+  });
 
     async function loadOrdersPage() {
       const list = document.getElementById('orders-list');

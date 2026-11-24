@@ -1234,21 +1234,34 @@ def user_addresses_get():
 
 
 @app.route("/api/user/addresses", methods=["POST"])
-def user_addresses_add():
+@app.route("/api/user/addresses/<int:address_id>", methods=["PATCH"])
+def user_addresses_add(address_id=None):
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
-    data = request.get_json() or {}
-    name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip()
-    phone = (data.get("phone") or "").strip()
-    address = (data.get("address") or "").strip()
-    address_line_2 = (data.get("address_line_2") or "").strip()
-    city = (data.get("city") or "").strip()
-    pincode = (data.get("pincode") or "").strip()
+    data = request.get_json(silent=True)
+    fields = ("name", "email", "phone", "address", "address_line_2", "city", "pincode")
+    if not isinstance(data, dict) or any(not isinstance(data.get(field, ""), str) for field in fields):
+        return jsonify({"error": "Invalid address details."}), 400
+    name, email, phone, address, address_line_2, city, pincode = (
+        data.get(field, "").strip() for field in fields
+    )
     if not name or not email or not phone or not address or not city or not pincode:
         return jsonify({"error": "All required address fields are required."}), 400
     conn = get_connection()
     try:
+        if address_id is not None:
+            if not re.fullmatch(r"[1-9][0-9]{5}", pincode):
+                return jsonify({"error": "Enter a valid six-digit shipping PIN code."}), 400
+            updated = conn.execute(
+                """UPDATE user_addresses
+                   SET name = ?, email = ?, phone = ?, address = ?, address_line_2 = ?, city = ?, pincode = ?
+                   WHERE id = ? AND user_id = ?""",
+                (name, email, phone, address, address_line_2, city, pincode, address_id, session["user_id"]),
+            )
+            if not updated.rowcount:
+                return jsonify({"error": "Address not found"}), 404
+            conn.commit()
+            return jsonify({"ok": True})
         if data.get("is_default"):
             conn.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?", (session["user_id"],))
         conn.execute(
