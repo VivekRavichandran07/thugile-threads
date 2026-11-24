@@ -72,14 +72,14 @@
   </aside>
 
   <main class="collections-page">
-    <div class="collections-hero" id="top">
+    <div class="collections-hero" id="top"{% if office_wear %} hidden{% endif %}>
       <p class="eyebrow">Browse by edit</p>
       <h1>Collections</h1>
       <p>Choose the mood, find your fit.</p>
     </div>
-    <div class="collections-grid" id="collections-grid">
+    <div class="collections-grid" id="collections-grid"{% if office_wear %} style="display:none"{% endif %}>
       <div class="collection-card" data-category="Festive Wear"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.webp" data-hover-images="/static/storefront/assets/Chudidar/ThaaiSilkSet.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet-1.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet-1.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet.webp" alt="Festive Wear" loading="lazy"><div><h3>Festive Wear</h3><p>Occasion-ready silhouettes</p></div><span class="card-arrow">↗</span></div>
-      <div class="collection-card" data-category="Office Wear"><img src="/static/storefront/assets/Chudidar/Kotaset1.webp" data-hover-images="/static/storefront/assets/Chudidar/Kotaset1.webp,/static/storefront/assets/Chudidar/Kotaset1-1.webp,/static/storefront/assets/Chudidar/Kotaset1-2.webp,/static/storefront/assets/Chudidar/Kotaset1-3.webp,/static/storefront/assets/Chudidar/Kotaset1-4.webp" alt="Office Wear" loading="lazy"><div><h3>Office Wear</h3><p>Polished everyday sets</p></div><span class="card-arrow">↗</span></div>
+      <a class="collection-card" href="/shop/collections?category=Office%20Wear" data-category="Office Wear"><img src="/static/storefront/assets/Chudidar/RoseWine1.webp" data-hover-images="/static/storefront/assets/Chudidar/RoseWine1.webp,/static/storefront/assets/Chudidar/RoseWine2.webp,/static/storefront/assets/Chudidar/RoseWine3.webp,/static/storefront/assets/Chudidar/RoseWine4.webp,/static/storefront/assets/Chudidar/RoseWine5.webp" alt="Office Wear" loading="lazy"><div><h3>Office Wear</h3><p>Polished everyday sets</p></div><span class="card-arrow">↗</span></a>
       <div class="collection-card" data-category="Coord Set"><img src="/static/storefront/assets/Chudidar/SageGreenHeritageElegance.webp" data-hover-images="/static/storefront/assets/Chudidar/SageGreenHeritageElegance.webp" alt="Coord Sets" loading="lazy"><div><h3>Coord Sets</h3><p>Effortlessly matched</p></div><span class="card-arrow">↗</span></div>
       <div class="collection-card" data-category="Casual Kurtas"><img src="/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp" data-hover-images="/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp,/static/storefront/assets/Chudidar/SageKurtaVerandaPortrait.webp,/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp,/static/storefront/assets/Chudidar/SageKurtaVerandaPortrait.webp,/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp" alt="Casual Kurtas" loading="lazy"><div><h3>Casual Kurtas</h3><p>Relaxed, everyday ease</p></div><span class="card-arrow">↗</span></div>
       <div class="collection-card" data-category="Ethnic Wear"><img src="/static/storefront/assets/Chudidar/PurplePeacock1.webp" data-hover-images="/static/storefront/assets/Chudidar/PurplePeacock1.webp,/static/storefront/assets/Chudidar/PurplePeacock2.webp,/static/storefront/assets/Chudidar/PurplePeacock3.webp,/static/storefront/assets/Chudidar/PurplePeacock4.webp,/static/storefront/assets/Chudidar/PurplePeacock5.webp" alt="Ethnic Wear" loading="lazy"><div><h3>Ethnic Wear</h3><p>Traditional pieces for every occasion</p></div><span class="card-arrow">↗</span></div>
@@ -88,15 +88,33 @@
       <div class="collection-card" data-category="Embroidered"><img src="/static/storefront/assets/Chudidar/embroidery_hoop_ultra_hd_4096.webp" alt="Embroidered collection" loading="lazy"><div><h3>Embroidered</h3><p>Hand-finished details</p></div><span class="card-arrow">↗</span></div>
       <div class="collection-card" data-category="Block Print"><img src="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp" data-hover-images="/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp,/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta-1.webp,/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp,/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta-1.webp,/static/storefront/assets/Chudidar/SanganeriBlockPrintKurta.webp" alt="Block Print collection" loading="lazy"><div><h3>Block Print</h3><p>Artisan crafted</p></div><span class="card-arrow">↗</span></div>
     </div>
-    <div id="filtered-products" style="display:none; margin:48px auto 64px; max-width:800px;">
+    <div id="filtered-products" style="{% if not office_wear %}display:none; {% endif %}margin:48px auto 64px; max-width:800px;">
       <div class="section-header" style="border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:48px;">
         <div>
           <p class="eyebrow">Filtered</p>
-          <h2 id="filtered-title">Collection</h2>
+          <h2 id="filtered-title">{{ 'Office Wear' if office_wear else 'Collection' }}</h2>
         </div>
-        <a class="shop-all" href="#" id="back-to-all">Back to all</a>
+        <a class="shop-all" href="{{ url_for('collections') if office_wear else '#' }}" id="back-to-all">Back to all</a>
       </div>
-      <div class="products" id="filtered-products-grid"></div>
+      {% if office_wear %}
+      <img src="{{ url_for('static', filename='storefront/assets/Chudidar/RoseWine1.webp') }}" alt="Kota Checks Office Wear" style="display:block;width:min(100%,220px);height:auto;margin-bottom:24px;">
+      {% endif %}
+      <div class="products" id="filtered-products-grid">
+        {% if office_wear %}
+          {% for product in office_products %}
+          <article class="product">
+            <a class="product-image" href="{{ product.url }}"><img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy"></a>
+            <div class="product-info">
+              <h3><a class="product-link" href="{{ product.url }}">{{ product.name }}</a></h3>
+              <strong>₹{{ "{:,.0f}".format(product.discounted_price) }}</strong>
+              {% if not product.in_stock %}<span>Sold out</span>{% endif %}
+            </div>
+          </article>
+          {% else %}
+          <div class="collection-empty-state"><p>No Kota Checks products are available right now.</p></div>
+          {% endfor %}
+        {% endif %}
+      </div>
     </div>
   </main>
 
@@ -304,7 +322,9 @@
     const backToAll = document.getElementById('back-to-all');
     const collectionsHero = document.querySelector('.collections-hero');
     const allProducts = [];
-    let activeCollection = null;
+    let activeCollection = new URLSearchParams(window.location.search).get('category')?.trim() || null;
+    const officeWearPage = {{ office_wear | tojson }};
+    const collectionCatalogUrl = officeWearPage ? '/api/store/products?collection=Office%20Wear' : '/api/store/products';
 
     function restoreCollectionsGrid() {
       filteredProducts.before(collectionsGrid);
@@ -314,7 +334,7 @@
 
     async function loadAllProducts() {
       try {
-        const response = await fetch('/api/store/products');
+        const response = await fetch(collectionCatalogUrl);
         if (!response.ok) throw new Error('Catalog unavailable');
         const { products } = await response.json();
         allProducts.push(...products);
@@ -322,8 +342,7 @@
           if (hasCatalogFilters() || activeCollection) showFilteredProducts(activeCollection || 'All collections');
           else { filteredProducts.style.display = 'none'; restoreCollectionsGrid(); collectionsHero.hidden = false; }
         }, [filteredProducts]);
-        const requestedCategory = new URLSearchParams(window.location.search).get('category');
-        if (requestedCategory) showFilteredProducts(requestedCategory);
+        if (activeCollection) showFilteredProducts(activeCollection);
       } catch (e) {
         console.error('Failed to load products', e);
       }
@@ -332,11 +351,11 @@
     window.setInterval(async () => {
       if (document.visibilityState !== 'visible') return;
       try {
-        const response = await fetch('/api/store/products', { cache: 'no-store' });
+        const response = await fetch(collectionCatalogUrl, { cache: 'no-store' });
         if (!response.ok) return;
         const products = (await response.json()).products || [];
         allProducts.splice(0, allProducts.length, ...products);
-        searchProducts = products;
+        if (!officeWearPage) searchProducts = products;
         if (activeCollection || hasCatalogFilters()) showFilteredProducts(activeCollection || 'All collections');
         if (currentProduct && productOverlay?.classList.contains('open')) {
           const refreshedProduct = products.find(item => item.name === currentProduct.name && item.color === currentProduct.color);
@@ -351,10 +370,12 @@
       const card = event.target.closest('.collection-card');
       if (!card) return;
       const category = card.dataset.category;
+      if (category === 'Office Wear') return;
       showFilteredProducts(category);
     });
 
     backToAll.addEventListener('click', (e) => {
+      if (officeWearPage) return;
       e.preventDefault();
       activeCollection = null;
       collectionsHero.hidden = false;
@@ -371,10 +392,7 @@
       if (categoryKey === 'ethnic wear') {
         matches = allProducts.filter(product => product.category?.toLowerCase() === 'ethnic wear');
       } else if (categoryKey === 'office wear') {
-        const kotaChecks = new Set(['pistachio bloom', 'lavender haze', 'rose wine']);
-        matches = allProducts.filter(product =>
-          product.category?.toLowerCase() === 'kota checks' || kotaChecks.has(product.name?.toLowerCase())
-        );
+        matches = officeWearPage ? allProducts : [];
       } else if (categoryKey === 'all collections') {
         matches = allProducts;
       } else if (categoryKey === 'pure cotton collections') {
@@ -389,16 +407,22 @@
         );
       }
       const filtered = filterCatalogBySize(matches);
+      const officeWear = categoryKey === 'office wear';
+      const showProducts = officeWear ? filtered.length > 0 : filtered.some(product => product.in_stock);
       const grid = document.getElementById('filtered-products-grid');
       if (!grid) return;
-      if (!filtered.some(product => product.in_stock)) {
+      if (!showProducts) {
         filteredTitle.textContent = category;
-        grid.innerHTML = '<div class="collection-empty-state"><p>uh oh we ran out of stock for this item, browse our other collections below</p></div>';
-        filteredProducts.after(collectionsGrid);
-        collectionsGrid.querySelectorAll('.collection-card').forEach(card => {
-          card.hidden = card.dataset.category === category;
-        });
-        collectionsGrid.style.display = '';
+        grid.innerHTML = officeWear
+          ? '<div class="collection-empty-state"><p>No Kota Checks products match your selection.</p></div>'
+          : '<div class="collection-empty-state"><p>uh oh we ran out of stock for this item, browse our other collections below</p></div>';
+        if (!officeWear) {
+          filteredProducts.after(collectionsGrid);
+          collectionsGrid.querySelectorAll('.collection-card').forEach(card => {
+            card.hidden = card.dataset.category === category;
+          });
+          collectionsGrid.style.display = '';
+        }
       } else {
         filteredTitle.textContent = category;
         grid.innerHTML = filtered.map((product, index) => {
@@ -416,7 +440,7 @@
         observeReveals();
         if (window.setupImageHoverSlides) window.setupImageHoverSlides();
       }
-      if (filtered.some(product => product.in_stock)) {
+      if (showProducts || officeWear) {
         collectionsGrid.querySelectorAll('.collection-card').forEach(card => { card.hidden = false; });
         collectionsGrid.style.display = 'none';
       }

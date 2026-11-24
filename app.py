@@ -401,8 +401,9 @@ def page_metadata(path):
 def product_item_list_json_ld():
     base_url = app.config["PUBLIC_BASE_URL"]
     page_url = urljoin(base_url + "/", "shop/collections")
+    collection = request.args.get("category") if request.endpoint == "collections" else None
     products = sorted(
-        (item for item in store_catalog() if item["in_stock"]),
+        (item for item in catalog_for_collection(collection) if item["in_stock"]),
         key=lambda item: (item["name"], item["color"] or "", item["id"]),
     )
     items = []
@@ -822,9 +823,21 @@ def store_catalog():
 @app.route("/api/store/products")
 def storefront_products():
     """Public catalog endpoint. Cost prices and raw stock totals stay private."""
-    response = jsonify({"products": store_catalog()})
+    response = jsonify({"products": catalog_for_collection(request.args.get("collection"))})
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+def catalog_for_collection(collection):
+    products = store_catalog()
+    if (collection or "").strip().casefold() != "office wear":
+        return products
+    kota_checks = {"pistachio bloom", "lavender haze", "rose wine"}
+    return [
+        product for product in products
+        if product["category"].strip().casefold() == "kota checks"
+        or product["name"].strip().casefold() in kota_checks
+    ]
 
 
 @app.route("/api/store/products/<slug>/reviews", methods=["GET", "POST"])
@@ -2697,7 +2710,11 @@ def api_orders():
 
 @app.route("/shop/collections")
 def collections():
-    return render_template("collections.html")
+    office_wear = request.args.get("category", "").strip().casefold() == "office wear"
+    return render_template(
+        "collections.html", office_wear=office_wear,
+        office_products=catalog_for_collection("Office Wear") if office_wear else (),
+    )
 
 
 if __name__ == "__main__":

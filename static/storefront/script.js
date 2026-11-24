@@ -890,7 +890,7 @@ function renderNewLaunches(products) {
     <div class="new-launch-set">
       ${launches.map((product, index) => `
         <button class="new-launch-card" type="button" data-product-index="${index}" data-set-index="${setIndex}">
-          <span class="new-launch-image"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
+          <span class="new-launch-image"><img src="${escapeHtml(catalogCardImages(product, index + 1)[0])}" alt="${escapeHtml(product.name)}" loading="lazy"></span>
           <span class="new-launch-copy"><strong>${escapeHtml(product.name)}</strong><small class="new-launch-price">${priceMarkup(product.price, product.discounted_price)}</small></span>
         </button>
       `).join('')}
