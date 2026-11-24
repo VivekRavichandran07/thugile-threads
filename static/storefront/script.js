@@ -131,7 +131,7 @@ if (document.querySelector('.site-header')) {
 const count = document.querySelector('#bag-count');
 const wishlistCount = document.querySelector('#wishlist-count');
 const toast = document.querySelector('#toast');
-const grid = document.querySelector('.products');
+const grid = document.querySelector('.collection-section .products');
 const productSort = document.getElementById('product-sort');
 const newLaunchesTrack = document.getElementById('new-launches-track');
 const bagBtn = document.querySelector('#bag-btn');
@@ -1873,10 +1873,8 @@ async function init() {
   });
   await checkAuth();
   updateWishlistUI();
-  if (document.querySelector('.collection-section') || document.querySelector('.collections-page')) {
+  if (grid) {
     loadCatalog();
-  }
-  if (document.querySelector('.collection-section')) {
     window.setInterval(() => {
       if (document.visibilityState === 'visible') loadCatalog(0);
     }, 30000);

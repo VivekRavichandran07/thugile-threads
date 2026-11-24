@@ -96,16 +96,17 @@
         </div>
         <a class="shop-all" href="{{ url_for('collections') if office_wear else '#' }}" id="back-to-all">Back to all</a>
       </div>
-      {% if office_wear %}
-      <img src="{{ url_for('static', filename='storefront/assets/Chudidar/RoseWine1.webp') }}" alt="Kota Checks Office Wear" style="display:block;width:min(100%,220px);height:auto;margin-bottom:24px;">
-      {% endif %}
       <div class="products" id="filtered-products-grid">
         {% if office_wear %}
           {% for product in office_products %}
           <article class="product">
             <a class="product-image" href="{{ product.url }}"><img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy"></a>
             <div class="product-info">
-              <h3><a class="product-link" href="{{ product.url }}">{{ product.name }}</a></h3>
+              <div>
+                <h3><a class="product-link" href="{{ product.url }}">{{ product.name }}</a></h3>
+                {% if product.color %}<p>{{ product.color }}</p>{% endif %}
+                {% if product.available_sizes %}<p>Sizes: {{ product.available_sizes | join(', ') }}</p>{% endif %}
+              </div>
               <strong>₹{{ "{:,.0f}".format(product.discounted_price) }}</strong>
               {% if not product.in_stock %}<span>Sold out</span>{% endif %}
             </div>
@@ -432,8 +433,8 @@
           const sizes = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
           const normalizeSize = value => String(value).toUpperCase().replace(/^XXL$/, '2XL').replace(/^XXXL$/, '3XL').replace(/^XXXXL$/, '4XL');
           const sizeOptions = sizes.map(size => {
-            const available = (product.available_sizes || []).some(value => normalizeSize(value) === size);
-            return `<button class="size-option${available ? '' : ' unavailable'}" data-size="${size}" ${available ? '' : 'disabled'}>${size}</button>`;
+            const variant = (product.variants || []).find(item => normalizeSize(item.size) === size);
+            return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${size}" data-product-id="${variant?.id ?? ''}" data-price="${variant?.discounted_price ?? ''}" ${variant ? '' : 'disabled'}>${size}</button>`;
           }).join('');
           return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(images[0])}" data-hover-images="${escapeHtml(images.join(','))}" alt="${escapeHtml(product.name)}" loading="lazy">${product.in_stock ? '' : '<span class="sold-out-overlay">Sold out</span>'}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${details}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${product.name}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${product.discounted_price < product.price ? `<del>${rupees(product.price)}</del>` : ''}<strong>${rupees(product.discounted_price || product.price)}</strong></span>${action}</div></div></article>`;
         }).join('');
