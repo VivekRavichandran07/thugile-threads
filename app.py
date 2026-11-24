@@ -23,6 +23,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db, now_iso
 from image_assets import webp_image_url
+from shipping import shipping_charge
 
 
 def load_env_file(path):
@@ -1897,6 +1898,51 @@ def orders_get():
     return jsonify({"orders": [dict(row) for row in rows]})
 
 
+def checkout_address(conn, user_id, address_id):
+    if type(address_id) is not int or not 0 < address_id < 2**63:
+        raise ValueError("Choose a valid shipping address before paying.")
+    address = conn.execute(
+        "SELECT name, email, phone, address, address_line_2, city, pincode "
+        "FROM user_addresses WHERE id = ? AND user_id = ?", (address_id, user_id),
+    ).fetchone()
+    if address is None:
+        raise ValueError("Choose a valid shipping address before paying.")
+    return address
+
+
+def checkout_totals(conn, user_id, address, code, items, subtotal):
+    items, merchandise, discount, code = apply_first_order_discount(
+        conn, user_id, code, items, subtotal
+    )
+    shipping = shipping_charge(address["pincode"], sum(item["qty"] for item in items), merchandise)
+    return items, merchandise, discount, code, shipping
+
+
+@app.route("/api/store/checkout/quote", methods=["POST"])
+def checkout_quote():
+    if "user_id" not in session:
+        return jsonify({"error": "Please sign in to view your checkout total."}), 401
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid checkout request."}), 400
+    try:
+        items, subtotal = build_order_items(data.get("items"))
+        conn = get_connection()
+        try:
+            address = checkout_address(conn, session["user_id"], data.get("address_id"))
+            _, merchandise, _, _, shipping = checkout_totals(
+                conn, session["user_id"], address, data.get("discount_code"), items, subtotal
+            )
+        finally:
+            conn.close()
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    response = jsonify({"merchandise": float(merchandise), "shipping": float(shipping),
+                        "total": float(merchandise + shipping)})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @app.route("/api/payments/cashfree", methods=["POST"])
 def cashfree_create_payment():
     if "user_id" not in session:
@@ -1907,37 +1953,27 @@ def cashfree_create_payment():
     try:
         api_base, credentials, environment = get_cashfree_settings()
         items, total = build_order_items(data.get("items"))
-        address_id = data.get("address_id")
-        if isinstance(address_id, bool) or not isinstance(address_id, int):
-            return jsonify({"error": "Choose a valid shipping address before paying."}), 400
-
-        conn = get_connection()
-        try:
-            address = conn.execute(
-                "SELECT name, email, phone, address, address_line_2, city, pincode "
-                "FROM user_addresses WHERE id = ? AND user_id = ?",
-                (address_id, session["user_id"]),
-            ).fetchone()
-            if not address:
-                return jsonify({"error": "Choose a valid shipping address before paying."}), 400
-        finally:
-            conn.close()
-
         conn = get_connection()
         try:
             conn.execute("BEGIN IMMEDIATE")
-            items, total, discount, discount_code = apply_first_order_discount(
-                conn, session["user_id"], data.get("discount_code"), items, total
+            address = checkout_address(conn, session["user_id"], data.get("address_id"))
+            items, merchandise, discount, discount_code, shipping = checkout_totals(
+                conn, session["user_id"], address, data.get("discount_code"), items, total
             )
+            total = merchandise + shipping
+            if "quoted_total" in data and data["quoted_total"] != float(total):
+                raise ValueError("Your checkout total changed. Review the updated total before paying.")
             order_number = f"TNT-{uuid.uuid4().hex}"
             return_url = cashfree_return_url(order_number)
             conn.execute(
                 """INSERT INTO orders
                     (user_id, order_number, cashfree_order_id, total_amount, status,
-                     payment_state, shipping_address_json, items, created_at, discount_code, discount_amount)
-                VALUES (?, ?, ?, ?, 'pending', 'PENDING', ?, ?, ?, ?, ?)""",
+                     payment_state, shipping_address_json, items, created_at, discount_code,
+                     discount_amount, shipping_charge)
+                VALUES (?, ?, ?, ?, 'pending', 'PENDING', ?, ?, ?, ?, ?, ?)""",
                 (session["user_id"], order_number, order_number, float(total),
-                 json.dumps(dict(address)), json.dumps(items), now_iso(), discount_code, float(discount)),
+                 json.dumps(dict(address)), json.dumps(items), now_iso(), discount_code,
+                 float(discount), float(shipping)),
             )
             conn.commit()
         except Exception:
@@ -2046,6 +2082,7 @@ def record_order_sales(conn, order_id, deduct_inventory=False):
         validated.append((product["id"] if product else None, quantity, float(price),
                           customer, order["created_at"], order_id, index, name))
         total += price * quantity
+    total += Decimal(str(order["shipping_charge"]))
     recorded_total = Decimal(str(order["total_amount"]))
     if (not recorded_total.is_finite()
             or total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) != recorded_total):

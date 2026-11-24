@@ -165,6 +165,7 @@ def init_db():
         ("shipping_address_json", "TEXT"),
         ("discount_code", "TEXT"),
         ("discount_amount", "REAL NOT NULL DEFAULT 0"),
+        ("shipping_charge", "REAL NOT NULL DEFAULT 0"),
     ):
         if column not in order_columns:
             conn.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")

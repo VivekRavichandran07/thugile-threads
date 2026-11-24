@@ -1,11 +1,28 @@
 import os
 import sqlite3
+from decimal import Decimal
 
 import pytest
 
 import db
 import app as app_module
 from app import app
+from shipping import shipping_charge
+
+
+@pytest.mark.parametrize(("pin", "count", "subtotal", "charge"), [
+    ("635109", 1, "1499", 47),
+    ("635109", 3, "4497", 83),
+    ("600001", 2, "2998", 89),
+    ("641001", 3, "4598.99", 112),
+    ("641001", 3, "4599", 0),
+    ("500001", 4, "4000", 159),
+    ("560001", 1, "1499", 89),
+    ("682001", 5, "4000", 280),
+    ("744101", 1, "1499", 106),
+])
+def test_shipping_rates(pin, count, subtotal, charge):
+    assert shipping_charge(pin, count, Decimal(subtotal)) == charge
 
 
 class FakeResponse:
@@ -90,19 +107,28 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
         })
 
     monkeypatch.setattr("app.requests.post", fake_post)
+    items = [{"product_id": client.product_id, "qty": 1, "price": 1}]
+    quote = client.post("/api/store/checkout/quote", json={"address_id": 1, "items": items})
+    assert quote.json == {"merchandise": 75, "shipping": 65, "total": 140}
+    stale = client.post("/api/payments/cashfree", json={
+        "address_id": 1, "items": items, "quoted_total": 75,
+    })
+    assert stale.status_code == 400
+    assert not payment_request
     response = client.post(
         "/api/payments/cashfree",
         json={
             "address_id": 1,
             "total": 1,
-            "items": [{"product_id": client.product_id, "qty": 1, "price": 1}],
+            "items": items,
+            "quoted_total": quote.json["total"],
         },
     )
 
     assert response.status_code == 200
     data = response.get_json()
     assert payment_request["url"] == "https://sandbox.cashfree.com/pg/orders"
-    assert payment_request["order_amount"] == 75
+    assert payment_request["order_amount"] == 140
     assert payment_request["order_currency"] == "INR"
     assert payment_request["customer_details"]["customer_phone"] == "9876543210"
     assert payment_request["order_meta"]["return_url"].startswith(
@@ -117,7 +143,7 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
         lambda *args, **kwargs: FakeResponse({
             "order_id": data["merchant_order_id"],
             "order_status": "PAID",
-            "order_amount": 75,
+            "order_amount": 140,
             "order_currency": "INR",
         }),
     )
@@ -129,10 +155,10 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
 
     conn = sqlite3.connect(database_path)
     order = conn.execute(
-        "SELECT total_amount, status, payment_state, cashfree_order_id FROM orders"
+        "SELECT total_amount, status, payment_state, cashfree_order_id, shipping_charge FROM orders"
     ).fetchone()
     conn.close()
-    assert order == (75.0, "confirmed", "COMPLETED", data["merchant_order_id"])
+    assert order == (140.0, "confirmed", "COMPLETED", data["merchant_order_id"], 65)
     repeated = client.get(f"/api/payments/cashfree/{data['merchant_order_id']}/status")
     assert repeated.status_code == 200
     conn = sqlite3.connect(database_path)
@@ -303,18 +329,35 @@ def test_monthly_discount_is_applied_to_payment_and_sale(cashfree_client, monkey
         "address_id": 1, "discount_code": "OCT10", "items": payload["items"], "total": 1,
     })
     assert response.status_code == 200
-    assert charged["order_amount"] == 135
+    assert charged["order_amount"] == 224
     # A pending discounted payment reserves eligibility, including simultaneous retries.
     assert client.post("/api/store/discount/validate", json=payload).status_code == 400
     monkeypatch.setattr(app_module.requests, "get", lambda *args, **kwargs: FakeResponse({
         "order_id": response.json["merchant_order_id"], "order_status": "PAID",
-        "order_amount": 135, "order_currency": "INR",
+        "order_amount": 224, "order_currency": "INR",
     }))
     assert client.get(f"/api/payments/cashfree/{response.json['merchant_order_id']}/status").status_code == 200
     with sqlite3.connect(database_path) as conn:
-        assert conn.execute("SELECT total_amount, discount_code, discount_amount FROM orders").fetchone() == (135, "OCT10", 15)
+        assert conn.execute(
+            "SELECT total_amount, discount_code, discount_amount, shipping_charge FROM orders"
+        ).fetchone() == (224, "OCT10", 15, 89)
         assert conn.execute("SELECT quantity, selling_price FROM sales").fetchone() == (2, 67.5)
     assert client.post("/api/store/discount/validate", json=payload).status_code == 400
+
+
+def test_checkout_quote_applies_free_shipping_threshold_after_discount(cashfree_client, monkeypatch):
+    client, database_path = cashfree_client
+    monkeypatch.setattr(app_module, "monthly_discount_code", lambda: "OCT10")
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("UPDATE products SET discounted_price = 4599 WHERE id = ?", (client.product_id,))
+    payload = {"address_id": 1, "items": [{"product_id": client.product_id, "qty": 1}]}
+    quote = client.post("/api/store/checkout/quote", json=payload)
+    assert quote.json == {"merchandise": 4599, "shipping": 0, "total": 4599}
+    quote = client.post("/api/store/checkout/quote", json={**payload, "discount_code": "OCT10"})
+    assert quote.json == {"merchandise": 4139.1, "shipping": 65, "total": 4204.1}
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("UPDATE user_addresses SET pincode = '000000'")
+    assert client.post("/api/store/checkout/quote", json=payload).status_code == 400
 
 
 def test_discount_rejects_wrong_month_and_existing_customers(cashfree_client, monkeypatch):

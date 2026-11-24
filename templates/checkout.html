@@ -71,6 +71,9 @@
   margin-left:auto;
   white-space:nowrap;
 }
+    .checkout-shipping-row{border-bottom:0}
+    .checkout-shipping-row .cart-item-name,.checkout-shipping-row strong{font-weight:400}
+    .cart-total-row{font-weight:700}
   </style>
   <script src="https://accounts.google.com/gsi/client" async></script>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@500&family=Cormorant+Garamond:wght@500;600&family=DM+Serif+Display&family=Italiana&family=Prata&display=swap" rel="stylesheet">
@@ -81,7 +84,7 @@
   <div class="grain"></div>
 
   <header class="site-header">
-    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders above ₹4,599 · 3+ items 10% off · 4+ items 15% off * No COD * No Returns</span><span>Free shipping on orders above ₹4,599 · 3+ items 10% off · 4+ items 15% off * No COD * No Returns</span></div></div>
+    <div class="announcement-bar"><div class="announcement-bar-inner"><span>Free shipping on orders of ₹4,599 or more · 3+ items 10% off · 4+ items 15% off * No COD * No Returns</span><span>Free shipping on orders of ₹4,599 or more · 3+ items 10% off · 4+ items 15% off * No COD * No Returns</span></div></div>
     <div class="header-inner">
       <a class="header-wordmark" href="/shop/">Thugile &amp; Threads</a>
       <nav class="main-nav">
@@ -141,6 +144,11 @@
         <h2>Your bag</h2>
         <div id="checkout-items"></div>
         <p id="checkout-discount-summary" class="checkout-discount-summary" hidden></p>
+        <div class="cart-item checkout-shipping-row">
+          <span class="cart-item-name">Shipping</span>
+          <strong id="checkout-shipping" aria-live="polite">—</strong>
+        </div>
+        <p id="checkout-quote-error" class="address-load-error" role="status"></p>
         <div class="cart-total-row">
           <span>Total</span>
           <span id="checkout-total">₹ 0</span>
@@ -245,7 +253,14 @@
   <script src="{{ url_for('static', filename='storefront/script.js') }}"></script>
   <script>
     let appliedDiscount = null;
+    let checkoutQuote = null;
+    let quoteRequest = 0;
     const discountCartKey = () => JSON.stringify(bag.map(item => [item.product_id, item.qty]));
+    const checkoutDetails = () => ({
+      address_id: Number(sessionStorage.getItem('selected_address_id')),
+      discount_code: appliedDiscount?.cartKey === discountCartKey() ? appliedDiscount.code : null,
+      items: bag.map(item => ({product_id: item.product_id, qty: item.qty}))
+    });
     function showDiscountTotal() {
       const summary = document.getElementById('checkout-discount-summary');
       if (appliedDiscount && appliedDiscount.cartKey !== discountCartKey()) {
@@ -256,7 +271,6 @@
       document.getElementById('remove-discount').hidden = !appliedDiscount;
       if (appliedDiscount) {
         summary.textContent = `${appliedDiscount.code}: 10% off — you save ${rupees(appliedDiscount.discount)}`;
-        document.getElementById('checkout-total').textContent = rupees(appliedDiscount.total);
       }
     }
     document.getElementById('checkout-discount-form').addEventListener('submit', async event => {
@@ -265,6 +279,9 @@
       const button = event.currentTarget.querySelector('button[type="submit"]');
       const message = document.getElementById('checkout-discount-message');
       button.disabled = true;
+      ++quoteRequest;
+      checkoutQuote = null;
+      document.getElementById('place-order-btn').disabled = true;
       appliedDiscount = null;
       const cartKey = discountCartKey();
       try {
@@ -331,11 +348,20 @@
     }
 
     async function renderCheckout(refreshAddress = true) {
+      const request = ++quoteRequest;
+      checkoutQuote = null;
+      const shippingEl = document.getElementById('checkout-shipping');
+      const quoteError = document.getElementById('checkout-quote-error');
+      const placeBtn = document.getElementById('place-order-btn');
+      placeBtn.disabled = true;
+      shippingEl.textContent = '—';
+      quoteError.textContent = '';
+      document.getElementById('checkout-total').textContent = '—';
       if (refreshAddress) await renderSelectedAddress();
+      if (request !== quoteRequest) return;
       loadCart();
       const itemsEl = document.getElementById('checkout-items');
       const totalEl = document.getElementById('checkout-total');
-      const placeBtn = document.getElementById('place-order-btn');
       const countEl = document.getElementById('bag-count');
 
       const totalItems = bag.reduce((s, i) => s + i.qty, 0);
@@ -349,9 +375,6 @@
         placeBtn.disabled = true;
         return;
       }
-      placeBtn.disabled = false;
-      const total = bag.reduce((s, i) => s + (i.price * i.qty), 0);
-      totalEl.textContent = rupees(total);
       showDiscountTotal();
       itemsEl.innerHTML = bag.map((item, idx) => `
         <div class="cart-item">
@@ -365,12 +388,36 @@
           <strong>${rupees(item.price * item.qty)}</strong>
         </div>
       `).join('');
+      const body = JSON.stringify(checkoutDetails());
+      if (!sessionStorage.getItem('selected_address_id')) return;
+      shippingEl.textContent = 'Calculating…';
+      try {
+        const response = await fetch('/api/store/checkout/quote', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body
+        });
+        const quote = await response.json();
+        if (request !== quoteRequest || body !== JSON.stringify(checkoutDetails())) return;
+        if (!response.ok) throw new Error(quote.error || 'Could not calculate shipping.');
+        checkoutQuote = {body, total: quote.total};
+        shippingEl.textContent = quote.shipping === 0 ? 'Free' : rupees(quote.shipping);
+        totalEl.textContent = rupees(quote.total);
+        placeBtn.disabled = paymentInProgress;
+      } catch (error) {
+        if (request !== quoteRequest) return;
+        shippingEl.textContent = '—';
+        quoteError.textContent = error.message || 'Could not calculate shipping.';
+      }
     }
 
     let paymentInProgress = false;
 
     async function placeOrder() {
-      if (paymentInProgress || !bag.length) return;
+      if (paymentInProgress || !checkoutQuote) return;
+      const details = checkoutDetails();
+      if (checkoutQuote.body !== JSON.stringify(details)) {
+        renderCheckout(false);
+        return;
+      }
       const addressId = sessionStorage.getItem('selected_address_id');
       if (!addressId) {
         window.location.href = '/shop/shipping';
@@ -388,14 +435,7 @@
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            address_id: Number(addressId),
-            discount_code: appliedDiscount?.cartKey === discountCartKey() ? appliedDiscount.code : null,
-            items: bag.map(item => ({
-              product_id: item.product_id,
-              qty: item.qty
-            }))
-          })
+          body: JSON.stringify({...details, quoted_total: checkoutQuote.total})
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Unable to start payment.');
@@ -410,8 +450,8 @@
         });
       } catch (error) {
         message.textContent = error.message || 'Unable to start Cashfree checkout. Please try again.';
-        placeBtn.disabled = false;
         paymentInProgress = false;
+        renderCheckout(false);
       }
     }
     renderCheckout();
