@@ -79,7 +79,7 @@
     </div>
     <div class="collections-grid" id="collections-grid">
       <div class="collection-card" data-category="Festive Wear"><img src="/static/storefront/assets/Chudidar/ThaaiSilkSet.webp" data-hover-images="/static/storefront/assets/Chudidar/ThaaiSilkSet.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet-1.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet-1.webp,/static/storefront/assets/Chudidar/ThaaiSilkSet.webp" alt="Festive Wear" loading="lazy"><div><h3>Festive Wear</h3><p>Occasion-ready silhouettes</p></div><span class="card-arrow">↗</span></div>
-      <div class="collection-card" data-category="Office Wear"><img src="/static/storefront/assets/Chudidar/KonguCottonCoord.webp" data-hover-images="/static/storefront/assets/Chudidar/KonguCottonCoord.webp,/static/storefront/assets/Chudidar/KonguCottonCoord-1.webp,/static/storefront/assets/Chudidar/KonguCottonCoord.webp,/static/storefront/assets/Chudidar/KonguCottonCoord-1.webp,/static/storefront/assets/Chudidar/KonguCottonCoord.webp" alt="Office Wear" loading="lazy"><div><h3>Office Wear</h3><p>Polished everyday sets</p></div><span class="card-arrow">↗</span></div>
+      <div class="collection-card" data-category="Office Wear"><img src="/static/storefront/assets/Chudidar/Kotaset1.webp" data-hover-images="/static/storefront/assets/Chudidar/Kotaset1.webp,/static/storefront/assets/Chudidar/Kotaset1-1.webp,/static/storefront/assets/Chudidar/Kotaset1-2.webp,/static/storefront/assets/Chudidar/Kotaset1-3.webp,/static/storefront/assets/Chudidar/Kotaset1-4.webp" alt="Office Wear" loading="lazy"><div><h3>Office Wear</h3><p>Polished everyday sets</p></div><span class="card-arrow">↗</span></div>
       <div class="collection-card" data-category="Coord Set"><img src="/static/storefront/assets/Chudidar/SageGreenHeritageElegance.webp" data-hover-images="/static/storefront/assets/Chudidar/SageGreenHeritageElegance.webp" alt="Coord Sets" loading="lazy"><div><h3>Coord Sets</h3><p>Effortlessly matched</p></div><span class="card-arrow">↗</span></div>
       <div class="collection-card" data-category="Casual Kurtas"><img src="/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp" data-hover-images="/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp,/static/storefront/assets/Chudidar/SageKurtaVerandaPortrait.webp,/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp,/static/storefront/assets/Chudidar/SageKurtaVerandaPortrait.webp,/static/storefront/assets/Chudidar/ElegantIndianCourtyardPortrait.webp" alt="Casual Kurtas" loading="lazy"><div><h3>Casual Kurtas</h3><p>Relaxed, everyday ease</p></div><span class="card-arrow">↗</span></div>
       <div class="collection-card" data-category="Ethnic Wear"><img src="/static/storefront/assets/Chudidar/PurplePeacock1.webp" data-hover-images="/static/storefront/assets/Chudidar/PurplePeacock1.webp,/static/storefront/assets/Chudidar/PurplePeacock2.webp,/static/storefront/assets/Chudidar/PurplePeacock3.webp,/static/storefront/assets/Chudidar/PurplePeacock4.webp,/static/storefront/assets/Chudidar/PurplePeacock5.webp" alt="Ethnic Wear" loading="lazy"><div><h3>Ethnic Wear</h3><p>Traditional pieces for every occasion</p></div><span class="card-arrow">↗</span></div>
@@ -370,6 +370,11 @@
       let matches;
       if (categoryKey === 'ethnic wear') {
         matches = allProducts.filter(product => product.category?.toLowerCase() === 'ethnic wear');
+      } else if (categoryKey === 'office wear') {
+        const kotaChecks = new Set(['pistachio bloom', 'lavender haze', 'rose wine']);
+        matches = allProducts.filter(product =>
+          product.category?.toLowerCase() === 'kota checks' || kotaChecks.has(product.name?.toLowerCase())
+        );
       } else if (categoryKey === 'all collections') {
         matches = allProducts;
       } else if (categoryKey === 'pure cotton collections') {
@@ -397,6 +402,7 @@
       } else {
         filteredTitle.textContent = category;
         grid.innerHTML = filtered.map((product, index) => {
+          const images = catalogCardImages(product, index);
           const details = [product.color, product.category].filter(Boolean).join(' · ') || 'Made with care';
           const action = product.in_stock ? `<button data-item="${product.name}" data-price="${product.discounted_price || product.price || ''}">Add to bag</button>` : '<button class="sold-out-button" disabled>Sold out</button>';
           const sizes = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
@@ -405,7 +411,7 @@
             const available = (product.available_sizes || []).some(value => normalizeSize(value) === size);
             return `<button class="size-option${available ? '' : ' unavailable'}" data-size="${size}" ${available ? '' : 'disabled'}>${size}</button>`;
           }).join('');
-          return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${imageFor(product.image_url, index, product.name)}" alt="${product.name}" loading="lazy">${product.in_stock ? '' : '<span class="sold-out-overlay">Sold out</span>'}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${details}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${product.name}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${product.discounted_price < product.price ? `<del>${rupees(product.price)}</del>` : ''}<strong>${rupees(product.discounted_price || product.price)}</strong></span>${action}</div></div></article>`;
+          return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(images[0])}" data-hover-images="${escapeHtml(images.join(','))}" alt="${escapeHtml(product.name)}" loading="lazy">${product.in_stock ? '' : '<span class="sold-out-overlay">Sold out</span>'}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${details}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${product.name}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${product.discounted_price < product.price ? `<del>${rupees(product.price)}</del>` : ''}<strong>${rupees(product.discounted_price || product.price)}</strong></span>${action}</div></div></article>`;
         }).join('');
         observeReveals();
         if (window.setupImageHoverSlides) window.setupImageHoverSlides();

@@ -782,6 +782,13 @@ function mountSizeFilters(anchor, products, onChange, extraContent = []) {
   });
 }
 
+function catalogCardImages(product, index) {
+  const images = Array.isArray(product.image_variants) ? product.image_variants.filter(Boolean) : [];
+  if (!images.length) return [imageFor(product.image_url, index, product.name)];
+  const coverIndex = index % images.length;
+  return [...images.slice(coverIndex), ...images.slice(0, coverIndex)];
+}
+
 function renderProducts(products) {
   if (!grid) return;
   if (!products.length) {
@@ -799,8 +806,9 @@ function renderProducts(products) {
       const variant = (product.variants || []).find(item => normalizeCatalogSize(item.size) === s);
       return `<button class="size-option${variant ? '' : ' unavailable'}" data-size="${escapeHtml(s)}" data-product-id="${variant ? variant.id : ''}" data-price="${variant ? discountedPrice(variant.price, variant.discounted_price) : ''}" ${variant ? '' : 'disabled'}>${escapeHtml(s)}</button>`;
     }).join('');
-    const hoverImages = Array.isArray(product.image_variants) ? product.image_variants.join(',') : '';
-    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(imageFor(product.image_url, index, product.name))}" data-hover-images="${escapeHtml(hoverImages)}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
+    const [cover, ...otherImages] = catalogCardImages(product, index);
+    const hoverImages = [cover, ...otherImages].join(',');
+    return `<article class="product reveal${product.in_stock === false ? ' sold-out' : ''}"><div class="product-image reveal"><img src="${escapeHtml(cover)}" data-hover-images="${escapeHtml(hoverImages)}" alt="${escapeHtml(product.name)}" loading="lazy">${tag}</div><div class="product-info"><div><h3><a class="product-link" href="${escapeHtml(productUrl(product))}" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</a></h3><p>${escapeHtml(details)}</p><div class="product-card-sizes">${sizeOptions}</div><button class="size-guide-btn" data-item="${escapeHtml(product.name)}">Size Guide</button>${product.in_stock === false ? `<button class="notify-available-btn" data-product-id="${product.id}">Notify when available</button>` : ''}</div><div class="buy"><span class="product-card-price">${priceMarkup(product.price, product.discounted_price)}</span>${action}</div></div></article>`;
   }).join('');
   observeReveals();
   setupImageHoverSlides();
