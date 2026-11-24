@@ -583,6 +583,13 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
+    if (name or "").strip().casefold() == "rani varnam":
+        gallery = [
+            f"RaniVarnam{number}.webp" for number in range(1, 6)
+            if os.path.isfile(os.path.join(assets_dir, f"RaniVarnam{number}.webp"))
+        ]
+        if gallery:
+            return [f"/static/storefront/assets/Chudidar/{filename}" for filename in gallery]
     original_gallery = {"twilightlilac": "TwilightLilac", "sundownolive": "SundownOlive", "indigoarrows": "IndigoArrows", "pistaroyale": "PistaRoyale", "pistaaura": "PistaAura", "orchidmist": "OrchidMist", "purplepeacock": "PurplePeacock", "thalir": "Thalir", "royalteal": "RoyalTeal", "citruscharm": "CitrusCharm", "kungumam": "Kungumam", "karmughil": "Karmughil"}.get(
         re.sub(r"[^a-z0-9]", "", (name or "").lower())
     )
