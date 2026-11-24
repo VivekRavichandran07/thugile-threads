@@ -1093,7 +1093,7 @@ em,i,cite,.first-order-offer h2 em{font-style:normal}
 .order-review-invitation a{color:var(--terracotta);font:600 11px var(--google-sans);letter-spacing:.04em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px}
 .size-validation-note{margin:12px 0 20px;padding:12px 14px;border-left:3px solid #947957;border-radius:0 8px 8px 0;background:#faf5ec;color:#55483d;font-size:13px;line-height:1.55}
 .product-popup-size-chart .size-validation-note{font-size:12px;margin:8px 0 16px}
-.checkout-header .size-validation-note{padding:12px 14px;border-left:3px solid #947957;border-radius:0 8px 8px 0;background:#faf5ec;color:#55483d;font-size:13px;line-height:1.55}
+.size-validation-note.size-validation-note-emphasis{margin:12px 0 20px;border-left:4px solid #92252d;background:#fce5e5;color:#67141b;font-size:14px}
 .size-table--brand-paired{min-width:460px}.size-table--brand-paired th:first-child,.size-table--brand-paired td:first-child{white-space:nowrap}
 .size-length-note-thugile{margin-top:4px}
 @media(max-width:640px){.quote{height:auto;min-height:230px;aspect-ratio:auto;padding:34px 18px}.quote blockquote{width:100%;max-width:34rem;font-size:clamp(1.15rem,5.2vw,1.5rem);line-height:1.3;overflow-wrap:anywhere}.quote-image{background-position:center;background-size:cover}}

@@ -584,10 +584,15 @@ def parse_product_prices(form):
 
 def product_image_variants(name, image_url):
     assets_dir = os.path.join(app.static_folder, "storefront", "assets", "Chudidar")
-    if (name or "").strip().casefold() == "rani varnam":
+    gallery_stem = {
+        "rani varnam": "RaniVarnam",
+        "pista aura - scallop": "PistaAuraScallop",
+        "rose wine": "RoseWine",
+    }.get((name or "").strip().casefold())
+    if gallery_stem:
         gallery = [
-            f"RaniVarnam{number}.webp" for number in range(1, 6)
-            if os.path.isfile(os.path.join(assets_dir, f"RaniVarnam{number}.webp"))
+            f"{gallery_stem}{number}.webp" for number in range(1, 6)
+            if os.path.isfile(os.path.join(assets_dir, f"{gallery_stem}{number}.webp"))
         ]
         if gallery:
             return [f"/static/storefront/assets/Chudidar/{filename}" for filename in gallery]
@@ -1843,13 +1848,18 @@ def build_order_items(raw_items):
 
 def monthly_discount_code():
     month = datetime.now(timezone(timedelta(hours=5, minutes=30))).month
-    return ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")[month - 1] + "10"
+    return (
+        "PONGJAN10", "THAIFEB10", "PANGMAR10", "PUTHAPR10",
+        "CHITMAY10", "VAIKJUN10", "AADIJUL10", "POOJAUG10",
+        "NAVASEP10", "DEEPOCT10", "KARTNOV10", "VAIKDEC10",
+    )[month - 1]
 
 
 def apply_first_order_discount(conn, user_id, code, items, subtotal):
     if not code:
         return items, subtotal, Decimal("0"), None
-    if not isinstance(code, str) or code.strip().upper() != monthly_discount_code():
+    current_code = monthly_discount_code()
+    if not isinstance(code, str) or code.strip().upper() != current_code:
         raise ValueError("This discount code is invalid or has expired.")
     if conn.execute(
         "SELECT 1 FROM orders WHERE user_id = ? AND "
@@ -1862,7 +1872,7 @@ def apply_first_order_discount(conn, user_id, code, items, subtotal):
     total = (subtotal * Decimal("0.90")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     if total < Decimal("1.00"):
         raise ValueError("The discounted order total must be at least ₹1.")
-    return discounted, total, subtotal - total, monthly_discount_code()
+    return discounted, total, subtotal - total, current_code
 
 
 @app.route("/api/store/discount-offer")
@@ -1874,7 +1884,8 @@ def discount_offer():
             eligible = conn.execute("SELECT 1 FROM orders WHERE user_id = ? LIMIT 1", (session["user_id"],)).fetchone() is None
         finally:
             conn.close()
-    response = jsonify({"code": monthly_discount_code() if eligible else None, "eligible": eligible})
+    code = monthly_discount_code() if eligible and "user_id" in session else None
+    response = jsonify({"code": code, "eligible": eligible})
     response.headers["Cache-Control"] = "private, no-store"
     return response
 

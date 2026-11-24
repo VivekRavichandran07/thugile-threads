@@ -1773,6 +1773,7 @@ if (forgotPasswordForm) {
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' });
   currentUser = null;
+  document.dispatchEvent(new Event('account-updated'));
   bag = [];
   localStorage.removeItem('tnt_cart');
   localStorage.removeItem('tnt_wishlist');
@@ -2023,14 +2024,20 @@ if (document.readyState === 'complete') initNameSuggestionPopup();
 else window.addEventListener('load', initNameSuggestionPopup, { once: true });
 
 // Reveal the server's current monthly first-order offer.
+let offerDelayElapsed = false;
+let offerClosed = false;
+let offerRequest = 0;
+let dismissFirstOrderOffer = null;
+
 async function initFirstOrderOffer() {
-  if (window.location.pathname.startsWith('/admin') || document.querySelector('.first-order-offer')) return;
-  let eligibility;
+  const request = ++offerRequest;
+  dismissFirstOrderOffer?.();
+  if (!offerDelayElapsed || offerClosed || window.location.pathname.startsWith('/admin')) return;
   try {
     const response = await fetch('/api/store/discount-offer', {cache: 'no-store'});
     if (!response.ok) return;
-    eligibility = await response.json();
-    if (!eligibility.eligible) return;
+    const eligibility = await response.json();
+    if (request !== offerRequest || !eligibility.eligible) return;
   } catch { return; }
   const offer = document.createElement('section');
   offer.className = 'first-order-offer';
@@ -2045,10 +2052,12 @@ async function initFirstOrderOffer() {
     <p class="discount-offer-status" role="status" aria-live="polite"></p>`;
   document.body.appendChild(offer);
   const events = new AbortController();
-  const dismiss = () => { events.abort(); offer.remove(); };
-  offer.querySelector('.first-order-offer-close').addEventListener('click', dismiss);
+  const dismiss = () => { events.abort(); offer.remove(); dismissFirstOrderOffer = null; };
+  dismissFirstOrderOffer = dismiss;
+  const close = () => { offerClosed = true; dismiss(); };
+  offer.querySelector('.first-order-offer-close').addEventListener('click', close);
   offer.addEventListener('keydown', event => {
-    if (event.key === 'Escape') { event.stopPropagation(); dismiss(); }
+    if (event.key === 'Escape') { event.stopPropagation(); close(); }
   });
   const positionOffer = () => {
     const base = window.matchMedia('(max-width:640px)').matches ? 80 : 24;
@@ -2064,23 +2073,25 @@ async function initFirstOrderOffer() {
   };
   window.addEventListener('scroll', schedulePosition, {passive: true, signal: events.signal});
   window.addEventListener('resize', schedulePosition, {signal: events.signal});
-  document.addEventListener('account-updated', async () => {
-    offer.style.visibility = 'hidden';
-    try {
-      const response = await fetch('/api/store/discount-offer', {cache: 'no-store'});
-      if (!response.ok || !(await response.json()).eligible) { dismiss(); return; }
-      positionOffer();
-    } catch { dismiss(); }
-  }, {signal: events.signal});
   positionOffer();
   const unlock = offer.querySelector('.unlock-discount');
+  if (!currentUser) unlock.querySelector('span').textContent = 'Sign in to claim 10% off';
   unlock.addEventListener('click', async () => {
+    if (!currentUser) {
+      openAuthModal();
+      return;
+    }
     unlock.disabled = true;
     try {
       const response = await fetch('/api/store/discount-offer', {cache: 'no-store'});
       if (!response.ok) throw new Error();
       const data = await response.json();
+      if (events.signal.aborted) return;
       if (!data.eligible) { dismiss(); return; }
+      if (!data.code) {
+        openAuthModal();
+        return;
+      }
       offer.querySelector('code').textContent = data.code;
       offer.querySelector('.first-order-code').hidden = false;
       offer.querySelector('.discount-offer-status').textContent = 'Use this month’s code at checkout. First orders only.';
@@ -2097,7 +2108,14 @@ async function initFirstOrderOffer() {
   });
 }
 const offerDelay = Math.max(0, 10000 - performance.now());
-setTimeout(initFirstOrderOffer, offerDelay);
+document.addEventListener('account-updated', initFirstOrderOffer);
+window.addEventListener('pageshow', event => {
+  if (event.persisted) initFirstOrderOffer();
+});
+setTimeout(() => {
+  offerDelayElapsed = true;
+  initFirstOrderOffer();
+}, offerDelay);
 
 // Hero (Timeless Classic): layered scroll parallax with a light pointer tilt on desktop.
 (function setupLookbook3d() {
