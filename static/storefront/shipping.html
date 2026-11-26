@@ -493,6 +493,7 @@
           try { items = JSON.parse(order.items); } catch {}
           const date = new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
           const itemsList = items.map(i => `${escapeHtml(i.name)} × ${escapeHtml(i.qty)}`).join(', ');
+          const fulfillment = orderFulfillmentMarkup(order);
           const reviewLinks = order.payment_state === 'COMPLETED' ? items.map(item => {
             const product = catalog.find(entry => entry.name === item.name && String(entry.color || '') === String(item.color || ''));
             return product ? `<a href="${escapeHtml(product.url)}#product-reviews">Review ${escapeHtml(item.name)}</a>` : '';
@@ -500,11 +501,12 @@
           return `<div class="order-item">
             <div class="order-header">
               <span class="order-number">${escapeHtml(order.order_number)}</span>
-              <span class="order-status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
+              ${fulfillment.badge}
             </div>
             <p class="order-date">${date}</p>
             <p class="order-items">${itemsList}</p>
             <p class="order-total">Total: ${rupees(order.total_amount)}</p>
+            ${fulfillment.tracking}
             ${reviewLinks.length ? `<div class="order-review-invitation"><p>Liked our product? Care to review? It will just take a few seconds.</p>${reviewLinks.join('')}</div>` : ''}
           </div>`;
         }).join('');
@@ -516,6 +518,9 @@
   document.addEventListener('account-updated', () => {
     loadAddresses();
     loadOrdersPage();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && currentUser) loadOrdersPage();
   });
 </script>
 </body>

@@ -111,6 +111,14 @@ def init_db():
             PRIMARY KEY (order_id, audience)
         );
 
+        CREATE TABLE IF NOT EXISTS order_shipping_emails (
+            order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            tracking_details TEXT NOT NULL,
+            claimed_at REAL,
+            sent_at TEXT,
+            PRIMARY KEY (order_id, tracking_details)
+        );
+
         CREATE TABLE IF NOT EXISTS product_reviews (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,

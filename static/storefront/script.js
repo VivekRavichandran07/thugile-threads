@@ -1577,6 +1577,17 @@ function closeOrders() {
 // ordersClose.addEventListener('click', closeOrders);
 // ordersOverlay.addEventListener('click', e => { if (e.target === ordersOverlay) closeOrders(); });
 
+function orderFulfillmentMarkup(order) {
+  const paid = order.payment_state === 'COMPLETED';
+  const status = paid ? (order.fulfillment_status || 'Ordered') :
+    order.payment_state === 'FAILED' ? 'Payment failed' : 'Payment pending';
+  const tracking = paid && ['Shipped', 'Delivered'].includes(status) ? order.tracking_details : '';
+  return {
+    badge: `<span class="order-status ${paid ? 'completed' : 'pending'}">${escapeHtml(status)}</span>`,
+    tracking: tracking ? `<p class="order-tracking"><strong>Postal tracking:</strong> ${escapeHtml(tracking)}</p>` : ''
+  };
+}
+
 async function loadOrders() {
   if (!currentUser) {
     ordersList.innerHTML = '<p class="no-orders">Please login to view orders.</p>';
@@ -1595,14 +1606,16 @@ async function loadOrders() {
       try { items = JSON.parse(order.items); } catch {}
       const date = new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
       const itemsList = items.map(i => `${i.name} × ${i.qty}`).join(', ');
+      const fulfillment = orderFulfillmentMarkup(order);
       return `<div class="order-item">
         <div class="order-header">
           <span class="order-number">${order.order_number}</span>
-          <span class="order-status ${order.status}">${order.status}</span>
+          ${fulfillment.badge}
         </div>
         <p class="order-date">${date}</p>
         <p class="order-items">${itemsList}</p>
         <p class="order-total">Total: ${rupees(order.total_amount)}</p>
+        ${fulfillment.tracking}
       </div>`;
     }).join('');
   } catch {

@@ -1936,7 +1936,9 @@ def orders_get():
         (session["user_id"],),
     ).fetchall()
     conn.close()
-    return jsonify({"orders": [dict(row) for row in rows]})
+    response = jsonify({"orders": [dict(row) for row in rows]})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 def checkout_address(conn, user_id, address_id):
@@ -2249,6 +2251,53 @@ def order_confirmation_message(order, audience):
     ])
     message.set_content("\n".join(lines))
     return message
+
+
+def send_order_shipping_email(order_id, tracking_details):
+    """Send one customer notice per order and saved tracking value."""
+    conn = get_connection()
+    sent_at = None
+    try:
+        claim = time.time()
+        with conn:
+            delivery = conn.execute(
+                """UPDATE order_shipping_emails SET claimed_at = ?
+                   WHERE order_id = ? AND tracking_details = ? AND sent_at IS NULL
+                     AND (claimed_at IS NULL OR claimed_at < ?)
+                     AND EXISTS (SELECT 1 FROM orders WHERE id = ?
+                                 AND fulfillment_status = 'Shipped' AND tracking_details = ?)""",
+                (claim, order_id, tracking_details, claim - 300, order_id, tracking_details),
+            )
+            if not delivery.rowcount:
+                return False
+            order = conn.execute(
+                "SELECT order_number, shipping_address_json FROM orders WHERE id = ?", (order_id,)
+            ).fetchone()
+        try:
+            address = json.loads(order["shipping_address_json"] or "{}")
+            message = EmailMessage()
+            message["To"] = Address(addr_spec=address.get("email") or "")
+            message["Subject"] = f"Your order has shipped | {order['order_number']}"
+            message.set_content(
+                f"Hello {address.get('name') or 'there'},\n\n"
+                f"Your Thugile & Threads order {order['order_number']} has shipped with India Post.\n\n"
+                f"Postal tracking details:\n{tracking_details}\n\n"
+                "You can also find these details under My Orders.\n"
+            )
+            send_storefront_email(message, timeout=5)
+            sent_at = now_iso()
+        except (OSError, ValueError, TypeError, AttributeError) as error:
+            app.logger.warning("Shipping email failed for order %s: %s", order_id, type(error).__name__)
+        finally:
+            with conn:
+                conn.execute(
+                    """UPDATE order_shipping_emails SET sent_at = ?, claimed_at = NULL
+                       WHERE order_id = ? AND tracking_details = ? AND claimed_at = ?""",
+                    (sent_at, order_id, tracking_details, claim),
+                )
+        return sent_at is not None
+    finally:
+        conn.close()
 
 
 @app.route("/api/payments/cashfree/<merchant_order_id>/status")
@@ -2752,6 +2801,7 @@ def update_sale_fulfillment(order_id):
         flash("Choose a valid status and keep tracking details within 500 characters.", "error")
         return redirect(url_for("sales"), code=303)
     conn = get_connection()
+    email_pending = False
     try:
         with conn:
             updated = conn.execute(
@@ -2761,9 +2811,26 @@ def update_sale_fulfillment(order_id):
             )
             if not updated.rowcount:
                 abort(404)
+            if fulfillment_status == "Shipped" and tracking_details:
+                conn.execute(
+                    """INSERT INTO order_shipping_emails (order_id, tracking_details) VALUES (?, ?)
+                       ON CONFLICT(order_id, tracking_details) DO NOTHING""",
+                    (order_id, tracking_details),
+                )
+                email_pending = conn.execute(
+                    """SELECT sent_at IS NULL FROM order_shipping_emails
+                       WHERE order_id = ? AND tracking_details = ?""",
+                    (order_id, tracking_details),
+                ).fetchone()[0]
     finally:
         conn.close()
-    flash("Order status and tracking saved.", "success")
+    if email_pending:
+        if send_order_shipping_email(order_id, tracking_details):
+            flash("Order saved and tracking email sent.", "success")
+        else:
+            flash("Order saved. Tracking email is pending. Save again to retry.", "error")
+    else:
+        flash("Order status and tracking saved.", "success")
     return redirect(url_for("sales"), code=303)
 
 

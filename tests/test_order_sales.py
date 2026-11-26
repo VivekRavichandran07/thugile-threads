@@ -50,7 +50,8 @@ def test_pending_orders_are_not_sales():
     conn.close()
 
 
-def test_admin_can_edit_existing_paid_order_fulfillment():
+def test_admin_can_edit_existing_paid_order_fulfillment(monkeypatch):
+    monkeypatch.setattr(app_module, "send_storefront_email", lambda message, **kwargs: None)
     user, _, order = make_order()
     app_module.synchronize_completed_order_sales()
     client = app.test_client()
@@ -74,6 +75,43 @@ def test_admin_can_edit_existing_paid_order_fulfillment():
     with client.session_transaction() as session:
         session.clear()
     assert client.post(endpoint, data={"fulfillment_status": "Delivered"}).status_code == 403
+
+
+def test_shipping_notice_retries_and_my_orders_keeps_tracking_after_delivery(monkeypatch):
+    user, _, order = make_order()
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = user
+    sent = []
+
+    def send(message, **kwargs):
+        sent.append(message)
+        if len(sent) == 1:
+            raise OSError("Temporary mail failure")
+
+    monkeypatch.setattr(app_module, "send_storefront_email", send)
+    endpoint = f"/admin/sales/orders/{order}/fulfillment"
+
+    def save(status, tracking):
+        return client.post(endpoint, data={
+            "fulfillment_status": status, "tracking_details": tracking,
+        }, follow_redirects=True).get_data(as_text=True)
+
+    save("Dispatched", "TEST123IN")
+    save("Shipped", "")
+    assert not sent
+    assert "Tracking email is pending" in save("Shipped", "TEST123IN")
+    assert "tracking email sent" in save("Shipped", "TEST123IN")
+    save("Shipped", "TEST123IN")
+    save("Delivered", "TEST123IN")
+    assert len(sent) == 2
+    assert str(sent[-1]["To"]) == "shipping@example.com"
+    assert "TEST123IN" in sent[-1].get_content()
+    assert "TNT-" + "a" * 32 in sent[-1].get_content()
+    orders = client.get("/api/orders")
+    assert orders.headers["Cache-Control"] == "private, no-store"
+    assert orders.json["orders"][0]["fulfillment_status"] == "Delivered"
+    assert orders.json["orders"][0]["tracking_details"] == "TEST123IN"
 
 
 def test_invalid_backfill_rolls_back_all_items():
