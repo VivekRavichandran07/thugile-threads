@@ -2686,6 +2686,9 @@ def add_purchase():
 # ---------------------------------------------------------------
 # SALES (stock going OUT)
 # ---------------------------------------------------------------
+FULFILLMENT_STATUSES = ("Ordered", "Dispatched", "Shipped", "Delivered")
+
+
 @app.route("/admin/sales")
 def sales():
     if "user_id" not in session:
@@ -2694,7 +2697,8 @@ def sales():
     rows = conn.execute(
         """
         SELECT sales.*, COALESCE(sales.product_name, products.name) AS display_product_name,
-               orders.order_number, orders.shipping_address_json, orders.items AS order_items
+               orders.order_number, orders.shipping_address_json, orders.items AS order_items,
+               orders.fulfillment_status, orders.tracking_details
         FROM sales
         LEFT JOIN products ON sales.product_id = products.id
         LEFT JOIN orders ON sales.order_id = orders.id
@@ -2732,9 +2736,35 @@ def sales():
             "total_amount": round(r["quantity"] * r["selling_price"], 2),
             "customer": address.get("name") or r["customer"],
             "order_number": r["order_number"],
+            "order_id": r["order_id"] if r["order_number"] else None,
+            "fulfillment_status": r["fulfillment_status"],
+            "tracking_details": r["tracking_details"],
             "address": address,
         })
-    return render_template("sales.html", sales=all_sales)
+    return render_template("sales.html", sales=all_sales, statuses=FULFILLMENT_STATUSES)
+
+
+@app.post("/admin/sales/orders/<int:order_id>/fulfillment")
+def update_sale_fulfillment(order_id):
+    fulfillment_status = request.form.get("fulfillment_status")
+    tracking_details = request.form.get("tracking_details", "").strip()
+    if fulfillment_status not in FULFILLMENT_STATUSES or len(tracking_details) > 500:
+        flash("Choose a valid status and keep tracking details within 500 characters.", "error")
+        return redirect(url_for("sales"), code=303)
+    conn = get_connection()
+    try:
+        with conn:
+            updated = conn.execute(
+                """UPDATE orders SET fulfillment_status = ?, tracking_details = ?
+                   WHERE id = ? AND payment_state = 'COMPLETED'""",
+                (fulfillment_status, tracking_details, order_id),
+            )
+            if not updated.rowcount:
+                abort(404)
+    finally:
+        conn.close()
+    flash("Order status and tracking saved.", "success")
+    return redirect(url_for("sales"), code=303)
 
 
 @app.route("/admin/subscribers")

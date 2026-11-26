@@ -50,6 +50,32 @@ def test_pending_orders_are_not_sales():
     conn.close()
 
 
+def test_admin_can_edit_existing_paid_order_fulfillment():
+    user, _, order = make_order()
+    app_module.synchronize_completed_order_sales()
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = user
+    endpoint = f"/admin/sales/orders/{order}/fulfillment"
+    initial = client.get("/admin/sales").get_data(as_text=True)
+    assert "<td>Ordered</td>" in initial
+    assert endpoint in initial
+    saved = client.post(endpoint, data={
+        "fulfillment_status": "Shipped", "tracking_details": "  India Post: TEST123IN  ",
+    }, follow_redirects=True)
+    assert "<td>Shipped</td>" in saved.get_data(as_text=True)
+    assert "India Post: TEST123IN" in saved.get_data(as_text=True)
+    client.post(endpoint, data={"fulfillment_status": "Cancelled", "tracking_details": ""})
+    with db.get_connection() as conn:
+        assert tuple(conn.execute(
+            "SELECT fulfillment_status, tracking_details, payment_state FROM orders WHERE id = ?",
+            (order,),
+        ).fetchone()) == ("Shipped", "India Post: TEST123IN", "COMPLETED")
+    with client.session_transaction() as session:
+        session.clear()
+    assert client.post(endpoint, data={"fulfillment_status": "Delivered"}).status_code == 403
+
+
 def test_invalid_backfill_rolls_back_all_items():
     _, _, order = make_order()
     conn = db.get_connection()

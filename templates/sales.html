@@ -11,6 +11,7 @@
         <table>
             <tr>
                 <th>Order</th><th>Date</th><th>Product</th><th>Size</th><th>Qty</th><th>Price/Unit</th><th>Total</th><th>Customer</th><th>Delivery address</th>
+                <th>Status</th><th>Tracking details</th><th>Actions</th>
             </tr>
             {% for s in sales %}
             <tr>
@@ -40,6 +41,26 @@
                     {% else %}
                         <small>Not recorded</small>
                     {% endif %}
+                </td>
+                <td>{{ s.fulfillment_status or '—' }}</td>
+                <td style="min-width:9rem;white-space:pre-wrap;overflow-wrap:anywhere;">{{ s.tracking_details or '—' }}</td>
+                <td>
+                    {% if s.order_id %}
+                    <details>
+                        <summary class="btn">Edit</summary>
+                        <form method="post" action="{{ url_for('update_sale_fulfillment', order_id=s.order_id) }}" style="display:grid;gap:8px;min-width:13rem;margin-top:10px;">
+                            <label for="status-{{ loop.index }}">Status</label>
+                            <select id="status-{{ loop.index }}" name="fulfillment_status" required>
+                                {% for status in statuses %}
+                                <option value="{{ status }}"{% if s.fulfillment_status == status %} selected{% endif %}>{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="tracking-{{ loop.index }}">Postal tracking details</label>
+                            <textarea id="tracking-{{ loop.index }}" name="tracking_details" rows="3" maxlength="500">{{ s.tracking_details or '' }}</textarea>
+                            <button type="submit" class="btn">Save</button>
+                        </form>
+                    </details>
+                    {% else %}—{% endif %}
                 </td>
             </tr>
             {% endfor %}
