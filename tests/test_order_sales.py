@@ -9,8 +9,12 @@ def make_order(state="COMPLETED"):
     conn = db.get_connection()
     user = conn.execute("INSERT INTO users (name, email, password_hash, created_at, is_admin) VALUES ('Buyer', 'buyer@example.com', '', '2026-01-01', 1)").lastrowid
     product = conn.execute("INSERT INTO products (name, sku, quantity, selling_price, created_at) VALUES ('Current Name', 'order-test', 5, 999, '2026-01-01')").lastrowid
-    items = [{"product_id": product, "name": "Purchased Kurta", "qty": 2, "unit_price": 75}]
-    order = conn.execute("INSERT INTO orders (user_id, order_number, payment_state, items, total_amount, shipping_address_json, created_at) VALUES (?, ?, ?, ?, 150, ?, '2026-01-01')", (user, "TNT-" + "a" * 32, state, json.dumps(items), json.dumps({"name": "Shipping Customer"}))).lastrowid
+    items = [{"product_id": product, "name": "Purchased Kurta", "sku": "OLD-SKU",
+              "size": "XL", "color": "Purple", "qty": 2, "unit_price": 75}]
+    address = {"name": "Shipping Customer", "email": "shipping@example.com",
+               "phone": "9876543210", "address": "1 Test Street",
+               "address_line_2": "Flat 7", "city": "Hosur", "pincode": "635126"}
+    order = conn.execute("INSERT INTO orders (user_id, order_number, payment_state, items, total_amount, shipping_address_json, created_at) VALUES (?, ?, ?, ?, 150, ?, '2026-01-01')", (user, "TNT-" + "a" * 32, state, json.dumps(items), json.dumps(address))).lastrowid
     conn.commit()
     conn.close()
     return user, product, order
@@ -33,6 +37,9 @@ def test_completed_order_import_uses_snapshot_and_is_idempotent():
     assert "Purchased Kurta" in page
     assert "Shipping Customer" in page
     assert "TNT-" + "a" * 32 in page
+    for detail in ("OLD-SKU", "<td>XL</td>", "Purple", "1 Test Street", "Flat 7",
+                   "Hosur 635126", "shipping@example.com", "9876543210"):
+        assert detail in page
 
 
 def test_pending_orders_are_not_sales():

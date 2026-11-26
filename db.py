@@ -103,6 +103,14 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS order_confirmation_emails (
+            order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            audience TEXT NOT NULL CHECK (audience IN ('customer', 'store')),
+            claimed_at REAL,
+            sent_at TEXT,
+            PRIMARY KEY (order_id, audience)
+        );
+
         CREATE TABLE IF NOT EXISTS product_reviews (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,

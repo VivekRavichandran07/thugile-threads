@@ -7,22 +7,44 @@
     </div>
 
     {% if sales %}
+        <div style="overflow-x:auto;">
         <table>
             <tr>
-                <th>Order</th><th>Date</th><th>Product</th><th>Qty</th><th>Price/Unit</th><th>Total</th><th>Customer</th>
+                <th>Order</th><th>Date</th><th>Product</th><th>Size</th><th>Qty</th><th>Price/Unit</th><th>Total</th><th>Customer</th><th>Delivery address</th>
             </tr>
             {% for s in sales %}
             <tr>
-                <td>{{ s.order_number or 'Manual sale' }}</td>
+                <td style="overflow-wrap:anywhere;">{{ s.order_number or 'Manual sale' }}</td>
                 <td>{{ s.date.strftime('%d %b %Y') }}</td>
-                <td>{{ s.product_name }}</td>
+                <td>
+                    <strong>{{ s.product_name }}</strong>
+                    {% if s.sku %}<br><small>SKU {{ s.sku }}</small>{% endif %}
+                    {% if s.color %}<br><small>{{ s.color }}</small>{% endif %}
+                </td>
+                <td>{{ s.size or '—' }}</td>
                 <td>{{ s.quantity }}</td>
                 <td>₹{{ s.selling_price }}</td>
                 <td>₹{{ s.total_amount }}</td>
-                <td>{{ s.customer or '—' }}</td>
+                <td>
+                    {{ s.customer or '—' }}
+                    {% if s.address.phone %}<br>{{ s.address.phone }}{% endif %}
+                    {% if s.address.email %}<br>{{ s.address.email }}{% endif %}
+                </td>
+                <td style="min-width:12rem;">
+                    {% if s.address.address %}
+                        {{ s.address.address }}
+                        {% if s.address.address_line_2 %}<br>{{ s.address.address_line_2 }}{% endif %}
+                        {% if s.address.city or s.address.pincode %}
+                            <br>{{ s.address.city or '' }}{{ ' ' if s.address.city and s.address.pincode else '' }}{{ s.address.pincode or '' }}
+                        {% endif %}
+                    {% else %}
+                        <small>Not recorded</small>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </table>
+        </div>
     {% else %}
         <p class="empty-state">No sales recorded yet.</p>
     {% endif %}

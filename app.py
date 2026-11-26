@@ -1,3 +1,4 @@
+import base64
 import sqlite3
 import json
 import hashlib
@@ -9,6 +10,7 @@ import smtplib
 import ssl
 import uuid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from email.headerregistry import Address
 from email.message import EmailMessage
 from email.utils import formataddr
 from html import escape
@@ -218,6 +220,8 @@ def enforce_rate_limit(endpoint):
 
 @app.before_request
 def protect_mutating_requests():
+    if request.endpoint == "cashfree_payment_webhook":
+        return None  # Cashfree authenticates this server-to-server request with a signature.
     csrf_token()
     if request.method not in {"GET", "HEAD", "OPTIONS", "TRACE"}:
         supplied_token = (
@@ -309,7 +313,7 @@ def establish_user_session(user):
     session["user_pincode"] = user["pincode"] if user["pincode"] else None
 
 
-def send_storefront_email(email_message):
+def send_storefront_email(email_message, timeout=15):
     smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
     smtp_password = os.environ.get("SMTP_PASSWORD", "")
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
@@ -330,11 +334,11 @@ def send_storefront_email(email_message):
         smtp_connection = smtplib.SMTP_SSL(
             smtp_host,
             smtp_port,
-            timeout=15,
+            timeout=timeout,
             context=ssl.create_default_context(),
         )
     else:
-        smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+        smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=timeout)
     with smtp_connection as smtp:
         if smtp_port == 587:
             smtp.ehlo()
@@ -1786,12 +1790,12 @@ def cashfree_error_details(error):
     return details
 
 
-def cashfree_return_url(order_number):
-    redirect_path = url_for("cashfree_payment_return", order_id=order_number)
+def cashfree_callback_url(endpoint, **values):
+    redirect_path = url_for(endpoint, **values)
     public_base_url = os.environ.get("CASHFREE_REDIRECT_BASE_URL", "").strip()
     if public_base_url:
         return urljoin(public_base_url.rstrip("/") + "/", redirect_path.lstrip("/"))
-    return url_for("cashfree_payment_return", order_id=order_number, _external=True)
+    return url_for(endpoint, _external=True, **values)
 
 
 def build_order_items(raw_items):
@@ -2001,7 +2005,8 @@ def cashfree_create_payment():
             if "quoted_total" in data and data["quoted_total"] != float(total):
                 raise ValueError("Your checkout total changed. Review the updated total before paying.")
             order_number = f"TNT-{uuid.uuid4().hex}"
-            return_url = cashfree_return_url(order_number)
+            return_url = cashfree_callback_url("cashfree_payment_return", order_id=order_number)
+            notify_url = cashfree_callback_url("cashfree_payment_webhook")
             conn.execute(
                 """INSERT INTO orders
                     (user_id, order_number, cashfree_order_id, total_amount, status,
@@ -2030,7 +2035,10 @@ def cashfree_create_payment():
                     "customer_email": address["email"],
                     "customer_phone": re.sub(r"\D", "", address["phone"] or ""),
                 },
-                "order_meta": {"return_url": return_url},
+                "order_meta": {
+                    "return_url": return_url,
+                    **({"notify_url": notify_url} if urlparse(notify_url).scheme == "https" else {}),
+                },
             },
             headers=cashfree_api_headers(credentials),
             timeout=20,
@@ -2171,18 +2179,138 @@ def synchronize_completed_order_sales():
 synchronize_completed_order_sales()
 
 
+def send_order_confirmation_emails(order_id):
+    """Deliver each queued copy independently, including on repeated payment checks."""
+    conn = get_connection()
+    try:
+        order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+        for audience in ("customer", "store"):
+            claim = time.time()
+            with conn:
+                delivery = conn.execute(
+                    """UPDATE order_confirmation_emails SET claimed_at = ?
+                       WHERE order_id = ? AND audience = ? AND sent_at IS NULL
+                         AND (claimed_at IS NULL OR claimed_at < ?)""",
+                    (claim, order_id, audience, claim - 300),
+                )
+            if not delivery.rowcount:
+                continue
+            sent_at = None
+            try:
+                send_storefront_email(order_confirmation_message(order, audience), timeout=5)
+                sent_at = now_iso()
+            except (OSError, ValueError, TypeError, InvalidOperation) as error:
+                app.logger.warning("Order email failed for order %s (%s): %s",
+                                   order_id, audience, type(error).__name__)
+            finally:
+                with conn:
+                    conn.execute(
+                        """UPDATE order_confirmation_emails SET sent_at = ?, claimed_at = NULL
+                           WHERE order_id = ? AND audience = ? AND claimed_at = ?""",
+                        (sent_at, order_id, audience, claim),
+                    )
+        return conn.execute(
+            "SELECT 1 FROM order_confirmation_emails WHERE order_id = ? AND sent_at IS NULL",
+            (order_id,),
+        ).fetchone() is None
+    finally:
+        conn.close()
+
+
+def order_confirmation_message(order, audience):
+    address = json.loads(order["shipping_address_json"])
+    items = json.loads(order["items"])
+    store_copy = audience == "store"
+    message = EmailMessage()
+    message["To"] = Address(addr_spec="thugile.official@gmail.com" if store_copy else address["email"])
+    message["Subject"] = f"{'New paid order' if store_copy else 'Order confirmed'} | {order['order_number']}"
+    lines = [
+        "A paid order is ready to fulfil." if store_copy else f"Thank you for your order, {address['name']}.",
+        "",
+        f"Order: {order['order_number']}",
+        f"Placed: {order['created_at']}",
+        "Payment: Confirmed",
+        "",
+        "Items",
+    ]
+    for item in items:
+        unit_price = Decimal(str(item["unit_price"]))
+        details = " / ".join(str(item[key]) for key in ("sku", "size", "color") if item.get(key))
+        lines.append(f"- {item['name']} ({details}) × {item['qty']} at ₹{unit_price:,.2f} each")
+    lines.extend([
+        "",
+        f"Discount already included: ₹{order['discount_amount']:,.2f}",
+        f"Shipping: ₹{order['shipping_charge']:,.2f}",
+        f"Total paid: ₹{order['total_amount']:,.2f}",
+        "",
+        "Delivery details",
+        *(address[key] for key in ("name", "email", "phone", "address", "address_line_2", "city", "pincode")
+          if address.get(key)),
+    ])
+    message.set_content("\n".join(lines))
+    return message
+
+
 @app.route("/api/payments/cashfree/<merchant_order_id>/status")
 def cashfree_payment_status(merchant_order_id):
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
+    return verify_cashfree_order(merchant_order_id, user_id=session["user_id"])
+
+
+@app.route("/api/payments/cashfree/webhook", methods=["POST"])
+def cashfree_payment_webhook():
+    try:
+        _, credentials, _ = get_cashfree_settings()
+    except RuntimeError as error:
+        return jsonify({"error": str(error)}), 503
+    raw_body = request.get_data()
+    timestamp = request.headers.get("x-webhook-timestamp", "")
+    signature = request.headers.get("x-webhook-signature", "")
+    expected = base64.b64encode(hmac.digest(
+        credentials["client_secret"].encode(), timestamp.encode() + raw_body, "sha256"
+    ))
+    if not timestamp or not hmac.compare_digest(expected, signature.encode()):
+        return jsonify({"error": "Invalid webhook signature."}), 401
+    event = request.get_json(silent=True)
+    if not isinstance(event, dict):
+        return jsonify({"error": "Invalid webhook payload."}), 400
+    if event.get("type") != "PAYMENT_SUCCESS_WEBHOOK":
+        return jsonify({"received": True})
+    data = event.get("data")
+    order = data.get("order") if isinstance(data, dict) else None
+    order_id = order.get("order_id") if isinstance(order, dict) else None
+    if not isinstance(order_id, str) or not re.fullmatch(r"TNT-[a-f0-9]{32}", order_id):
+        return jsonify({"received": True})
+    result = verify_cashfree_order(order_id, webhook=True)
+    if isinstance(result, tuple) and result[1] == 404:
+        return jsonify({"received": True})
+    return result
+
+
+def cashfree_status_response(order, state, webhook):
+    if state == "COMPLETED":
+        try:
+            if not send_order_confirmation_emails(order["id"]) and webhook:
+                return jsonify({"error": "Order confirmed. Email delivery is pending."}), 503
+        except sqlite3.Error:
+            app.logger.exception("Order email queue unavailable for order id %s", order["id"])
+            if webhook:
+                return jsonify({"error": "Order email delivery is pending."}), 503
+    elif webhook and state == "PENDING":
+        return jsonify({"error": "Cashfree payment verification is pending."}), 503
+    return jsonify({"order_number": order["order_number"], "state": state})
+
+
+def verify_cashfree_order(merchant_order_id, user_id=None, *, webhook=False):
     if not re.fullmatch(r"TNT-[a-f0-9]{32}", merchant_order_id):
         return jsonify({"error": "Order not found."}), 404
 
     conn = get_connection()
     order = conn.execute(
-        "SELECT id, order_number, total_amount, status, payment_state "
-        "FROM orders WHERE order_number = ? AND user_id = ?",
-        (merchant_order_id, session["user_id"]),
+        "SELECT id, user_id, order_number, total_amount, status, payment_state "
+        "FROM orders WHERE order_number = ? AND (? IS NULL OR user_id = ?)",
+        (merchant_order_id, user_id, user_id),
     ).fetchone()
     conn.close()
     if not order:
@@ -2196,7 +2324,7 @@ def cashfree_payment_status(merchant_order_id):
             app.logger.warning("Sales import unavailable for completed order id %s", order["id"])
         finally:
             conn.close()
-        return jsonify({"order_number": merchant_order_id, "state": "COMPLETED"})
+        return cashfree_status_response(order, "COMPLETED", webhook)
 
     try:
         api_base, credentials, _ = get_cashfree_settings()
@@ -2241,24 +2369,28 @@ def cashfree_payment_status(merchant_order_id):
         conn = get_connection()
         try:
             with conn:
-                conn.execute(
+                changed = conn.execute(
                     """
                     UPDATE orders
                     SET payment_state = ?, status = ?, cashfree_order_id = ?
                     WHERE id = ? AND user_id = ? AND payment_state != 'COMPLETED'
                     """,
-                    (payment_state, order_status, merchant_order_id, order["id"], session["user_id"]),
+                    (payment_state, order_status, merchant_order_id, order["id"], order["user_id"]),
                 )
-                if payment_state == "COMPLETED":
+                if payment_state == "COMPLETED" and changed.rowcount:
                     record_order_sales(conn, order["id"], deduct_inventory=True)
-                    conn.execute("DELETE FROM user_carts WHERE user_id = ?", (session["user_id"],))
+                    conn.execute("DELETE FROM user_carts WHERE user_id = ?", (order["user_id"],))
+                    conn.executemany(
+                        "INSERT INTO order_confirmation_emails (order_id, audience) VALUES (?, ?)",
+                        ((order["id"], audience) for audience in ("customer", "store")),
+                    )
                 stored_state = conn.execute(
                     "SELECT payment_state FROM orders WHERE id = ? AND user_id = ?",
-                    (order["id"], session["user_id"]),
+                    (order["id"], order["user_id"]),
                 ).fetchone()["payment_state"]
         finally:
             conn.close()
-        return jsonify({"order_number": merchant_order_id, "state": stored_state})
+        return cashfree_status_response(order, stored_state, webhook)
     except RuntimeError as error:
         return jsonify({"error": str(error)}), 503
     except (requests.RequestException, ValueError, InvalidOperation):
@@ -2561,7 +2693,8 @@ def sales():
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT sales.*, COALESCE(sales.product_name, products.name) AS display_product_name, orders.order_number
+        SELECT sales.*, COALESCE(sales.product_name, products.name) AS display_product_name,
+               orders.order_number, orders.shipping_address_json, orders.items AS order_items
         FROM sales
         LEFT JOIN products ON sales.product_id = products.id
         LEFT JOIN orders ON sales.order_id = orders.id
@@ -2570,18 +2703,37 @@ def sales():
     ).fetchall()
     conn.close()
 
-    all_sales = [
-        {
+    all_sales = []
+    for r in rows:
+        item = {}
+        address = {}
+        try:
+            items = json.loads(r["order_items"] or "[]")
+            index = r["order_item_index"]
+            if isinstance(items, list) and isinstance(index, int) and 0 <= index < len(items):
+                if isinstance(items[index], dict):
+                    item = items[index]
+        except (TypeError, ValueError):
+            pass
+        try:
+            saved_address = json.loads(r["shipping_address_json"] or "{}")
+            if isinstance(saved_address, dict):
+                address = saved_address
+        except (TypeError, ValueError):
+            pass
+        all_sales.append({
             "date": parse_date(r["date"]),
-            "product_name": r["display_product_name"] or "—",
+            "product_name": item.get("name") or r["display_product_name"] or "—",
+            "sku": item.get("sku"),
+            "size": item.get("size"),
+            "color": item.get("color"),
             "quantity": r["quantity"],
             "selling_price": r["selling_price"],
             "total_amount": round(r["quantity"] * r["selling_price"], 2),
-            "customer": r["customer"],
+            "customer": address.get("name") or r["customer"],
             "order_number": r["order_number"],
-        }
-        for r in rows
-    ]
+            "address": address,
+        })
     return render_template("sales.html", sales=all_sales)
 
 

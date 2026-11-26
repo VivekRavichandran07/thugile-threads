@@ -1,3 +1,6 @@
+import base64
+import hmac
+import json
 import os
 import sqlite3
 from datetime import datetime
@@ -98,6 +101,7 @@ def cashfree_client(tmp_path, monkeypatch):
     monkeypatch.setenv("CASHFREE_SECRET_KEY", "test-secret")
     monkeypatch.setenv("CASHFREE_ENV", "sandbox")
     monkeypatch.setenv("CASHFREE_REDIRECT_BASE_URL", "https://shop.example")
+    monkeypatch.setattr(app_module, "send_storefront_email", lambda message, **kwargs: None)
 
     client = app.test_client()
     client.product_id = product_id
@@ -150,6 +154,7 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
     assert payment_request["order_meta"]["return_url"].startswith(
         "https://shop.example/shop/payment/cashfree/return?order_id="
     )
+    assert payment_request["order_meta"]["notify_url"] == "https://shop.example/api/payments/cashfree/webhook"
     assert payment_request["headers"]["x-client-id"] == "test-app"
     assert payment_request["headers"]["x-client-secret"] == "test-secret"
     assert data["payment_session_id"] == "cashfree-session-123"
@@ -180,6 +185,49 @@ def test_cashfree_checkout_uses_server_prices_and_confirms_only_verified_payment
     conn = sqlite3.connect(database_path)
     assert conn.execute("SELECT quantity, selling_price, product_name FROM sales").fetchall() == [(1, 75, "Test Kurta")]
     conn.close()
+
+
+def test_paid_webhook_sends_separate_order_emails_and_retries_only_failed_copy(cashfree_client, monkeypatch):
+    client, database_path = cashfree_client
+    monkeypatch.setattr(app_module.requests, "post", lambda url, **kwargs: FakeResponse({
+        "order_id": kwargs["json"]["order_id"], "payment_session_id": "webhook-session",
+    }))
+    response = client.post("/api/payments/cashfree", json={
+        "address_id": 1, "items": [{"product_id": client.product_id, "qty": 1}],
+    })
+    order_id = response.json["merchant_order_id"]
+    monkeypatch.setattr(app_module.requests, "get", lambda *args, **kwargs: FakeResponse({
+        "order_id": order_id, "order_status": "PAID", "order_amount": 140, "order_currency": "INR",
+    }))
+    delivered = []
+    attempts = []
+
+    def send(message, **kwargs):
+        recipient = str(message["To"])
+        attempts.append(recipient)
+        if len(attempts) == 1:
+            raise OSError("Temporary SMTP failure")
+        delivered.append((recipient, message.get_content()))
+
+    monkeypatch.setattr(app_module, "send_storefront_email", send)
+    body = json.dumps({"type": "PAYMENT_SUCCESS_WEBHOOK", "data": {"order": {"order_id": order_id}}})
+    timestamp = "1795622400000"
+    signature = base64.b64encode(hmac.digest(b"test-secret", (timestamp + body).encode(), "sha256")).decode()
+    webhook = app.test_client()
+    headers = {"x-webhook-timestamp": timestamp, "x-webhook-signature": signature}
+    endpoint = "/api/payments/cashfree/webhook"
+    assert webhook.post(endpoint, data=body + " ", content_type="application/json", headers=headers).status_code == 401
+    assert webhook.post(endpoint, data=body, content_type="application/json", headers=headers).status_code == 503
+    assert webhook.post(endpoint, data=body, content_type="application/json", headers=headers).status_code == 200
+    assert webhook.post(endpoint, data=body, content_type="application/json", headers=headers).status_code == 200
+    assert attempts == ["payment-test@example.com", "thugile.official@gmail.com", "payment-test@example.com"]
+    for _, content in delivered:
+        for detail in (order_id, "Test Kurta", "payment-test-kurta", "M", "1 Test Street",
+                       "9876543210", "Shipping: ₹65.00", "Total paid: ₹140.00"):
+            assert detail in content
+    with sqlite3.connect(database_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM sales").fetchone() == (1,)
+        assert conn.execute("SELECT quantity FROM products WHERE id = ?", (client.product_id,)).fetchone() == (1,)
 
 
 
