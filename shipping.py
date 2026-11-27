@@ -5,12 +5,13 @@ import re
 
 
 ORIGIN_PIN = "635126"
+ITEM_WEIGHT_GRAMS = 450
 FREE_SHIPPING_THRESHOLD = Decimal("4599")
 METRO_PREFIXES = {"110", "400", "500", "560", "600", "700"}
 RATES = {
     "local": (40, 55, 15),
     "state": (55, 75, 20),
-    "metro": (75, 105, 30),
+    "metro": (82, 105, 30),
     "rest": (90, 143, 47),
     "remote": (90, 143, 47),
 }
@@ -36,7 +37,7 @@ def shipping_charge(pincode, item_count, merchandise_total):
         zone = "rest"
 
     first, second, extra = RATES[zone]
-    weight = item_count * 350
+    weight = item_count * ITEM_WEIGHT_GRAMS
     extra_slabs = max(0, (weight - 1000 + 499) // 500)
     base = first if weight <= 500 else second + extra_slabs * extra
     return (Decimal(base) * Decimal("1.18")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
