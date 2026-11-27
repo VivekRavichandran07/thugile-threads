@@ -100,8 +100,10 @@ def test_shipping_notice_retries_and_my_orders_keeps_tracking_after_delivery(mon
     save("Dispatched", "TEST123IN")
     save("Shipped", "")
     assert not sent
-    assert "Tracking email is pending" in save("Shipped", "TEST123IN")
-    assert "tracking email sent" in save("Shipped", "TEST123IN")
+    pending = save("Shipped", "TEST123IN")
+    assert "Order status and tracking saved." in pending
+    assert "Email delivery could not be confirmed." in pending
+    assert "Tracking email accepted by the mail server." in save("Shipped", "TEST123IN")
     save("Shipped", "TEST123IN")
     save("Delivered", "TEST123IN")
     assert len(sent) == 2

@@ -25,6 +25,8 @@ def test_contact_message_is_sent_to_configured_inbox(monkeypatch):
             return self
 
         def __exit__(self, exc_type, exc_value, traceback):
+            if exc_type is None:
+                raise OSError("Connection closed after accepting the message")
             return False
 
         def ehlo(self):

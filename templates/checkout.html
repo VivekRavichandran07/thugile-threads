@@ -169,6 +169,7 @@
             <span>Loading selected address...</span>
           </div>
         </div>
+        {% if first_order_discount_enabled %}
         <form id="checkout-discount-form" class="checkout-discount-form">
           <label for="checkout-discount-code">Have a discount code?</label>
           <div class="checkout-discount-fields">
@@ -178,6 +179,7 @@
           </div>
           <p id="checkout-discount-message" role="status" aria-live="polite"></p>
         </form>
+        {% endif %}
         <h2>Payment method</h2>
         <div class="payment-option">
           <span class="payment-icon" aria-hidden="true">🔒</span>
@@ -262,18 +264,20 @@
       items: bag.map(item => ({product_id: item.product_id, qty: item.qty}))
     });
     function showDiscountTotal() {
+      const removeButton = document.getElementById('remove-discount');
+      if (!removeButton) return;
       const summary = document.getElementById('checkout-discount-summary');
       if (appliedDiscount && appliedDiscount.cartKey !== discountCartKey()) {
         appliedDiscount = null;
         document.getElementById('checkout-discount-message').textContent = 'Your bag changed. Please apply your code again.';
       }
       summary.hidden = !appliedDiscount;
-      document.getElementById('remove-discount').hidden = !appliedDiscount;
+      removeButton.hidden = !appliedDiscount;
       if (appliedDiscount) {
         summary.textContent = `${appliedDiscount.code}: 10% off — you save ${rupees(appliedDiscount.discount)}`;
       }
     }
-    document.getElementById('checkout-discount-form').addEventListener('submit', async event => {
+    document.getElementById('checkout-discount-form')?.addEventListener('submit', async event => {
       event.preventDefault();
       if (paymentInProgress) return;
       const button = event.currentTarget.querySelector('button[type="submit"]');
@@ -297,7 +301,7 @@
       } catch (error) { message.textContent = error.message; }
       finally { button.disabled = false; renderCheckout(false); }
     });
-    document.getElementById('remove-discount').addEventListener('click', () => {
+    document.getElementById('remove-discount')?.addEventListener('click', () => {
       if (paymentInProgress) return;
       appliedDiscount = null;
       document.getElementById('checkout-discount-message').textContent = '';

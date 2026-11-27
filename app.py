@@ -339,13 +339,21 @@ def send_storefront_email(email_message, timeout=15):
         )
     else:
         smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=timeout)
-    with smtp_connection as smtp:
-        if smtp_port == 587:
-            smtp.ehlo()
-            smtp.starttls(context=ssl.create_default_context())
-            smtp.ehlo()
-        smtp.login(smtp_username, smtp_password)
-        smtp.send_message(email_message)
+    accepted = False
+    try:
+        with smtp_connection as smtp:
+            if smtp_port == 587:
+                smtp.ehlo()
+                smtp.starttls(context=ssl.create_default_context())
+                smtp.ehlo()
+            smtp.login(smtp_username, smtp_password)
+            smtp.send_message(email_message)
+            accepted = True
+    except OSError:
+        if not accepted:
+            raise
+        # A failed QUIT does not undo the server's acceptance of the message.
+        app.logger.warning("SMTP connection did not close cleanly after accepting a message.")
 
 
 def page_metadata(path):
@@ -1872,9 +1880,15 @@ def monthly_discount_code():
     )[month - 1]
 
 
+def first_order_discount_enabled():
+    return os.environ.get("FIRST_ORDER_DISCOUNT_ENABLED", "").strip().lower() in {"1", "true"}
+
+
 def apply_first_order_discount(conn, user_id, code, items, subtotal):
     if not code:
         return items, subtotal, Decimal("0"), None
+    if not first_order_discount_enabled():
+        raise ValueError("The first-order discount is currently unavailable.")
     current_code = monthly_discount_code()
     if not isinstance(code, str) or code.strip().upper() != current_code:
         raise ValueError("This discount code is invalid or has expired.")
@@ -1894,8 +1908,8 @@ def apply_first_order_discount(conn, user_id, code, items, subtotal):
 
 @app.route("/api/store/discount-offer")
 def discount_offer():
-    eligible = True
-    if "user_id" in session:
+    eligible = first_order_discount_enabled()
+    if eligible and "user_id" in session:
         conn = get_connection()
         try:
             eligible = conn.execute("SELECT 1 FROM orders WHERE user_id = ? LIMIT 1", (session["user_id"],)).fetchone() is None
@@ -1909,6 +1923,8 @@ def discount_offer():
 
 @app.route("/api/store/discount/validate", methods=["POST"])
 def validate_discount():
+    if not first_order_discount_enabled():
+        return jsonify({"error": "The first-order discount is currently unavailable."}), 400
     if "user_id" not in session:
         return jsonify({"error": "Please sign in to apply your first-order discount."}), 401
     data = request.get_json(silent=True)
@@ -2269,7 +2285,12 @@ def send_order_shipping_email(order_id, tracking_details):
                 (claim, order_id, tracking_details, claim - 300, order_id, tracking_details),
             )
             if not delivery.rowcount:
-                return False
+                existing = conn.execute(
+                    """SELECT sent_at IS NOT NULL FROM order_shipping_emails
+                       WHERE order_id = ? AND tracking_details = ?""",
+                    (order_id, tracking_details),
+                ).fetchone()
+                return existing is not None and bool(existing[0])
             order = conn.execute(
                 "SELECT order_number, shipping_address_json FROM orders WHERE id = ?", (order_id,)
             ).fetchone()
@@ -2824,13 +2845,17 @@ def update_sale_fulfillment(order_id):
                 ).fetchone()[0]
     finally:
         conn.close()
+    flash("Order status and tracking saved.", "success")
     if email_pending:
-        if send_order_shipping_email(order_id, tracking_details):
-            flash("Order saved and tracking email sent.", "success")
+        try:
+            email_sent = send_order_shipping_email(order_id, tracking_details)
+        except sqlite3.Error:
+            app.logger.exception("Could not record shipping email delivery for order %s", order_id)
+            email_sent = False
+        if email_sent:
+            flash("Tracking email accepted by the mail server.", "success")
         else:
-            flash("Order saved. Tracking email is pending. Save again to retry.", "error")
-    else:
-        flash("Order status and tracking saved.", "success")
+            flash("Email delivery could not be confirmed. The shipment update was saved.", "info")
     return redirect(url_for("sales"), code=303)
 
 
@@ -2916,7 +2941,7 @@ def shipping():
 
 @app.route("/shop/checkout")
 def checkout():
-    return render_template("checkout.html")
+    return render_template("checkout.html", first_order_discount_enabled=first_order_discount_enabled())
 
 
 @app.route("/shop/our-story")

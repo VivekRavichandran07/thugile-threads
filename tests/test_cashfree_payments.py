@@ -100,6 +100,7 @@ def cashfree_client(tmp_path, monkeypatch):
     monkeypatch.setenv("CASHFREE_APP_ID", "test-app")
     monkeypatch.setenv("CASHFREE_SECRET_KEY", "test-secret")
     monkeypatch.setenv("CASHFREE_ENV", "sandbox")
+    monkeypatch.setenv("FIRST_ORDER_DISCOUNT_ENABLED", "true")
     monkeypatch.setenv("CASHFREE_REDIRECT_BASE_URL", "https://shop.example")
     monkeypatch.setattr(app_module, "send_storefront_email", lambda message, **kwargs: None)
 
@@ -449,6 +450,22 @@ def test_discount_rounding_matches_paid_total_and_requires_login(cashfree_client
     with client.session_transaction() as session:
         session.clear()
     assert client.post("/api/store/discount/validate", json=payload).status_code == 401
+
+
+def test_archived_first_order_offer_is_hidden_and_cannot_be_redeemed(cashfree_client, monkeypatch):
+    client, _ = cashfree_client
+    monkeypatch.delenv("FIRST_ORDER_DISCOUNT_ENABLED", raising=False)
+    code = app_module.monthly_discount_code()
+    items = [{"product_id": client.product_id, "qty": 1}]
+    assert client.get("/api/store/discount-offer").json == {"code": None, "eligible": False}
+    assert 'id="checkout-discount-form"' not in client.get("/shop/checkout").get_data(as_text=True)
+    assert client.post("/api/store/discount/validate", json={"code": code, "items": items}).status_code == 400
+    assert client.post("/api/payments/cashfree", json={
+        "address_id": 1, "items": items, "discount_code": code,
+    }).status_code == 400
+    assert client.post("/api/store/checkout/quote", json={"address_id": 1, "items": items}).json["total"] == 140
+    monkeypatch.setenv("FIRST_ORDER_DISCOUNT_ENABLED", "true")
+    assert 'id="checkout-discount-form"' in client.get("/shop/checkout").get_data(as_text=True)
 
 
 def test_offer_hides_for_any_order_history_and_is_not_cached(cashfree_client):
