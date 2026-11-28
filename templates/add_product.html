@@ -15,14 +15,9 @@
 
         <label>Sizes</label>
         <select name="size" multiple required>
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-            <option value="2XL">2XL</option>
-            <option value="XXL">XXL</option>
-            <option value="3XL">3XL</option>
-            <option value="4XL">4XL</option>
+            {% for size in sizes %}
+            <option value="{{ size }}">{{ size }}</option>
+            {% endfor %}
             <option value="Free Size">Free Size</option>
         </select>
         <small>Hold Ctrl (Windows) or Command (Mac) to select multiple sizes.</small>

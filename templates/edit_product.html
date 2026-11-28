@@ -13,13 +13,6 @@
         <label>Category</label>
         <input type="text" name="category" value="{{ product.category or '' }}">
 
-        <label>Size</label>
-        <select name="size" required>
-            {% for size in ['S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', '4XL', 'Free Size'] %}
-            <option value="{{ size }}" {% if product.size == size %}selected{% endif %}>{{ size }}</option>
-            {% endfor %}
-        </select>
-
         <label>Color</label>
         <input type="text" name="color" value="{{ product.color or '' }}">
 
@@ -39,9 +32,9 @@
 
         <label>Quantity by Size</label>
         <div class="size-quantity-list">
-            {% for variant in product_variants %}
-            <label>{{ variant.size or 'Free Size' }}
-                <input type="number" min="0" name="quantity_{{ variant.id }}" value="{{ variant.quantity }}">
+            {% for size, field, quantity in size_rows %}
+            <label>{{ size }}
+                <input type="number" min="0" name="{{ field }}" value="{{ request.form.get(field, quantity) }}">
             </label>
             {% endfor %}
         </div>

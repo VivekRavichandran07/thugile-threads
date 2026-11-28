@@ -85,6 +85,46 @@ def test_admin_role_can_access_admin_pages_and_subscriber_list(admin_auth_client
     }
 
 
+def test_admin_can_stock_missing_product_sizes(admin_auth_client):
+    client, _, admin_id = admin_auth_client
+    login_as(client, admin_id)
+    with db.get_connection() as conn:
+        product_id = conn.execute(
+            """
+            INSERT INTO products (name, sku, size, quantity, created_at)
+            VALUES ('Kurti', 'KURTI-2XL', '2XL', 3, '2026-01-01')
+            """
+        ).lastrowid
+    path = f"/admin/products/{product_id}/edit"
+
+    page = client.get(path).get_data(as_text=True)
+    fields = [
+        "new_quantity_XS", "new_quantity_S", "new_quantity_M",
+        "new_quantity_L", "new_quantity_XL", f"quantity_{product_id}",
+        "new_quantity_3XL", "new_quantity_4XL", "new_quantity_5XL",
+    ]
+    positions = [page.index(f'name="{field}"') for field in fields]
+    assert positions == sorted(positions)
+    assert f'name="quantity_{product_id}" value="3"' in page
+    assert 'name="new_quantity_XS" value="0"' in page
+
+    data = {
+        "name": "Cotton Kurti", "sku": "KURTI-2XL", "color": "Blue",
+        "cost_price": "100", "selling_price": "200", "discounted_price": "175",
+        f"quantity_{product_id}": "4", "new_quantity_XS": "0", "new_quantity_5XL": "7",
+    }
+    assert client.post(path, data=data).status_code == 302
+
+    with db.get_connection() as conn:
+        rows = conn.execute(
+            "SELECT size, quantity, name, color, discounted_price FROM products ORDER BY id"
+        ).fetchall()
+    assert [tuple(row) for row in rows] == [
+        ("2XL", 4, "Cotton Kurti", "Blue", 175),
+        ("5XL", 7, "Cotton Kurti", "Blue", 175),
+    ]
+
+
 def test_newsletter_subscriber_list_rejects_customers_and_guests(admin_auth_client):
     client, customer_id, _ = admin_auth_client
     login_as(client, customer_id)

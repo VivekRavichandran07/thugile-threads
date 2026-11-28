@@ -697,6 +697,28 @@ def robots_txt():
     )
 
 
+@app.get("/.well-known/assetlinks.json")
+def android_asset_links():
+    fingerprints = [
+        value.strip().upper()
+        for value in os.environ.get("ANDROID_APP_SIGNING_SHA256", "").split(",")
+        if value.strip()
+    ]
+    if not fingerprints or any(
+        not re.fullmatch(r"(?:[0-9A-F]{2}:){31}[0-9A-F]{2}", value)
+        for value in fingerprints
+    ):
+        abort(404)
+    return jsonify([{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "store.thugilethreads.app",
+            "sha256_cert_fingerprints": fingerprints,
+        },
+    }])
+
+
 @app.route("/sitemap.xml")
 def sitemap_xml():
     base_url = app.config["PUBLIC_BASE_URL"]
@@ -2528,6 +2550,9 @@ def dashboard():
 # ---------------------------------------------------------------
 # PRODUCTS
 # ---------------------------------------------------------------
+ADMIN_PRODUCT_SIZES = ("XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL")
+
+
 @app.route("/admin/products")
 def products():
     if "user_id" not in session:
@@ -2591,7 +2616,7 @@ def add_product():
             flash(f"Error adding product: {e}", "error")
             conn.close()
 
-    return render_template("add_product.html")
+    return render_template("add_product.html", sizes=ADMIN_PRODUCT_SIZES)
 
 
 @app.route("/admin/products/<int:product_id>/edit", methods=["GET", "POST"])
@@ -2606,6 +2631,8 @@ def edit_product(product_id):
             return redirect(url_for("products"))
         return render_template("edit_product.html", product=product, show_login=True)
     conn = get_connection()
+    if request.method == "POST":
+        conn.execute("BEGIN IMMEDIATE")
     product = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
 
     if product is None:
@@ -2616,6 +2643,23 @@ def edit_product(product_id):
         "SELECT * FROM products WHERE name = ? AND COALESCE(color, '') = COALESCE(?, '') ORDER BY id",
         (product["name"], product["color"]),
     ).fetchall()
+    remaining_variants = list(variants)
+    size_rows = []
+    missing_sizes = []
+    for size in ADMIN_PRODUCT_SIZES:
+        variant = next((row for row in remaining_variants if row["size"] == size), None)
+        if variant is None and size == "XXL":
+            variant = next((row for row in remaining_variants if row["size"] == "2XL"), None)
+        if variant is None:
+            missing_sizes.append(size)
+            size_rows.append((size, f"new_quantity_{size}", 0))
+        else:
+            remaining_variants.remove(variant)
+            size_rows.append((size, f"quantity_{variant['id']}", variant["quantity"]))
+    size_rows.extend(
+        (row["size"] or "Free Size", f"quantity_{row['id']}", row["quantity"])
+        for row in remaining_variants
+    )
 
     if request.method == "POST":
         try:
@@ -2631,6 +2675,8 @@ def edit_product(product_id):
             selling_price, discounted_price = parse_product_prices(request.form)
             for variant in variants:
                 quantity = int(request.form.get(f"quantity_{variant['id']}", variant["quantity"]))
+                if quantity < 0:
+                    raise ValueError("Stock quantities must be zero or greater.")
                 conn.execute(
                     """
                     UPDATE products
@@ -2651,6 +2697,24 @@ def edit_product(product_id):
                         variant["id"],
                     ),
                 )
+            for size in missing_sizes:
+                quantity = int(request.form.get(f"new_quantity_{size}", "") or 0)
+                if quantity < 0:
+                    raise ValueError("Stock quantities must be zero or greater.")
+                if quantity:
+                    sku = f"{product['sku']}-{size.lower()}-{uuid.uuid4().hex}"
+                    conn.execute(
+                        """
+                        INSERT INTO products
+                            (name, sku, category, size, color, image_url, cost_price,
+                             selling_price, discounted_price, quantity, reorder_level, created_at,
+                             is_archived)
+                        SELECT name, ?, category, ?, color, image_url, cost_price,
+                               selling_price, discounted_price, ?, reorder_level, ?, is_archived
+                        FROM products WHERE id = ?
+                        """,
+                        (sku, size, quantity, now_iso(), product_id),
+                    )
             conn.commit()
             flash(f'Product "{request.form["name"]}" updated.', "success")
             conn.close()
@@ -2658,11 +2722,10 @@ def edit_product(product_id):
         except (sqlite3.IntegrityError, ValueError, KeyError) as e:
             flash(f"Error updating product: {e}", "error")
             conn.close()
-            return render_template("edit_product.html", product=product, product_variants=variants)
     else:
         conn.close()
 
-    return render_template("edit_product.html", product=product, product_variants=variants)
+    return render_template("edit_product.html", product=product, size_rows=size_rows)
 
 
 @app.route("/admin/products/<int:product_id>/delete", methods=["POST"])
